@@ -22,7 +22,7 @@
                 var rank = i + 1;
                 var result = sortedResults[i];
                 
-                <tr class="@(rank <= 3 ? $"table-{GetRankStyle(rank)}" : "")">
+                <tr>
                     <td class="align-middle" style="width: 100px">
                         @if (rank <= 3)
                         {
@@ -80,9 +80,9 @@
 <style>
     .badge { font-size: 0.9rem; padding: 0.5rem 0.7rem; }
     .bi { margin-right: 0.3rem; }
-    .table-warning { background-color: rgba(255, 215, 0, 0.1) !important; }
-    .table-light { background-color: rgba(192, 192, 192, 0.1) !important; }
-    .table-info { background-color: rgba(205, 127, 50, 0.1) !important; }
+    .table-warning { ... }
+    .table-light   { ... }
+    .table-info    { ... }
 </style>
 
 @section Scripts {
