@@ -12,5 +12,7 @@ namespace VoteMaster.Models
         public DateTime EndTime { get; set; } = DateTime.UtcNow.AddHours(2);
         public bool AllowPublicResults { get; set; } = true;
         public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
+        public int MaxVotesPerVoter { get; set; } = 5;
+        public int MinVotesPerVoter { get; set; } = 1;
     }
 }

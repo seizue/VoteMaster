@@ -12,7 +12,8 @@ namespace VoteMaster.Areas.Client.Controllers
         private readonly IPollService _polls;
         public VoteController(IPollService polls) { _polls = polls; }
 
-        [HttpGet("{area}/Vote/{pollId:int}")]
+        [HttpGet]
+        [Route("Client/Vote/{pollId:int}")]
         public async Task<IActionResult> Index(int pollId)
         {
             var poll = await _polls.GetPollAsync(pollId);
@@ -21,18 +22,52 @@ namespace VoteMaster.Areas.Client.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Cast(int optionId)
+        [Route("Client/Vote/Cast")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cast(int pollId, int[] optionIds)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _polls.CastVoteAsync(optionId, userId);
-          if (!int.TryParse(Request.Form["PollId"], out var pollId))
-{
-    return BadRequest("Invalid PollId");
-}
+            try
+            {
+                var poll = await _polls.GetPollAsync(pollId);
+                if (poll == null) return NotFound();
 
-            return RedirectToAction("Thanks", new { pollId });
+                if (optionIds == null || !optionIds.Any())
+                {
+                    TempData["Error"] = "Please select at least one option";
+                    return RedirectToAction(nameof(Index), new { pollId });
+                }
+
+                if (optionIds.Length < poll.MinVotesPerVoter || optionIds.Length > poll.MaxVotesPerVoter)
+                {
+                    TempData["Error"] = $"Please select between {poll.MinVotesPerVoter} and {poll.MaxVotesPerVoter} options";
+                    return RedirectToAction(nameof(Index), new { pollId });
+                }
+
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+                foreach (var optionId in optionIds)
+                {
+                    try
+                    {
+                        await _polls.CastVoteAsync(optionId, userId);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        TempData["Error"] = ex.Message;
+                        return RedirectToAction(nameof(Index), new { pollId });
+                    }
+                }
+
+                return RedirectToAction(nameof(Thanks), new { pollId });
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while casting your votes";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
         }
 
+        [Route("Client/Vote/Thanks/{pollId:int}")]
         public IActionResult Thanks(int pollId) => View(model: pollId);
     }
 }

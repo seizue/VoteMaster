@@ -4,15 +4,46 @@
 }
 <h3>@Model.Title</h3>
 <p>@Model.Description</p>
-<form method="post" action="/Client/Vote/Cast">
-    <input type="hidden" name="PollId" value="@Model.Id" />
-    <div class="list-group mb-3">
-        @foreach (var o in Model.Options) {
-            <label class="list-group-item">
-                <input class="form-check-input me-1" type="radio" name="optionId" value="@o.Id" required />
-                @o.Text
-            </label>
-        }
-    </div>
-    <button class="btn btn-success">Submit Vote</button>
+<p class="text-info">Select between @Model.MinVotesPerVoter and @Model.MaxVotesPerVoter options</p>
+
+<form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })">
+    <input type="hidden" name="pollId" value="@Model.Id" />
+    
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    
+    @foreach (var option in Model.Options)
+    {
+        <div class="form-check mb-2">
+            <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" 
+                   onclick="validateVoteCount(this, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter)" />
+            <label class="form-check-label">@option.Text</label>
+        </div>
+    }
+    
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-primary mt-3" id="submitButton">Vote</button>
 </form>
+
+@section Scripts {
+    <script>
+        function validateVoteCount(checkbox, min, max) {
+            const checkedBoxes = document.querySelectorAll('input[name="optionIds"]:checked');
+            const submitButton = document.getElementById('submitButton');
+            
+            if (checkedBoxes.length > max) {
+                checkbox.checked = false;
+                alert(`You can select maximum ${max} options`);
+            }
+            
+            submitButton.disabled = checkedBoxes.length < min || checkedBoxes.length > max;
+        }
+
+        // Initialize button state
+        document.addEventListener('DOMContentLoaded', function() {
+            validateVoteCount(null, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter);
+        });
+    </script>
+}

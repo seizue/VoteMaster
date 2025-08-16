@@ -3,10 +3,10 @@
     Layout = "/Views/Shared/_Layout.cshtml";
     var pollId = (int)ViewBag.PollId;
 }
-<h3>Weighted Results</h3>
+<h3>Voting Results</h3>
 <div id="chart" class="my-3"></div>
 <table class="table table-bordered">
-    <thead><tr><th>Option</th><th>Weighted Points</th></tr></thead>
+    <thead><tr><th>Candidates</th><th>Total Votes</th></tr></thead>
     <tbody>
     @foreach (var kv in Model) {
         <tr><td>@kv.Key</td><td>@kv.Value</td></tr>

@@ -33,18 +33,41 @@ namespace VoteMaster.Services
 
         public async Task CastVoteAsync(int optionId, int userId)
         {
-            var option = await _db.Options.Include(o => o.Poll).FirstOrDefaultAsync(o => o.Id == optionId)
+            var option = await _db.Options
+                .Include(o => o.Poll)
+                .FirstOrDefaultAsync(o => o.Id == optionId)
                 ?? throw new InvalidOperationException("Option not found");
+
             var pollId = option.PollId;
 
-            // Ensure user hasn't voted in this poll yet
-            var already = await _db.Votes
+            // Count how many votes the user has already cast in this poll
+            var existingVotes = await _db.Votes
                 .Include(v => v.Option)
-                .AnyAsync(v => v.UserId == userId && v.Option.PollId == pollId);
+                .Where(v => v.UserId == userId && v.Option.PollId == pollId)
+                .CountAsync();
 
-            if (already) throw new InvalidOperationException("User already voted in this poll.");
+            // Check if user has reached the maximum votes allowed
+            if (existingVotes >= option.Poll.MaxVotesPerVoter)
+            {
+                throw new InvalidOperationException($"Maximum of {option.Poll.MaxVotesPerVoter} votes allowed per poll");
+            }
 
-            _db.Votes.Add(new Vote { OptionId = optionId, UserId = userId, VotedAt = DateTime.UtcNow });
+            // Check if user has already voted for this specific option
+            var alreadyVotedForOption = await _db.Votes
+                .AnyAsync(v => v.UserId == userId && v.OptionId == optionId);
+
+            if (alreadyVotedForOption)
+            {
+                throw new InvalidOperationException("You have already voted for this option");
+            }
+
+            _db.Votes.Add(new Vote
+            {
+                OptionId = optionId,
+                UserId = userId,
+                VotedAt = DateTime.UtcNow
+            });
+
             await _db.SaveChangesAsync();
         }
 
