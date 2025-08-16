@@ -9,5 +9,6 @@ namespace VoteMaster.Services
         Task<Poll> CreatePollAsync(Poll poll, IEnumerable<string> options);
         Task CastVoteAsync(int optionId, int userId);
         Task<Dictionary<string, int>> GetWeightedResultsAsync(int pollId);
+        Task DeletePollAsync(int id);
     }
 }

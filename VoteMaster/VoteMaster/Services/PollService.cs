@@ -62,5 +62,15 @@ namespace VoteMaster.Services
                 o => o.Text,
                 o => o.Votes.Sum(v => v.User.Weight));
         }
+        
+ public async Task DeletePollAsync(int id)
+        {
+            var poll = await _db.Polls.FindAsync(id);
+            if (poll != null)
+            {
+                _db.Polls.Remove(poll);
+                await _db.SaveChangesAsync();
+            }
+        }
     }
 }

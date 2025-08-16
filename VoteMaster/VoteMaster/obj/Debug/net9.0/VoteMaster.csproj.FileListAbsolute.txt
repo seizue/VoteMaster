@@ -911,6 +911,7 @@ C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debu
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\VoteMaster.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\VoteMaster.RazorAssemblyInfo.cache
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\VoteMaster.RazorAssemblyInfo.cs
+C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\VoteMaster.sourcelink.json
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\Ven\Documents\Repository\Repo\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
