@@ -2,25 +2,98 @@
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
     var pollId = (int)ViewBag.PollId;
+    var sortedResults = Model.OrderByDescending(x => x.Value).ToList();
+    var totalVotes = sortedResults.Sum(x => x.Value);
 }
 <h3>Voting Results</h3>
-<div id="chart" class="my-3"></div>
-<table class="table table-bordered">
-    <thead><tr><th>Candidates</th><th>Total Votes</th></tr></thead>
-    <tbody>
-    @foreach (var kv in Model) {
-        <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
-    }
-    </tbody>
-</table>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Rank</th>
+                    <th>Candidates</th>
+                    <th>Votes</th>
+                </tr>
+            </thead>
+            <tbody>
+            @for (int i = 0; i < sortedResults.Count; i++)
+            {
+                var rank = i + 1;
+                var result = sortedResults[i];
+                
+                <tr class="@(rank <= 3 ? $"table-{GetRankStyle(rank)}" : "")">
+                    <td class="align-middle" style="width: 100px">
+                        @if (rank <= 3)
+                        {
+                            <span class="badge rounded-pill" style="background-color: @GetRankColor(rank)">
+                                <i class="bi @GetRankIcon(rank)"></i>
+                                @rank
+                            </span>
+                        }
+                        else
+                        {
+                            @rank
+                        }
+                    </td>
+                    <td class="align-middle">@result.Key</td>
+                    <td class="align-middle" style="width: 100px">@result.Value</td>
+                </tr>
+            }
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="2"><strong>Total Votes</strong></td>
+                    <td><strong>@totalVotes</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
 
-<script>
-    const pollId = @pollId;
-    const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/results").build();
-    connection.on("resultsUpdated", (id) => {
-        if (id === pollId) {
-            location.reload();
-        }
-    });
-    connection.start();
-</script>
+@functions {
+    private string GetRankStyle(int rank) => rank switch
+    {
+        1 => "warning",
+        2 => "light",
+        3 => "info",
+        _ => ""
+    };
+
+    private string GetRankIcon(int rank) => rank switch
+    {
+        1 => "bi-trophy-fill",
+        2 => "bi-award",
+        3 => "bi-award",
+        _ => ""
+    };
+
+    private string GetRankColor(int rank) => rank switch
+    {
+        1 => "#FFD700",
+        2 => "#98999A",
+        3 => "#CD7F32",
+        _ => "#6c757d"
+    };
+}
+
+<style>
+    .badge { font-size: 0.9rem; padding: 0.5rem 0.7rem; }
+    .bi { margin-right: 0.3rem; }
+    .table-warning { background-color: rgba(255, 215, 0, 0.1) !important; }
+    .table-light { background-color: rgba(192, 192, 192, 0.1) !important; }
+    .table-info { background-color: rgba(205, 127, 50, 0.1) !important; }
+</style>
+
+@section Scripts {
+    <script>
+        const pollId = @pollId;
+        const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/results").build();
+        connection.on("resultsUpdated", (id) => {
+            if (id === pollId) {
+                location.reload();
+            }
+        });
+        connection.start();
+    </script>
+}
