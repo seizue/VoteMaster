@@ -1,0 +1,28 @@
+@model IEnumerable<VoteMaster.Models.Poll>
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<h3>Admin Dashboard</h3>
+<a class="btn btn-success mb-3" href="/Admin/Polls/Create">Create Poll</a>
+<table class="table table-striped">
+    <thead><tr><th>Title</th><th>Window</th><th>Actions</th></tr></thead>
+    <tbody>
+    @foreach (var p in Model) {
+        <tr>
+            <td>@p.Title</td>
+            <td>@p.StartTime.ToLocalTime() - @p.EndTime.ToLocalTime()</td>
+            <td>
+                <a class="btn btn-sm btn-primary" href="/Admin/Polls/Results/@p.Id">Results</a>
+                <form method="post" action="/Admin/Polls/Delete/@p.Id" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-danger" 
+                            onclick="return confirm('Are you sure you want to delete this poll?')">
+                        Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+<a class="btn btn-outline-secondary" href="/Admin/Users">Manage Users</a>

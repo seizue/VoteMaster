@@ -1,0 +1,26 @@
+@model IDictionary<string, int>
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    var pollId = (int)ViewBag.PollId;
+}
+<h3>Weighted Results</h3>
+<div id="chart" class="my-3"></div>
+<table class="table table-bordered">
+    <thead><tr><th>Option</th><th>Weighted Points</th></tr></thead>
+    <tbody>
+    @foreach (var kv in Model) {
+        <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
+    }
+    </tbody>
+</table>
+
+<script>
+    const pollId = @pollId;
+    const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/results").build();
+    connection.on("resultsUpdated", (id) => {
+        if (id === pollId) {
+            location.reload();
+        }
+    });
+    connection.start();
+</script>

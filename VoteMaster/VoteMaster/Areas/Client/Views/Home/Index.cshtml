@@ -1,0 +1,19 @@
+@model IEnumerable<VoteMaster.Models.Poll>
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<h3>Open Polls</h3>
+@if (!Model.Any()) {
+    <div class="alert alert-info">No active polls right now.</div>
+}
+<ul class="list-group">
+@foreach (var p in Model) {
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <strong>@p.Title</strong><br />
+            <small>@p.Description</small>
+        </div>
+        <a class="btn btn-primary btn-sm" href="/Client/Vote/@p.Id">Vote</a>
+    </li>
+}
+</ul>

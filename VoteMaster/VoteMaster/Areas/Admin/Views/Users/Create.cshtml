@@ -1,0 +1,26 @@
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<h3>Create User</h3>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input class="form-control" name="username" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input class="form-control" type="password" name="password" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Role</label>
+        <select class="form-select" name="role">
+            <option>Voter</option>
+            <option>Admin</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Weight</label>
+        <input class="form-control" type="number" name="weight" value="1" />
+    </div>
+    <button class="btn btn-primary">Create</button>
+</form>

@@ -1,0 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using VoteMaster.Data;
+using VoteMaster.Models;
+
+namespace VoteMaster.Services
+{
+    public class PollService : IPollService
+    {
+        private readonly AppDbContext _db;
+        public PollService(AppDbContext db) { _db = db; }
+
+        public async Task<Poll?> GetPollAsync(int id) =>
+            await _db.Polls.Include(p => p.Options).ThenInclude(o => o.Votes).ThenInclude(v => v.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+        public async Task<List<Poll>> GetActivePollsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _db.Polls.Include(p => p.Options)
+                .Where(p => p.StartTime <= now && p.EndTime >= now)
+                .ToListAsync();
+        }
+
+        public async Task<Poll> CreatePollAsync(Poll poll, IEnumerable<string> options)
+        {
+            foreach (var text in options)
+                poll.Options.Add(new PollOption { Text = text });
+
+            _db.Polls.Add(poll);
+            await _db.SaveChangesAsync();
+            return poll;
+        }
+
+        public async Task CastVoteAsync(int optionId, int userId)
+        {
+            var option = await _db.Options.Include(o => o.Poll).FirstOrDefaultAsync(o => o.Id == optionId)
+                ?? throw new InvalidOperationException("Option not found");
+            var pollId = option.PollId;
+
+            // Ensure user hasn't voted in this poll yet
+            var already = await _db.Votes
+                .Include(v => v.Option)
+                .AnyAsync(v => v.UserId == userId && v.Option.PollId == pollId);
+
+            if (already) throw new InvalidOperationException("User already voted in this poll.");
+
+            _db.Votes.Add(new Vote { OptionId = optionId, UserId = userId, VotedAt = DateTime.UtcNow });
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<Dictionary<string, int>> GetWeightedResultsAsync(int pollId)
+        {
+            var poll = await _db.Polls
+                .Include(p => p.Options)
+                .ThenInclude(o => o.Votes)
+                .ThenInclude(v => v.User)
+                .FirstOrDefaultAsync(p => p.Id == pollId);
+
+            if (poll is null) return new();
+
+            return poll.Options.ToDictionary(
+                o => o.Text,
+                o => o.Votes.Sum(v => v.User.Weight));
+        }
+    }
+}

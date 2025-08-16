@@ -1,0 +1,23 @@
+@model VoteMaster.Models.AppUser
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<h3>Edit User</h3>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input class="form-control" value="@Model.Username" disabled />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Role</label>
+        <select class="form-select" name="role">
+            <option selected="@(Model.Role=="Voter")">Voter</option>
+            <option selected="@(Model.Role=="Admin")">Admin</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Weight</label>
+        <input class="form-control" type="number" name="weight" value="@Model.Weight" />
+    </div>
+    <button class="btn btn-primary">Save</button>
+</form>

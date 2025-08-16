@@ -1,0 +1,24 @@
+@model IEnumerable<VoteMaster.Models.AppUser>
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<h3>Users</h3>
+<a class="btn btn-success mb-3" href="/Admin/Users/Create">Add User</a>
+<table class="table table-striped">
+    <thead><tr><th>Username</th><th>Role</th><th>Weight</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var u in Model) {
+        <tr>
+            <td>@u.Username</td>
+            <td>@u.Role</td>
+            <td>@u.Weight</td>
+            <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="/Admin/Users/Edit/@u.Id">Edit</a>
+                <form method="post" action="/Admin/Users/Delete/@u.Id" style="display:inline">
+                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete user?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

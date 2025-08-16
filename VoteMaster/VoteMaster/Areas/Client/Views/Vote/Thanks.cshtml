@@ -1,0 +1,8 @@
+@model int
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+<div class="alert alert-success">Thanks! Your vote was recorded.</div>
+@if (true) {
+    <a class="btn btn-outline-primary" href="/Client/Vote/@Model">Back to Poll</a>
+}
