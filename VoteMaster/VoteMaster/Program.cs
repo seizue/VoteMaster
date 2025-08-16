@@ -10,6 +10,9 @@ using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ===== CONFIGURE HOSTING =====
+builder.WebHost.UseUrls("http://0.0.0.0:5000");
+
 // ===== Services =====
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddSignalR();
