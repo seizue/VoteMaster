@@ -33,6 +33,16 @@ namespace VoteMaster.Areas.Admin.Controllers
             return View(res);
         }
 
+        public async Task<IActionResult> VoterStatus(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            var voterStatus = await _polls.GetVoterVotingStatusAsync(id);
+            ViewBag.Poll = poll;
+            return View(voterStatus);
+        }
+
        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)

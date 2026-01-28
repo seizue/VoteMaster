@@ -1,10 +1,20 @@
 @model VoteMaster.Models.Poll
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    bool hasVoted = (bool?)ViewBag.HasVoted ?? false;
+    int voteCount = (int?)ViewBag.VoteCount ?? 0;
+    int maxVotes = (int?)ViewBag.MaxVotes ?? 0;
 }
 <h3>@Model.Title</h3>
 <p>@Model.Description</p>
 <p class="text-info">Select between @Model.MinVotesPerVoter and @Model.MaxVotesPerVoter options</p>
+
+@if (hasVoted && voteCount >= maxVotes)
+{
+    <div class="alert alert-success">
+        <strong>✓ Voting Complete!</strong> You have already cast @voteCount vote(s) for this poll. You can no longer vote.
+    </div>
+}
 
 <form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })">
     <input type="hidden" name="pollId" value="@Model.Id" />
@@ -14,17 +24,32 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
     
-    @foreach (var option in Model.Options)
+    @if (hasVoted && voteCount >= maxVotes)
     {
-        <div class="form-check mb-2">
-            <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" 
-                   onclick="validateVoteCount(this, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter)" />
-            <label class="form-check-label">@option.Text</label>
-        </div>
+        @foreach (var option in Model.Options)
+        {
+            <div class="form-check mb-2">
+                <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" disabled />
+                <label class="form-check-label">@option.Text</label>
+            </div>
+        }
+    }
+    else
+    {
+        @foreach (var option in Model.Options)
+        {
+            <div class="form-check mb-2">
+                <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" 
+                       onclick="validateVoteCount(this, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter)" />
+                <label class="form-check-label">@option.Text</label>
+            </div>
+        }
     }
     
     @Html.AntiForgeryToken()
-    <button type="submit" class="btn btn-primary mt-3" id="submitButton">Vote</button>
+    <button type="submit" class="btn btn-primary mt-3" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
+        @(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Vote")
+    </button>
 </form>
 
 @section Scripts {

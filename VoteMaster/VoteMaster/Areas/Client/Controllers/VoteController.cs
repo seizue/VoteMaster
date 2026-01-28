@@ -18,6 +18,15 @@ namespace VoteMaster.Areas.Client.Controllers
         {
             var poll = await _polls.GetPollAsync(pollId);
             if (poll is null) return NotFound();
+
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var hasVoted = await _polls.HasUserVotedAsync(pollId, userId);
+            var voteCount = await _polls.GetUserVoteCountAsync(pollId, userId);
+
+            ViewBag.HasVoted = hasVoted;
+            ViewBag.VoteCount = voteCount;
+            ViewBag.MaxVotes = poll.MaxVotesPerVoter;
+
             return View(poll);
         }
 

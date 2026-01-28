@@ -95,5 +95,44 @@ namespace VoteMaster.Services
                 await _db.SaveChangesAsync();
             }
         }
+
+        public async Task<List<VoterStatusDto>> GetVoterVotingStatusAsync(int pollId)
+        {
+            // Get all voters
+            var allVoters = await _db.Users
+                .Where(u => u.Role == "Voter")
+                .ToListAsync();
+
+            // Get votes for this poll
+            var pollVotes = await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.Option.PollId == pollId)
+                .GroupBy(v => v.UserId)
+                .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+            // Create DTO with voting status
+            return allVoters.Select(voter => new VoterStatusDto
+            {
+                UserId = voter.Id,
+                Username = voter.Username,
+                HasVoted = pollVotes.ContainsKey(voter.Id),
+                VoteCount = pollVotes.ContainsKey(voter.Id) ? pollVotes[voter.Id] : 0
+            }).ToList();
+        }
+
+        public async Task<int> GetUserVoteCountAsync(int pollId, int userId)
+        {
+            return await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.UserId == userId && v.Option.PollId == pollId)
+                .CountAsync();
+        }
+
+        public async Task<bool> HasUserVotedAsync(int pollId, int userId)
+        {
+            return await _db.Votes
+                .Include(v => v.Option)
+                .AnyAsync(v => v.UserId == userId && v.Option.PollId == pollId);
+        }
     }
 }
