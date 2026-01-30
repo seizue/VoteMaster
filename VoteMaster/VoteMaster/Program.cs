@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using VoteMaster.Data;
 using VoteMaster.Services;
 using VoteMaster.Hubs;
-using VoteMaster.Models; // AppUser model
-using Microsoft.AspNetCore.Identity; // PasswordHasher
-using System.Linq; // For FirstOrDefault, Any
+using VoteMaster.Models; 
+using Microsoft.AspNetCore.Identity; 
+using System.Linq;
 using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
