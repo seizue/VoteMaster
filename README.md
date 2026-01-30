@@ -1,5 +1,5 @@
 # VoteMaster
-VoteMaster is a decision-making platform that implements a Weighted Voting System using ASP.NET Core, REST API, and Microsoft SQL Server.
+VoteMaster is a decision-making platform that implements a Weighted Voting System using ASP.NET Core MVC Razor Views, REST API, and Microsoft SQL Server.
 
 In this system, each member’s vote carries weight based on their ownership or stake (e.g., number of shares). 
 For example:
