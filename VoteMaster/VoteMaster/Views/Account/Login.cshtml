@@ -2,23 +2,24 @@
 @{
     Layout = "_Layout";
 }
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <h3>Login</h3>
-        @if (ViewBag.Error != null) {
-            <div class="alert alert-danger">@ViewBag.Error</div>
-        }
-        <form method="post">
-            <div class="mb-3">
-                <label class="form-label">Username</label>
-                <input class="form-control" name="username" required />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input class="form-control" type="password" name="password" required />
-            </div>
-            <input type="hidden" name="returnUrl" value="@Model" />
-            <button class="btn btn-primary w-100">Login</button>
-        </form>
+<div class="d-flex justify-content-center align-items-center">
+  <div class="card p-4" style="max-width:420px; width:100%;">
+    <div class="text-center mb-3">
+      <h4 class="mb-0">Welcome back</h4>
+      <p class="text-muted small mb-0">Sign in to continue to VoteMaster</p>
     </div>
+    @if (ViewBag.Error != null) { <div class="alert alert-danger">@ViewBag.Error</div> }
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input class="form-control" name="username" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input class="form-control" type="password" name="password" required />
+      </div>
+      <input type="hidden" name="returnUrl" value="@Model" />
+      <button class="btn btn-primary w-100">Login</button>
+    </form>
+  </div>
 </div>

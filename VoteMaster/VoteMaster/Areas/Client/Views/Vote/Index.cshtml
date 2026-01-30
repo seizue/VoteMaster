@@ -5,9 +5,18 @@
     int voteCount = (int?)ViewBag.VoteCount ?? 0;
     int maxVotes = (int?)ViewBag.MaxVotes ?? 0;
 }
-<h3>@Model.Title</h3>
-<p>@Model.Description</p>
-<p class="text-info">Select between @Model.MinVotesPerVoter and @Model.MaxVotesPerVoter options</p>
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h3 class="card-title mb-0">@Model.Title</h3>
+        <p class="text-muted small mb-0">@Model.Description</p>
+      </div>
+      <div class="text-end">
+        <span class="badge badge-info px-3 py-2">Select @Model.MinVotesPerVoter - @Model.MaxVotesPerVoter</span>
+        <div class="text-muted small mt-1">@Model.Options.Count() options</div>
+      </div>
+    </div>
 
 @if (hasVoted && voteCount >= maxVotes)
 {
@@ -16,59 +25,75 @@
     </div>
 }
 
-<form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })">
-    <input type="hidden" name="pollId" value="@Model.Id" />
-    
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
-    
-    @if (hasVoted && voteCount >= maxVotes)
-    {
+<form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })" id="voteForm">
+      <input type="hidden" name="pollId" value="@Model.Id" />
+      @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+      <div class="row g-3">
         @foreach (var option in Model.Options)
         {
-            <div class="form-check mb-2">
-                <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" disabled />
-                <label class="form-check-label">@option.Text</label>
-            </div>
+          <div class="col-12">
+            <label class="option-card d-flex align-items-center p-3" data-id="@option.Id">
+              <input type="checkbox" name="optionIds" value="@option.Id" class="d-none" @(hasVoted && voteCount >= maxVotes ? "disabled" : "") />
+              <div class="marker me-3"><i class="bi bi-circle"></i></div>
+              <div class="flex-grow-1">@option.Text</div>
+              <div class="text-muted small ms-3">@(option.Votes.Count) votes</div>
+            </label>
+          </div>
         }
-    }
-    else
-    {
-        @foreach (var option in Model.Options)
-        {
-            <div class="form-check mb-2">
-                <input type="checkbox" name="optionIds" value="@option.Id" class="form-check-input" 
-                       onclick="validateVoteCount(this, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter)" />
-                <label class="form-check-label">@option.Text</label>
-            </div>
-        }
-    }
-    
-    @Html.AntiForgeryToken()
-    <button type="submit" class="btn btn-primary mt-3" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
-        @(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Vote")
-    </button>
-</form>
+      </div>
+
+      @Html.AntiForgeryToken()
+      <div class="mt-4 d-flex justify-content-between align-items-center">
+         <div class="form-text small invalid" id="voteHint" style="display:none"></div>
+         <button type="submit" class="btn btn-primary" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
+            @(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Vote")
+         </button>
+      </div>
+    </form>
+
+  </div>
+</div>
 
 @section Scripts {
-    <script>
-        function validateVoteCount(checkbox, min, max) {
-            const checkedBoxes = document.querySelectorAll('input[name="optionIds"]:checked');
-            const submitButton = document.getElementById('submitButton');
-            
-            if (checkedBoxes.length > max) {
-                checkbox.checked = false;
-                alert(`You can select maximum ${max} options`);
-            }
-            
-            submitButton.disabled = checkedBoxes.length < min || checkedBoxes.length > max;
-        }
+<script>
+  (function(){
+    const min = @Model.MinVotesPerVoter;
+    const max = @Model.MaxVotesPerVoter;
+    const submit = document.getElementById('submitButton');
+    const hint = document.getElementById('voteHint');
+    const optionCards = document.querySelectorAll('.option-card');
 
-        // Initialize button state
-        document.addEventListener('DOMContentLoaded', function() {
-            validateVoteCount(null, @Model.MinVotesPerVoter, @Model.MaxVotesPerVoter);
-        });
-    </script>
+    function updateState() {
+      const checked = document.querySelectorAll('input[name="optionIds"]:checked').length;
+      if (checked < min) {
+        submit.disabled = true;
+        hint.style.display = 'block';
+        hint.textContent = `Select at least ${min} option(s).`;
+      } else if (checked > max) {
+        submit.disabled = true;
+        hint.style.display = 'block';
+        hint.textContent = `Maximum ${max} option(s) allowed.`;
+      } else {
+        submit.disabled = false;
+        hint.style.display = 'none';
+      }
+    }
+
+    optionCards.forEach(card => {
+      card.addEventListener('click', function(e){
+        const cb = card.querySelector('input[type="checkbox"]');
+        if (cb.disabled) return;
+        cb.checked = !cb.checked;
+        card.classList.toggle('selected', cb.checked);
+        const icon = card.querySelector('.marker i');
+        icon.className = cb.checked ? 'bi bi-check2-circle text-primary' : 'bi bi-circle';
+        updateState();
+      });
+    });
+
+    // initialize state
+    document.addEventListener('DOMContentLoaded', updateState);
+  })();
+</script>
 }

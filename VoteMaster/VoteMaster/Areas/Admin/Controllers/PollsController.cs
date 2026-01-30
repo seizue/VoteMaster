@@ -18,10 +18,37 @@ namespace VoteMaster.Areas.Admin.Controllers
         public IActionResult Create() => View();
 
         [HttpPost]
-        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv)
+        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
         {
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var poll = new Poll { Title = title, Description = description, AllowPublicResults = allowPublicResults };
+
+            // Basic validation for min/max votes
+            if (minVotesPerVoter < 1)
+            {
+                ModelState.AddModelError("minVotesPerVoter", "Minimum votes must be at least 1.");
+            }
+            if (maxVotesPerVoter < minVotesPerVoter)
+            {
+                ModelState.AddModelError("maxVotesPerVoter", "Maximum votes must be greater than or equal to minimum votes.");
+            }
+            if (maxVotesPerVoter > options.Length)
+            {
+                ModelState.AddModelError("maxVotesPerVoter", "Maximum votes cannot exceed the number of options.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Preserve entered values so the admin doesn't lose them
+                ViewBag.Title = title;
+                ViewBag.Description = description;
+                ViewBag.OptionsCsv = optionsCsv;
+                ViewBag.MaxVotes = maxVotesPerVoter;
+                ViewBag.MinVotes = minVotesPerVoter;
+                ViewBag.AllowPublicResults = allowPublicResults;
+                return View();
+            }
+
+            var poll = new Poll { Title = title, Description = description, AllowPublicResults = allowPublicResults, MaxVotesPerVoter = maxVotesPerVoter, MinVotesPerVoter = minVotesPerVoter };
             await _polls.CreatePollAsync(poll, options);
             return RedirectToAction(nameof(Index));
         }

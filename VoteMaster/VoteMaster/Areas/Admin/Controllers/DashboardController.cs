@@ -16,5 +16,27 @@ namespace VoteMaster.Areas.Admin.Controllers
             var active = await _polls.GetActivePollsAsync();
             return View(active);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportResults(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Option,Votes,WeightedScore");
+            foreach (var o in poll.Options)
+            {
+                var votes = o.Votes.Count;
+                var weighted = o.Votes.Sum(v => v.User?.Weight ?? 1);
+                // escape double quotes in option text
+                var text = o.Text?.Replace("\"", "\"\"") ?? "";
+                sb.AppendLine($"\"{text}\",{votes},{weighted}");
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            var fileName = $"poll-{poll.Id}-results-{DateTime.UtcNow:yyyyMMdd}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
     }
 }

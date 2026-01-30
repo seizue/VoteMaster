@@ -1381,6 +1381,7 @@ C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\scopedcss\bundle\VoteMaster.styles.css
+C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\compressed\f5iv4w10f0-frj4vdnqty.gz
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\compressed\k9chrc741a-sf2t4jji6a.gz
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\ADMIN\Desktop\Ven\Repository\VoteMaster\VoteMaster\VoteMaster\obj\Debug\net9.0\staticwebassets.build.json.cache

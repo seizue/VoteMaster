@@ -1,0 +1,50 @@
+/* Modern site styles for VoteMaster */
+:root{
+  --vm-bg: #f7f9fc;
+  --vm-card: #ffffff;
+  --vm-accent: #4f46e5; /* indigo-600 */
+  --vm-muted: #6b7280;
+}
+
+html,body{height:100%;}
+body{
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--vm-bg);
+  color: #111827;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Navbar */
+.navbar-brand .brand-icon{ width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; }
+.navbar{ font-weight:500; }
+
+/* Cards */
+.card {
+  border: none;
+  border-radius: .75rem;
+  background: var(--vm-card);
+  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+}
+.card .card-title{ font-weight:600; }
+
+/* Option cards (selectable as vote choices) */
+.option-card{
+  border-radius: .5rem;
+  border: 1px solid rgba(15,23,42,0.06);
+  background: #fbfdff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.option-card:hover{ transform: translateY(-3px); box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+.option-card.selected{ border-left: 4px solid var(--vm-accent); background: linear-gradient(90deg, rgba(79,70,229,0.04), transparent); }
+.option-card .marker{ width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid rgba(15,23,42,0.04); }
+
+.badge-info { background: linear-gradient(90deg,#eef2ff,#eef2ff); color: #3730a3; font-weight:600; }
+
+/* Footer */
+footer{ background:transparent; }
+
+/* Form helpers */
+.form-text.invalid{ color:#dc2626; }
+
+@media (max-width:576px){ .navbar-brand span { font-size: .95rem; } }
