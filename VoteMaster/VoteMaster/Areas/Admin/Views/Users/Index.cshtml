@@ -1,6 +1,8 @@
 @model IEnumerable<VoteMaster.Models.AppUser>
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var seedAdminUsername = Configuration["Seed:Admin:Username"];
 }
 <h3>Users</h3>
 <a class="btn btn-success mb-3" href="/Admin/Users/Create">Add User</a>
@@ -14,9 +16,12 @@
             <td>@u.Weight</td>
             <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" href="/Admin/Users/Edit/@u.Id">Edit</a>
-                <form method="post" action="/Admin/Users/Delete/@u.Id" style="display:inline">
-                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete user?')">Delete</button>
-                </form>
+                @if (!string.Equals(u.Username, seedAdminUsername, StringComparison.OrdinalIgnoreCase))
+                {
+                    <form method="post" action="/Admin/Users/Delete/@u.Id" style="display:inline">
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete user?')">Delete</button>
+                    </form>
+                }
             </td>
         </tr>
     }
