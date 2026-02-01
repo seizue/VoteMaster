@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VoteMaster.Models;
 using VoteMaster.Services;
+using System.Text.Json;
 
 namespace VoteMaster.Areas.Admin.Controllers
 {
@@ -47,6 +48,22 @@ namespace VoteMaster.Areas.Admin.Controllers
         {
             await _users.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportVotersJson()
+        {
+            var allUsers = await _users.GetAllAsync();
+            var voters = allUsers
+                .Where(u => u.Role == "Voter")
+                .Select(u => u.Username)
+                .ToList();
+
+            var json = JsonSerializer.Serialize(voters, new JsonSerializerOptions { WriteIndented = true });
+            var fileBytes = System.Text.Encoding.UTF8.GetBytes(json);
+            var fileName = $"voters_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+
+            return File(fileBytes, "application/json", fileName);
         }
     }
 }
