@@ -77,6 +77,12 @@ namespace VoteMaster.Services
             return poll;
         }
 
+        public async Task UpdatePollAsync(Poll poll)
+        {
+            _db.Polls.Update(poll);
+            await _db.SaveChangesAsync();
+        }
+
         public async Task CastVoteAsync(int optionId, int userId)
         {
             var option = await _db.Options

@@ -172,6 +172,10 @@ else
                 <div class="poll-actions">
                     <a class="btn btn-primary" href="/Admin/Polls/Results/@poll.Id">Results</a>
                     <a class="btn btn-info" href="/Admin/Polls/VoterStatus/@poll.Id">Voter Status</a>
+                    @if (status != "Archived")
+                    {
+                        <a class="btn btn-warning" href="/Admin/Polls/Edit/@poll.Id">Edit</a>
+                    }
                     @if (status == "Upcoming" || status == "Active")
                     {
                         <form method="post" action="/Admin/Polls/Delete/@poll.Id" onsubmit="return confirm('Are you sure?');">

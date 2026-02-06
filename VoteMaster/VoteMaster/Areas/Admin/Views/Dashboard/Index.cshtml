@@ -178,6 +178,10 @@ else
                             <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id" title="View results">Results</a>
                             <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter status">Status</a>
                             <a class="btn btn-outline-primary btn-sm d-none d-lg-inline-block" href="/Admin/Dashboard/ExportResults/@p.Id" title="Export">Export</a>
+                            @if (status != "Archived")
+                            {
+                                <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id" title="Edit poll">Edit</a>
+                            }
                             @if (status == "Upcoming" || status == "Active")
                             {
                                 <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');">

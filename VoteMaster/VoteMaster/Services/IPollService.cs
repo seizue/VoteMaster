@@ -11,6 +11,7 @@ namespace VoteMaster.Services
         Task<List<Poll>> GetUpcomingPollsAsync();
         Task<List<Poll>> GetPollsAsync(string status);
         Task<Poll> CreatePollAsync(Poll poll, IEnumerable<string> options);
+        Task UpdatePollAsync(Poll poll);
         Task CastVoteAsync(int optionId, int userId);
         Task<Dictionary<string, int>> GetWeightedResultsAsync(int pollId);
         Task DeletePollAsync(int id);

@@ -29,6 +29,106 @@ namespace VoteMaster.Areas.Admin.Controllers
         [HttpGet]
         public IActionResult Create() => View();
 
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            // Check if poll is archived - if so, don't allow editing
+            if (_polls.GetPollStatus(poll) == "Archived")
+            {
+                return BadRequest("Cannot edit archived polls");
+            }
+
+            ViewBag.Poll = poll;
+            ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text));
+            ViewBag.StartDateTime = poll.StartTime.ToString("yyyy-MM-ddTHH:mm");
+            ViewBag.EndDateTime = poll.EndTime.ToString("yyyy-MM-ddTHH:mm");
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string optionsCsv,
+            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            // Check if poll is archived - if so, don't allow editing
+            if (_polls.GetPollStatus(poll) == "Archived")
+            {
+                return BadRequest("Cannot edit archived polls");
+            }
+
+            var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            // Parse datetime inputs - convert from local time to UTC
+            DateTime startTime = poll.StartTime;
+            DateTime endTime = poll.EndTime;
+
+            if (!string.IsNullOrEmpty(startDateTime) && DateTime.TryParse(startDateTime, out var parsedStart))
+            {
+                startTime = parsedStart.ToUniversalTime();
+            }
+
+            if (!string.IsNullOrEmpty(endDateTime) && DateTime.TryParse(endDateTime, out var parsedEnd))
+            {
+                endTime = parsedEnd.ToUniversalTime();
+            }
+
+            // Basic validation for min/max votes
+            if (minVotesPerVoter < 1)
+            {
+                ModelState.AddModelError("minVotesPerVoter", "Minimum votes must be at least 1.");
+            }
+            if (maxVotesPerVoter < minVotesPerVoter)
+            {
+                ModelState.AddModelError("maxVotesPerVoter", "Maximum votes must be greater than or equal to minimum votes.");
+            }
+            if (maxVotesPerVoter > options.Length)
+            {
+                ModelState.AddModelError("maxVotesPerVoter", "Maximum votes cannot exceed the number of options.");
+            }
+            if (startTime >= endTime)
+            {
+                ModelState.AddModelError("endDateTime", "End time must be after start time.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Poll = poll;
+                ViewBag.Title = title;
+                ViewBag.Description = description;
+                ViewBag.OptionsCsv = optionsCsv;
+                ViewBag.MaxVotes = maxVotesPerVoter;
+                ViewBag.MinVotes = minVotesPerVoter;
+                ViewBag.AllowPublicResults = allowPublicResults;
+                ViewBag.StartDateTime = startDateTime;
+                ViewBag.EndDateTime = endDateTime;
+                return View();
+            }
+
+            // Update poll properties
+            poll.Title = title;
+            poll.Description = description;
+            poll.AllowPublicResults = allowPublicResults;
+            poll.MaxVotesPerVoter = maxVotesPerVoter;
+            poll.MinVotesPerVoter = minVotesPerVoter;
+            poll.StartTime = startTime;
+            poll.EndTime = endTime;
+
+            // Update options - clear and recreate
+            poll.Options.Clear();
+            foreach (var text in options)
+            {
+                poll.Options.Add(new PollOption { Text = text });
+            }
+
+            await _polls.UpdatePollAsync(poll);
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
