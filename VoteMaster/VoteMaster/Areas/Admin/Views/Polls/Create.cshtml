@@ -29,19 +29,49 @@
         <label class="form-label">Options (comma-separated)</label>
         <input class="form-control" name="optionsCsv" value="@(ViewBag.OptionsCsv ?? "")" placeholder="Option A, Option B, Option C" required />
     </div>
-    <div class="mb-3">
-        <label class="form-label" for="maxVotes">Maximum Votes Per Voter</label>
-        <input type="number" class="form-control" id="maxVotes" name="maxVotesPerVoter" 
-               value="@(ViewBag.MaxVotes ?? 1)" min="1" required />
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label" for="startDateTime">Poll Start Date & Time</label>
+                <input type="datetime-local" class="form-control" id="startDateTime" name="startDateTime" 
+                       value="@(ViewBag.StartDateTime ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm"))" required />
+                <small class="text-muted">When voting begins (in your local time)</small>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label" for="endDateTime">Poll End Date & Time</label>
+                <input type="datetime-local" class="form-control" id="endDateTime" name="endDateTime" 
+                       value="@(ViewBag.EndDateTime ?? DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm"))" required />
+                <small class="text-muted">When voting ends (in your local time)</small>
+            </div>
+        </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label" for="minVotes">Minimum Votes Per Voter</label>
-        <input type="number" class="form-control" id="minVotes" name="minVotesPerVoter" 
-               value="@(ViewBag.MinVotes ?? 1)" min="1" required />
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label" for="maxVotes">Maximum Votes Per Voter</label>
+                <input type="number" class="form-control" id="maxVotes" name="maxVotesPerVoter" 
+                       value="@(ViewBag.MaxVotes ?? 1)" min="1" required />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label" for="minVotes">Minimum Votes Per Voter</label>
+                <input type="number" class="form-control" id="minVotes" name="minVotesPerVoter" 
+                       value="@(ViewBag.MinVotes ?? 1)" min="1" required />
+            </div>
+        </div>
     </div>
+    
     <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" name="allowPublicResults" @( (ViewBag.AllowPublicResults ?? true) ? "checked" : "" ) />
         <label class="form-check-label">Allow Public Results</label>
     </div>
-    <button class="btn btn-primary">Create</button>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Create Poll</button>
+        <a href="/Admin/Dashboard" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>

@@ -30,9 +30,26 @@ namespace VoteMaster.Areas.Admin.Controllers
         public IActionResult Create() => View();
 
         [HttpPost]
-        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
+        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
+            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
         {
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            // Parse datetime inputs - convert from local time to UTC
+            DateTime startTime = DateTime.UtcNow;
+            DateTime endTime = DateTime.UtcNow.AddHours(2);
+
+            if (!string.IsNullOrEmpty(startDateTime) && DateTime.TryParse(startDateTime, out var parsedStart))
+            {
+                // The datetime-local input gives us local time, convert to UTC
+                startTime = parsedStart.ToUniversalTime();
+            }
+
+            if (!string.IsNullOrEmpty(endDateTime) && DateTime.TryParse(endDateTime, out var parsedEnd))
+            {
+                // The datetime-local input gives us local time, convert to UTC
+                endTime = parsedEnd.ToUniversalTime();
+            }
 
             // Basic validation for min/max votes
             if (minVotesPerVoter < 1)
@@ -47,6 +64,10 @@ namespace VoteMaster.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("maxVotesPerVoter", "Maximum votes cannot exceed the number of options.");
             }
+            if (startTime >= endTime)
+            {
+                ModelState.AddModelError("endDateTime", "End time must be after start time.");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -57,10 +78,21 @@ namespace VoteMaster.Areas.Admin.Controllers
                 ViewBag.MaxVotes = maxVotesPerVoter;
                 ViewBag.MinVotes = minVotesPerVoter;
                 ViewBag.AllowPublicResults = allowPublicResults;
+                ViewBag.StartDateTime = startDateTime;
+                ViewBag.EndDateTime = endDateTime;
                 return View();
             }
 
-            var poll = new Poll { Title = title, Description = description, AllowPublicResults = allowPublicResults, MaxVotesPerVoter = maxVotesPerVoter, MinVotesPerVoter = minVotesPerVoter };
+            var poll = new Poll 
+            { 
+                Title = title, 
+                Description = description, 
+                AllowPublicResults = allowPublicResults,
+                MaxVotesPerVoter = maxVotesPerVoter, 
+                MinVotesPerVoter = minVotesPerVoter,
+                StartTime = startTime,
+                EndTime = endTime
+            };
             await _polls.CreatePollAsync(poll, options);
             return RedirectToAction(nameof(Index));
         }
