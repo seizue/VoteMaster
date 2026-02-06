@@ -67,8 +67,9 @@
     </div>
     
     <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" name="allowPublicResults" @( (ViewBag.AllowPublicResults ?? true) ? "checked" : "" ) />
-        <label class="form-check-label">Allow Public Results</label>
+        <input class="form-check-input" type="checkbox" id="allowPublicResults" name="allowPublicResults" value="true" @( (ViewBag.AllowPublicResults ?? true) ? "checked" : "" ) />
+        <input type="hidden" name="allowPublicResults" value="false" />
+        <label class="form-check-label" for="allowPublicResults">Allow Public Results</label>
     </div>
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Create Poll</button>
