@@ -156,7 +156,7 @@ else
             _ => "badge bg-light"
         };
         
-        <li class="list-group-item">
+        <li class="list-group-item" data-poll-id="@poll.Id">
             <div class="d-flex justify-content-between align-items-start gap-3">
                 <div class="flex-grow-1">
                     <div>
@@ -183,9 +183,90 @@ else
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </form>
                     }
+                    @if (status == "Archived")
+                    {
+                        <button type="button" class="btn btn-danger" onclick="showArchiveDeleteModal(@poll.Id, '@poll.Title')">Delete</button>
+                    }
                 </div>
             </div>
         </li>
     }
     </ul>
 }
+
+<!-- Archive Delete Modal -->
+<div class="modal fade" id="archiveDeleteModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="archiveDeleteModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="archiveDeleteModalTitle">Delete Archived Poll</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to delete the archived poll: <strong id="pollTitleModal"></strong></p>
+                <p class="text-danger">This action cannot be undone. Please enter your admin credentials to confirm.</p>
+                <form id="archiveDeleteForm">
+                    <div class="mb-3">
+                        <label class="form-label" for="adminUsername">Admin Username</label>
+                        <input type="text" class="form-control" id="adminUsername" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="adminPassword">Admin Password</label>
+                        <input type="password" class="form-control" id="adminPassword" required />
+                    </div>
+                    <div id="deleteError" class="alert alert-danger d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmArchiveDelete()">Delete Poll</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentArchiveDeleteId = null;
+
+function showArchiveDeleteModal(pollId, pollTitle) {
+    currentArchiveDeleteId = pollId;
+    document.getElementById('pollTitleModal').textContent = pollTitle;
+    document.getElementById('adminUsername').value = '';
+    document.getElementById('adminPassword').value = '';
+    document.getElementById('deleteError').classList.add('d-none');
+    
+    const modal = new bootstrap.Modal(document.getElementById('archiveDeleteModal'));
+    modal.show();
+}
+
+function confirmArchiveDelete() {
+    const username = document.getElementById('adminUsername').value;
+    const password = document.getElementById('adminPassword').value;
+    const errorDiv = document.getElementById('deleteError');
+    
+    // Simple credential check (frontend only)
+    // In production, this should be validated server-side
+    if (username === 'admin' && password === 'admin123') {
+        // Delete from frontend only - remove the item from the list
+        const item = document.querySelector(`li[data-poll-id="${currentArchiveDeleteId}"]`);
+        if (item) {
+            item.style.opacity = '0.5';
+            setTimeout(() => item.remove(), 300);
+        }
+        
+        // Close the modal
+        bootstrap.Modal.getInstance(document.getElementById('archiveDeleteModal')).hide();
+        
+        // Show success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+        alert.innerHTML = 'Archived poll deleted successfully (frontend only). <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        document.querySelector('.container').insertAdjacentElement('afterbegin', alert);
+        
+        setTimeout(() => alert.remove(), 3000);
+    } else {
+        errorDiv.classList.remove('d-none');
+        errorDiv.textContent = 'Invalid credentials. Please try again.';
+    }
+}
+</script>
