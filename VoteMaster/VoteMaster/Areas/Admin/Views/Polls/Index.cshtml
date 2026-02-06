@@ -1,21 +1,187 @@
-@model IEnumerable<VoteMaster.Models.Poll>
+@model IEnumerable<PollViewDto>
+@using VoteMaster.Services
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var currentStatus = ViewBag.CurrentStatus ?? "active";
+    var statusOptions = ViewBag.StatusOptions ?? new List<string>();
 }
-<h3>Polls</h3>
-<ul class="list-group">
-@foreach (var p in Model) {
-    <li class="list-group-item">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <strong>@p.Title</strong><br />
-                <small>@p.Description</small>
-            </div>
-            <div class="btn-group" role="group">
-                <a class="btn btn-sm btn-primary" href="/Admin/Polls/Results/@p.Id">Results</a>
-                <a class="btn btn-sm btn-info" href="/Admin/Polls/VoterStatus/@p.Id">Voter Status</a>
-            </div>
-        </div>
-    </li>
+
+<style>
+    .polls-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .polls-header h3 {
+        margin: 0;
+        flex: 1;
+        min-width: 100px;
+    }
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .filter-buttons .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+    .poll-actions {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .poll-actions .btn {
+        white-space: nowrap;
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        flex: 1 1 auto;
+        min-width: 60px;
+    }
+    .poll-actions form {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 60px;
+        margin: 0;
+        padding: 0;
+    }
+    .poll-actions form .btn {
+        width: 100%;
+        margin: 0;
+        padding: 0.375rem 0.75rem;
+        white-space: nowrap;
+        font-size: 0.875rem;
+    }
+    @@media (max-width: 576px) {
+        .polls-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .polls-header h3 {
+            order: 1;
+            width: 100%;
+        }
+        .filter-buttons {
+            order: 2;
+            width: 100%;
+        }
+        .filter-buttons .btn {
+            flex: 1;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+        .poll-actions {
+            gap: 0.3rem;
+        }
+        .poll-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            min-width: 50px;
+        }
+        .poll-actions form {
+            min-width: 50px;
+        }
+        .poll-actions form .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+        }
+    }
+    @@media (min-width: 577px) and (max-width: 768px) {
+        .poll-actions {
+            gap: 0.3rem;
+        }
+        .poll-actions .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            min-width: 55px;
+        }
+        .poll-actions form {
+            min-width: 55px;
+        }
+        .poll-actions form .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+    }
+    @@media (min-width: 769px) {
+        .poll-actions {
+            flex-wrap: nowrap;
+        }
+        .poll-actions .btn {
+            flex: 0 1 auto;
+            min-width: auto;
+        }
+        .poll-actions form {
+            flex: 0 1 auto;
+            min-width: auto;
+        }
+    }
+</style>
+
+<div class="polls-header">
+    <h3>Polls</h3>
+    <div class="filter-buttons">
+        @foreach (var option in statusOptions)
+        {
+            var isActive = currentStatus.Equals(option, StringComparison.OrdinalIgnoreCase);
+            var btnClass = isActive ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
+            <a href="/Admin/Polls?status=@option" class="@btnClass">
+                @(char.ToUpper(option[0]) + option.Substring(1))
+            </a>
+        }
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center py-4">
+        <p class="mb-0">No polls found in this category.</p>
+    </div>
 }
-</ul>
+else
+{
+    <ul class="list-group">
+    @foreach (var item in Model) {
+        var poll = item.Poll;
+        var status = item.Status;
+        var statusBadgeClass = status switch 
+        {
+            "Active" => "badge bg-success",
+            "Archived" => "badge bg-secondary",
+            "Upcoming" => "badge bg-info",
+            _ => "badge bg-light"
+        };
+        
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                    <div>
+                        <strong>@poll.Title</strong>
+                        <span class="@statusBadgeClass">@status</span>
+                    </div>
+                    <small class="text-muted d-block">@poll.Description</small>
+                    <small class="text-muted d-block mt-1">
+                        Start: @poll.StartTime.ToString("g") | 
+                        End: @poll.EndTime.ToString("g")
+                    </small>
+                </div>
+                <div class="poll-actions">
+                    <a class="btn btn-primary" href="/Admin/Polls/Results/@poll.Id">Results</a>
+                    <a class="btn btn-info" href="/Admin/Polls/VoterStatus/@poll.Id">Voter Status</a>
+                    @if (status == "Upcoming" || status == "Active")
+                    {
+                        <form method="post" action="/Admin/Polls/Delete/@poll.Id" onsubmit="return confirm('Are you sure?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </li>
+    }
+    </ul>
+}

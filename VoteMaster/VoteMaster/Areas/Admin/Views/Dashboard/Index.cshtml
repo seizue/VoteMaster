@@ -1,30 +1,200 @@
-@model IEnumerable<VoteMaster.Models.Poll>
+@model IEnumerable<PollViewDto>
+@using VoteMaster.Services
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var currentStatus = ViewBag.CurrentStatus ?? "all";
+    var statusOptions = ViewBag.StatusOptions ?? new List<string>();
 }
-<h3>Admin Dashboard</h3>
-<a class="btn btn-success mb-3 w-100 w-sm-auto" href="/Admin/Polls/Create">Create Poll</a> 
-<table class="table table-striped">
-    <thead><tr><th>Title</th><th>Window</th><th>Actions</th></tr></thead>
-    <tbody>
-    @foreach (var p in Model) {
-        <tr>
-            <td>@p.Title</td>
-            <td>@p.StartTime.ToLocalTime() - @p.EndTime.ToLocalTime()</td>
-            <td>
-                <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
-                    <a class="btn btn-primary btn-sm w-100 w-sm-auto" href="/Admin/Polls/Results/@p.Id">Results</a>
-                    <a class="btn btn-info btn-sm w-100 w-sm-auto" href="/Admin/Polls/VoterStatus/@p.Id">Voter Status</a>
-                    <a class="btn btn-outline-primary btn-sm w-100 w-sm-auto" href="/Admin/Dashboard/ExportResults/@p.Id">Export</a>
-                    <form method="post" action="/Admin/Polls/Delete/@p.Id" class="m-0 w-100 w-sm-auto">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger btn-sm w-100 w-sm-auto" 
-                                onclick="return confirm('Are you sure you want to delete this poll?')">Delete</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
+
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
-    </tbody>
-</table>
-<a class="btn btn-outline-secondary" href="/Admin/Users">Manage Users</a>
+    .dashboard-header h3 {
+        margin: 0;
+        flex: 1;
+        min-width: 150px;
+    }
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .filter-buttons .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+    .table-actions {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .table-actions .btn {
+        white-space: nowrap;
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        flex: 1 1 auto;
+        min-width: 60px;
+    }
+    .table-actions form {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 60px;
+        margin: 0;
+        padding: 0;
+    }
+    .table-actions form .btn {
+        width: 100%;
+        margin: 0;
+        padding: 0.375rem 0.75rem;
+        white-space: nowrap;
+        font-size: 0.875rem;
+    }
+    @@media (max-width: 576px) {
+        .table-actions {
+            gap: 0.3rem;
+            flex-direction: row;
+        }
+        .table-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            min-width: 50px;
+        }
+        .table-actions form {
+            min-width: 50px;
+        }
+        .table-actions form .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+        }
+    }
+    @@media (min-width: 577px) and (max-width: 768px) {
+        .table-actions {
+            gap: 0.3rem;
+        }
+        .table-actions .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            min-width: 55px;
+        }
+        .table-actions form {
+            min-width: 55px;
+        }
+        .table-actions form .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+    }
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .dashboard-header h3 {
+            order: 1;
+            width: 100%;
+        }
+        .dashboard-header .btn {
+            order: 2;
+            width: 100%;
+        }
+        .filter-buttons .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+    }
+    @@media (min-width: 769px) {
+        .table-actions {
+            flex-wrap: nowrap;
+        }
+        .table-actions .btn {
+            flex: 0 1 auto;
+            min-width: auto;
+        }
+    }
+</style>
+
+<div class="dashboard-header">
+    <h3>Polling Dashboard</h3>
+    <a class="btn btn-success" href="/Admin/Polls/Create">+ Create New Poll</a>
+</div>
+
+<div class="filter-buttons">
+    @foreach (var option in statusOptions)
+    {
+        var isActive = currentStatus.Equals(option, StringComparison.OrdinalIgnoreCase);
+        var btnClass = isActive ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
+        <a href="/Admin/Dashboard?status=@option" class="@btnClass">
+            @(char.ToUpper(option[0]) + option.Substring(1))
+        </a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center py-4">
+        <p class="mb-0">No polls found in this category.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light border-bottom">
+                <tr>
+                    <th style="width: 30%;">Title</th>
+                    <th style="width: 12%;">Status</th>
+                    <th style="width: 28%;" class="d-none d-lg-table-cell">Period</th>
+                    <th style="width: 30%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model) {
+                var p = item.Poll;
+                var status = item.Status;
+                var statusBadgeClass = status switch 
+                {
+                    "Active" => "badge bg-success",
+                    "Archived" => "badge bg-secondary",
+                    "Upcoming" => "badge bg-info",
+                    _ => "badge bg-light"
+                };
+                
+                <tr>
+                    <td class="fw-semibold">@p.Title</td>
+                    <td><span class="@statusBadgeClass">@status</span></td>
+                    <td class="d-none d-lg-table-cell text-muted" style="font-size: 0.9rem;">
+                        @p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt") - @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id" title="View results">Results</a>
+                            <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter status">Status</a>
+                            <a class="btn btn-outline-primary btn-sm d-none d-lg-inline-block" href="/Admin/Dashboard/ExportResults/@p.Id" title="Export">Export</a>
+                            @if (status == "Upcoming" || status == "Active")
+                            {
+                                <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete poll">Delete</button>
+                                </form>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<hr class="my-4">
+<div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="/Admin/Users">Manage Users</a>
+</div>

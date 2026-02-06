@@ -12,7 +12,19 @@ namespace VoteMaster.Areas.Admin.Controllers
         private readonly IPollService _polls;
         public PollsController(IPollService polls) { _polls = polls; }
 
-        public async Task<IActionResult> Index() => View(await _polls.GetActivePollsAsync());
+        public async Task<IActionResult> Index(string status = "active")
+        {
+            var polls = await _polls.GetPollsAsync(status);
+            var pollDtos = polls.Select(p => new PollViewDto 
+            { 
+                Poll = p, 
+                Status = _polls.GetPollStatus(p) 
+            }).ToList();
+            
+            ViewBag.CurrentStatus = status;
+            ViewBag.StatusOptions = new List<string> { "active", "archived", "upcoming", "all" };
+            return View(pollDtos);
+        }
 
         [HttpGet]
         public IActionResult Create() => View();

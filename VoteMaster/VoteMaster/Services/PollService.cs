@@ -21,6 +21,52 @@ namespace VoteMaster.Services
                 .ToListAsync();
         }
 
+        public async Task<List<Poll>> GetAllPollsAsync()
+        {
+            return await _db.Polls.Include(p => p.Options)
+                .OrderByDescending(p => p.StartTime)
+                .ToListAsync();
+        }
+
+        public async Task<List<Poll>> GetArchivedPollsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _db.Polls.Include(p => p.Options)
+                .Where(p => p.EndTime < now)
+                .OrderByDescending(p => p.EndTime)
+                .ToListAsync();
+        }
+
+        public async Task<List<Poll>> GetUpcomingPollsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _db.Polls.Include(p => p.Options)
+                .Where(p => p.StartTime > now)
+                .OrderBy(p => p.StartTime)
+                .ToListAsync();
+        }
+
+        public async Task<List<Poll>> GetPollsAsync(string status)
+        {
+            return status.ToLower() switch
+            {
+                "active" => await GetActivePollsAsync(),
+                "archived" => await GetArchivedPollsAsync(),
+                "upcoming" => await GetUpcomingPollsAsync(),
+                _ => await GetAllPollsAsync()
+            };
+        }
+
+        public string GetPollStatus(Poll poll)
+        {
+            var now = DateTime.UtcNow;
+            if (poll.StartTime > now)
+                return "Upcoming";
+            if (poll.EndTime < now)
+                return "Archived";
+            return "Active";
+        }
+
         public async Task<Poll> CreatePollAsync(Poll poll, IEnumerable<string> options)
         {
             foreach (var text in options)
