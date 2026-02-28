@@ -10,9 +10,6 @@ using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== CONFIGURE HOSTING =====
-builder.WebHost.UseUrls("http://0.0.0.0:5000");
-
 // ===== Services =====
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddSignalR();
@@ -42,8 +39,19 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    db.Database.Migrate(); // Apply migrations
+    try
+    {
+        logger.LogInformation("Starting database migration...");
+        db.Database.Migrate(); // Apply migrations
+        logger.LogInformation("Database migration completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating the database.");
+        throw;
+    }
 
     var config = app.Configuration.GetSection("Seed");
     var passwordHasher = new PasswordHasher<AppUser>();
