@@ -51,6 +51,6 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'votemaster-app'  # Replace with your actual Azure App Service name
+        app-name: 'votemaster-seizue'  # Replace with your actual Azure App Service name
         publish-profile: ${{ secrets.Azure_VoteMaster_Publish_Profile }}
         package: ./publish
