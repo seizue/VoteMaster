@@ -18,6 +18,8 @@ namespace VoteMaster.Services
         Task<List<VoterStatusDto>> GetVoterVotingStatusAsync(int pollId);
         Task<int> GetUserVoteCountAsync(int pollId, int userId);
         Task<bool> HasUserVotedAsync(int pollId, int userId);
+        Task<List<int>> GetUserVotesForPollAsync(int pollId, int userId);
+        Task ResetUserVotesAsync(int pollId, int userId);
         string GetPollStatus(Poll poll);
     }
 

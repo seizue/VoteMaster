@@ -186,5 +186,28 @@ namespace VoteMaster.Services
                 .Include(v => v.Option)
                 .AnyAsync(v => v.UserId == userId && v.Option.PollId == pollId);
         }
+
+        public async Task<List<int>> GetUserVotesForPollAsync(int pollId, int userId)
+        {
+            return await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.UserId == userId && v.Option.PollId == pollId)
+                .Select(v => v.OptionId)
+                .ToListAsync();
+        }
+
+        public async Task ResetUserVotesAsync(int pollId, int userId)
+        {
+            var votesToRemove = await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.UserId == userId && v.Option.PollId == pollId)
+                .ToListAsync();
+
+            if (votesToRemove.Any())
+            {
+                _db.Votes.RemoveRange(votesToRemove);
+                await _db.SaveChangesAsync();
+            }
+        }
     }
 }

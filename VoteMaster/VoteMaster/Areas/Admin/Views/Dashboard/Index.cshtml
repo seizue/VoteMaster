@@ -19,79 +19,120 @@
         margin: 0;
         flex: 1;
         min-width: 150px;
+        font-weight: 700;
+        color: var(--vm-text-primary);
+        font-size: 1.75rem;
     }
     .filter-buttons {
         display: flex;
         gap: 0.5rem;
         margin-bottom: 2rem;
         flex-wrap: wrap;
+        background: white;
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--vm-border);
+        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
     }
     .filter-buttons .btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.95rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        border: none;
+        background: transparent;
+        color: var(--vm-text-secondary);
+        transition: all 0.2s ease;
+    }
+    .filter-buttons .btn:hover{
+        background: rgba(20,184,166,0.05);
+        color: var(--vm-accent);
+    }
+    .filter-buttons .btn-primary{
+        background: var(--vm-accent);
+        color: white;
+        box-shadow: 0 2px 6px rgba(20,184,166,0.25);
+    }
+    .filter-buttons .btn-primary:hover{
+        background: var(--vm-accent-hover);
+        color: white;
+    }
+    .table-responsive {
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+        background: white;
+        margin-bottom: 2rem;
     }
     .table-actions {
         display: flex;
-        gap: 0.4rem;
+        gap: 0.5rem;
         flex-wrap: wrap;
         align-items: center;
     }
     .table-actions .btn {
         white-space: nowrap;
-        font-size: 0.875rem;
-        padding: 0.375rem 0.75rem;
-        flex: 1 1 auto;
-        min-width: 60px;
+        font-size: 0.8125rem;
+        padding: 0.375rem 0.875rem;
+        flex: 0 1 auto;
     }
     .table-actions form {
-        display: flex;
-        flex: 1 1 auto;
-        min-width: 60px;
+        display: inline-flex;
         margin: 0;
-        padding: 0;
     }
     .table-actions form .btn {
-        width: 100%;
-        margin: 0;
-        padding: 0.375rem 0.75rem;
-        white-space: nowrap;
+        padding: 0.375rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+    
+    /* Mobile card view */
+    .poll-card {
+        display: none;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        background: white;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+        transition: all 0.2s ease;
+    }
+    .poll-card:hover {
+        box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+        transform: translateY(-2px);
+    }
+    .poll-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    .poll-card-title {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: var(--vm-text-primary);
+        margin-bottom: 0.5rem;
+    }
+    .poll-card-meta {
         font-size: 0.875rem;
+        color: var(--vm-text-secondary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    @@media (max-width: 576px) {
-        .table-actions {
-            gap: 0.3rem;
-            flex-direction: row;
-        }
-        .table-actions .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-            min-width: 50px;
-        }
-        .table-actions form {
-            min-width: 50px;
-        }
-        .table-actions form .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-        }
+    .poll-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
-    @@media (min-width: 577px) and (max-width: 768px) {
-        .table-actions {
-            gap: 0.3rem;
-        }
-        .table-actions .btn {
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
-            min-width: 55px;
-        }
-        .table-actions form {
-            min-width: 55px;
-        }
-        .table-actions form .btn {
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
-        }
+    .poll-card-actions .btn {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 100px;
+        font-size: 0.875rem;
+        padding: 0.625rem 1rem;
     }
+    
     @@media (max-width: 768px) {
         .dashboard-header {
             flex-direction: column;
@@ -106,31 +147,64 @@
             width: 100%;
         }
         .filter-buttons .btn {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
+            flex: 1;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Hide table, show cards on mobile */
+        .table-responsive {
+            display: none !important;
+        }
+        .poll-card {
+            display: block;
         }
     }
+    
     @@media (min-width: 769px) {
         .table-actions {
             flex-wrap: nowrap;
-        }
-        .table-actions .btn {
-            flex: 0 1 auto;
-            min-width: auto;
         }
     }
 </style>
 
 <div class="dashboard-header">
-    <h3>Polling Dashboard</h3>
-    <a class="btn btn-success" href="/Admin/Polls/Create">+ Create New Poll</a>
+    <h3><i class="bi bi-speedometer2 me-2"></i>Polling Dashboard</h3>
+    <a class="btn btn-success" href="/Admin/Polls/Create">
+        <i class="bi bi-plus-circle me-2"></i>Create New Poll
+    </a>
+</div>
+
+<!-- Search and Filters -->
+<div class="dashboard-filters">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search polls...">
+    </div>
+    
+    <div class="filter-group">
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateFrom" class="form-control" placeholder="From">
+        </div>
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateTo" class="form-control" placeholder="To">
+        </div>
+        <button class="btn btn-outline-primary" onclick="applyFilters()">
+            <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+            <i class="bi bi-x-circle me-1"></i>Clear
+        </button>
+    </div>
 </div>
 
 <div class="filter-buttons">
     @foreach (var option in statusOptions)
     {
         var isActive = currentStatus.Equals(option, StringComparison.OrdinalIgnoreCase);
-        var btnClass = isActive ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
+        var btnClass = isActive ? "btn btn-primary" : "btn btn-outline-primary";
         <a href="/Admin/Dashboard?status=@option" class="@btnClass">
             @(char.ToUpper(option[0]) + option.Substring(1))
         </a>
@@ -139,20 +213,22 @@
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info text-center py-4">
-        <p class="mb-0">No polls found in this category.</p>
+    <div class="alert alert-secondary text-center py-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <span>No polls found in this category.</span>
     </div>
 }
 else
 {
+    <!-- Desktop Table View -->
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light border-bottom">
+        <table class="table mb-0">
+            <thead>
                 <tr>
-                    <th style="width: 30%;">Title</th>
+                    <th style="width: 35%;">Poll Title</th>
                     <th style="width: 12%;">Status</th>
-                    <th style="width: 28%;" class="d-none d-lg-table-cell">Period</th>
-                    <th style="width: 30%;">Actions</th>
+                    <th style="width: 25%;" class="d-none d-lg-table-cell">Time Period</th>
+                    <th style="width: 28%;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -167,31 +243,43 @@ else
                     _ => "badge bg-light"
                 };
                 
-                <tr data-poll-id="@p.Id">
-                    <td class="fw-semibold">@p.Title</td>
+                <tr data-poll-id="@p.Id" data-start-date="@p.StartTime.ToString("yyyy-MM-dd")" data-end-date="@p.EndTime.ToString("yyyy-MM-dd")">
+                    <td>
+                        <div class="fw-semibold" style="color: var(--vm-text-primary);">@p.Title</div>
+                    </td>
                     <td><span class="@statusBadgeClass">@status</span></td>
-                    <td class="d-none d-lg-table-cell text-muted" style="font-size: 0.9rem;">
-                        @p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt") - @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")
+                    <td class="d-none d-lg-table-cell" style="color: var(--vm-text-secondary); font-size: 0.875rem;">
+                        <div>@p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt")</div>
+                        <div>@p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")</div>
                     </td>
                     <td>
                         <div class="table-actions">
-                            <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id" title="View results">Results</a>
-                            <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter status">Status</a>
-                            <a class="btn btn-outline-primary btn-sm d-none d-lg-inline-block" href="/Admin/Dashboard/ExportResults/@p.Id" title="Export">Export</a>
+                            <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
+                                <i class="bi bi-bar-chart me-1"></i>Results
+                            </a>
+                            <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
+                                <i class="bi bi-people me-1"></i>Status
+                            </a>
                             @if (status != "Archived")
                             {
-                                <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id" title="Edit poll">Edit</a>
+                                <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
                             }
                             @if (status == "Upcoming" || status == "Active")
                             {
-                                <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');">
+                                <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');" class="d-inline">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete poll">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-trash me-1"></i>Delete
+                                    </button>
                                 </form>
                             }
                             @if (status == "Archived")
                             {
-                                <button type="button" class="btn btn-danger btn-sm" title="Delete archived poll" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">Delete</button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
                             }
                         </div>
                     </td>
@@ -200,11 +288,83 @@ else
             </tbody>
         </table>
     </div>
+    
+    <!-- Mobile Card View -->
+    @foreach (var item in Model) {
+        var p = item.Poll;
+        var status = item.Status;
+        var statusBadgeClass = status switch 
+        {
+            "Active" => "badge bg-success",
+            "Archived" => "badge bg-secondary",
+            "Upcoming" => "badge bg-info",
+            _ => "badge bg-light"
+        };
+        
+        <div class="poll-card" data-poll-id="@p.Id" data-start-date="@p.StartTime.ToString("yyyy-MM-dd")" data-end-date="@p.EndTime.ToString("yyyy-MM-dd")">
+            <div class="poll-card-header">
+                <div class="flex-grow-1">
+                    <div class="poll-card-title">@p.Title</div>
+                    <span class="@statusBadgeClass">@status</span>
+                </div>
+            </div>
+            <div class="poll-card-meta">
+                <i class="bi bi-calendar-event me-1"></i>
+                @p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt") - @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")
+            </div>
+            <div class="poll-card-actions">
+                <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
+                    <i class="bi bi-bar-chart me-1"></i>Results
+                </a>
+                <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
+                    <i class="bi bi-people me-1"></i>Status
+                </a>
+                @if (status != "Archived")
+                {
+                    <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </a>
+                }
+                @if (status == "Upcoming" || status == "Active")
+                {
+                    <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');" style="flex: 1 1 calc(50% - 0.25rem); min-width: 100px;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger btn-sm w-100">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                }
+                @if (status == "Archived")
+                {
+                    <button type="button" class="btn btn-danger btn-sm" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')" style="flex: 1 1 calc(50% - 0.25rem); min-width: 100px;">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                }
+            </div>
+        </div>
+    }
 }
 
+<!-- Pagination -->
+<div class="pagination-container">
+    <div class="pagination-info">
+        Showing <span id="showingStart">1</span> to <span id="showingEnd">10</span> of <span id="totalItems">@Model.Count()</span> polls
+    </div>
+    <nav>
+        <ul class="pagination" id="pagination">
+            <!-- Pagination will be generated by JavaScript -->
+        </ul>
+    </nav>
+</div>
+
 <hr class="my-4">
-<div class="d-flex gap-2">
-    <a class="btn btn-outline-secondary" href="/Admin/Users">Manage Users</a>
+<div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-dark" href="/Admin/Polls">
+        <i class="bi bi-list-check me-2"></i>Manage Polls
+    </a>
+    <a class="btn btn-dark" href="/Admin/Users">
+        <i class="bi bi-people me-2"></i>Manage Users
+    </a>
 </div>
 <!-- Archive Delete Modal -->
 <div class="modal fade" id="archiveDeleteModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="archiveDeleteModalTitle">
@@ -239,6 +399,199 @@ else
 
 <script>
 let currentArchiveDeleteId = null;
+let currentPage = 1;
+let itemsPerPage = 10;
+let allPolls = [];
+let filteredPolls = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Collect all polls data
+    const tableRows = document.querySelectorAll('.table tbody tr');
+    const mobileCards = document.querySelectorAll('.poll-card');
+    
+    allPolls = Array.from(tableRows).map((row, index) => {
+        const startDateStr = row.dataset.startDate;
+        const endDateStr = row.dataset.endDate;
+        
+        return {
+            id: row.dataset.pollId,
+            title: row.querySelector('td:first-child').textContent.trim(),
+            status: row.querySelector('.badge').textContent.trim(),
+            startDate: startDateStr ? new Date(startDateStr) : null,
+            endDate: endDateStr ? new Date(endDateStr) : null,
+            row: row,
+            card: mobileCards[index],
+            element: row
+        };
+    });
+    
+    filteredPolls = [...allPolls];
+    updatePagination();
+    displayPage(1);
+});
+
+function displayPage(page) {
+    currentPage = page;
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    
+    // Hide all items
+    allPolls.forEach(poll => {
+        poll.row.style.display = 'none';
+        if (poll.card) poll.card.style.display = 'none';
+    });
+    
+    // Show items for current page
+    const itemsToShow = filteredPolls.slice(start, end);
+    itemsToShow.forEach(poll => {
+        poll.row.style.display = '';
+        if (poll.card) poll.card.style.display = '';
+    });
+    
+    // Update pagination info
+    document.getElementById('showingStart').textContent = filteredPolls.length > 0 ? start + 1 : 0;
+    document.getElementById('showingEnd').textContent = Math.min(end, filteredPolls.length);
+    document.getElementById('totalItems').textContent = filteredPolls.length;
+    
+    updatePaginationButtons();
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a>`;
+    pagination.appendChild(prevLi);
+    
+    // Page numbers
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    if (startPage > 1) {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        pagination.appendChild(li);
+        
+        if (startPage > 2) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+        
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;"><i class="bi bi-chevron-right"></i></a>`;
+    pagination.appendChild(nextLi);
+}
+
+function updatePaginationButtons() {
+    updatePagination();
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
+    if (page < 1 || page > totalPages) return;
+    displayPage(page);
+}
+
+// Search functionality
+document.getElementById('searchInput')?.addEventListener('input', function(e) {
+    applyFilters();
+});
+
+// Filter by date
+function applyFilters() {
+    const dateFromInput = document.getElementById('dateFrom').value;
+    const dateToInput = document.getElementById('dateTo').value;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    const dateFrom = dateFromInput ? new Date(dateFromInput) : null;
+    const dateTo = dateToInput ? new Date(dateToInput) : null;
+    
+    // Set time to end of day for dateTo to include the entire day
+    if (dateTo) {
+        dateTo.setHours(23, 59, 59, 999);
+    }
+    
+    filteredPolls = allPolls.filter(poll => {
+        let matches = true;
+        
+        // Search filter
+        if (searchTerm && !poll.title.toLowerCase().includes(searchTerm)) {
+            matches = false;
+        }
+        
+        // Date filter - check if poll's date range overlaps with filter range
+        if (dateFrom || dateTo) {
+            if (!poll.startDate || !poll.endDate) {
+                // If poll doesn't have valid dates, exclude it from filtered results
+                matches = false;
+            } else {
+                // Check if poll date range overlaps with filter range
+                if (dateFrom && poll.endDate < dateFrom) {
+                    matches = false;
+                }
+                if (dateTo && poll.startDate > dateTo) {
+                    matches = false;
+                }
+            }
+        }
+        
+        return matches;
+    });
+    
+    currentPage = 1;
+    updatePagination();
+    displayPage(1);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    
+    filteredPolls = [...allPolls];
+    currentPage = 1;
+    updatePagination();
+    displayPage(1);
+}
 
 function showArchiveDeleteModal(pollId, pollTitle) {
     currentArchiveDeleteId = pollId;
@@ -256,20 +609,27 @@ function confirmArchiveDelete() {
     const password = document.getElementById('adminPassword').value;
     const errorDiv = document.getElementById('deleteError');
     
-    // Simple credential check (frontend only)
-    // In production, this should be validated server-side
     if (username === 'admin' && password === 'admin123') {
-        // Delete from frontend only - remove the row from the table
         const row = document.querySelector(`tr[data-poll-id="${currentArchiveDeleteId}"]`);
+        const card = document.querySelector(`.poll-card[data-poll-id="${currentArchiveDeleteId}"]`);
+        
         if (row) {
             row.style.opacity = '0.5';
-            setTimeout(() => row.remove(), 300);
+            setTimeout(() => {
+                row.remove();
+                if (card) card.remove();
+                
+                // Update polls array
+                allPolls = allPolls.filter(p => p.id !== currentArchiveDeleteId.toString());
+                filteredPolls = filteredPolls.filter(p => p.id !== currentArchiveDeleteId.toString());
+                
+                updatePagination();
+                displayPage(currentPage);
+            }, 300);
         }
         
-        // Close the modal
         bootstrap.Modal.getInstance(document.getElementById('archiveDeleteModal')).hide();
         
-        // Show success message
         const alert = document.createElement('div');
         alert.className = 'alert alert-success alert-dismissible fade show';
         alert.innerHTML = 'Archived poll deleted successfully (frontend only). <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';

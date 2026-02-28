@@ -4,55 +4,149 @@
     bool hasVoted = (bool?)ViewBag.HasVoted ?? false;
     int voteCount = (int?)ViewBag.VoteCount ?? 0;
     int maxVotes = (int?)ViewBag.MaxVotes ?? 0;
-}
-<div class="card">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      <div>
-        <h3 class="card-title mb-0">@Model.Title</h3>
-        <p class="text-muted small mb-0">@Model.Description</p>
-      </div>
-      <div class="text-end">
-        <span class="badge badge-info px-3 py-2">Select @Model.MinVotesPerVoter - @Model.MaxVotesPerVoter</span>
-        <div class="text-muted small mt-1">@Model.Options.Count() options</div>
-      </div>
-    </div>
-
-@if (hasVoted && voteCount >= maxVotes)
-{
-    <div class="alert alert-success">
-        <strong>✓ Voting Complete!</strong> You have already cast @voteCount vote(s) for this poll. You can no longer vote.
-    </div>
+    var userVotes = (List<int>?)ViewBag.UserVotes ?? new List<int>();
+    bool showResults = (bool?)ViewBag.ShowResults ?? false;
+    string pollStatus = (string?)ViewBag.PollStatus ?? "Active";
+    var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
+    var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
 
-<form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })" id="voteForm">
-      <input type="hidden" name="pollId" value="@Model.Id" />
-      @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
-
-      <div class="row g-3">
-        @foreach (var option in Model.Options)
+<div class="vote-page">
+    <!-- Poll Header Card -->
+    <div class="vote-header-card">
+        <h1>@Model.Title</h1>
+        @if (!string.IsNullOrEmpty(Model.Description))
         {
-          <div class="col-12">
-            <label class="option-card d-flex align-items-center p-3" data-id="@option.Id">
-              <input type="checkbox" name="optionIds" value="@option.Id" class="d-none" @(hasVoted && voteCount >= maxVotes ? "disabled" : "") />
-              <div class="marker me-3"><i class="bi bi-circle"></i></div>
-              <div class="flex-grow-1">@option.Text</div>
-              <div class="text-muted small ms-3">@(option.Votes.Count) votes</div>
-            </label>
-          </div>
+            <p>@Model.Description</p>
         }
-      </div>
+        @if (pollStatus == "Archived")
+        {
+            <span class="badge bg-secondary" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                <i class="bi bi-lock-fill me-2"></i>Poll Closed
+            </span>
+        }
+    </div>
 
-      @Html.AntiForgeryToken()
-      <div class="mt-4 d-flex justify-content-between align-items-center">
-         <div class="form-text small invalid" id="voteHint" style="display:none"></div>
-         <button type="submit" class="btn btn-primary" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
-            @(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Vote")
-         </button>
-      </div>
+    @if (hasVoted && voteCount >= maxVotes)
+    {
+        <div class="alert alert-secondary">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Voting Complete!</strong> You have already cast @voteCount vote(s) for this poll.
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (showResults)
+    {
+        <!-- Results View -->
+        <div class="results-section">
+            <h4 class="mb-3">
+                <i class="bi bi-bar-chart-fill me-2"></i>Poll Results
+            </h4>
+            
+            <div class="results-grid">
+                @foreach (var option in sortedOptions)
+                {
+                    var votes = option.Votes.Count;
+                    var percentage = totalVotes > 0 ? (votes * 100.0 / totalVotes) : 0;
+                    var isUserVote = userVotes.Contains(option.Id);
+                    
+                    <div class="result-card @(isUserVote ? "user-voted" : "")">
+                        <div class="result-header">
+                            <div class="result-title">
+                                @option.Text
+                                @if (isUserVote)
+                                {
+                                    <span class="badge bg-primary ms-2">
+                                        <i class="bi bi-check-circle-fill"></i> Your Vote
+                                    </span>
+                                }
+                            </div>
+                            <div class="result-count">@votes vote@(votes != 1 ? "s" : "")</div>
+                        </div>
+                        <div class="result-bar-container">
+                            <div class="result-bar" style="width: @percentage.ToString("F1")%"></div>
+                        </div>
+                        <div class="result-percentage">@percentage.ToString("F1")%</div>
+                    </div>
+                }
+            </div>
+            
+            <div class="results-summary">
+                <i class="bi bi-people-fill me-2"></i>
+                <strong>Total Votes:</strong> @totalVotes
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Voting Form -->
+        <form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })" id="voteForm">
+            <input type="hidden" name="pollId" value="@Model.Id" />
+            @Html.AntiForgeryToken()
+            
+            @if (TempData["Error"] != null) 
+            { 
+                <div class="alert alert-danger">@TempData["Error"]</div> 
+            }
+
+        <div class="vote-options-grid">
+            @foreach (var option in sortedOptions)
+            {
+                var votes = option.Votes.Count;
+                var isDisabled = hasVoted && voteCount >= maxVotes;
+                
+                <div class="vote-option-card @(isDisabled ? "disabled" : "")">
+                    <input type="checkbox" name="optionIds" value="@option.Id" id="option-@option.Id" class="vote-checkbox" @(isDisabled ? "disabled" : "") />
+                    <label for="option-@option.Id" class="vote-option-label">
+                        <div class="vote-option-header">
+                            <div class="vote-option-title">@option.Text</div>
+                            <div class="vote-check-icon">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                        <div class="vote-option-footer">
+                            <div class="vote-count-badge">
+                                <i class="bi bi-people-fill"></i>
+                                <span>@votes</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            }
+        </div>
+
+        <div class="vote-submit-container">
+            <div class="vote-hint" id="voteHint"></div>
+            <div class="vote-buttons">
+                <button type="submit" class="btn btn-primary btn-lg" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
+                    <i class="bi bi-check2-circle me-2"></i>@(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Submit Your Votes")
+                </button>
+                @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
+                {
+                    <button type="button" class="btn btn-dark btn-lg" onclick="if(confirm('Are you sure you want to reset your votes? This will remove all your current votes for this poll.')) { document.getElementById('resetForm').submit(); }">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reset My Votes
+                    </button>
+                }
+            </div>
+        </div>
     </form>
-
-  </div>
+    }
+    
+    @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
+    {
+        <form method="post" action="@Url.Action("Reset", "Vote", new { area = "Client" })" id="resetForm" style="display: none;">
+            <input type="hidden" name="pollId" value="@Model.Id" />
+            @Html.AntiForgeryToken()
+        </form>
+    }
 </div>
 
 @section Scripts {
@@ -62,38 +156,41 @@
     const max = @Model.MaxVotesPerVoter;
     const submit = document.getElementById('submitButton');
     const hint = document.getElementById('voteHint');
-    const optionCards = document.querySelectorAll('.option-card');
+    const checkboxes = document.querySelectorAll('.vote-checkbox');
+    const cards = document.querySelectorAll('.vote-option-card');
 
     function updateState() {
       const checked = document.querySelectorAll('input[name="optionIds"]:checked').length;
+      
+      // Update card states
+      checkboxes.forEach((checkbox, index) => {
+        if (checkbox.checked) {
+          cards[index].classList.add('selected');
+        } else {
+          cards[index].classList.remove('selected');
+        }
+      });
+      
+      // Update submit button
       if (checked < min) {
         submit.disabled = true;
+        hint.textContent = `Please select at least ${min} option${min > 1 ? 's' : ''}.`;
         hint.style.display = 'block';
-        hint.textContent = `Select at least ${min} option(s).`;
       } else if (checked > max) {
         submit.disabled = true;
+        hint.textContent = `Maximum ${max} option${max > 1 ? 's' : ''} allowed.`;
         hint.style.display = 'block';
-        hint.textContent = `Maximum ${max} option(s) allowed.`;
       } else {
         submit.disabled = false;
         hint.style.display = 'none';
       }
     }
 
-    optionCards.forEach(card => {
-      card.addEventListener('click', function(e){
-        const cb = card.querySelector('input[type="checkbox"]');
-        if (cb.disabled) return;
-        cb.checked = !cb.checked;
-        card.classList.toggle('selected', cb.checked);
-        const icon = card.querySelector('.marker i');
-        icon.className = cb.checked ? 'bi bi-check2-circle text-primary' : 'bi bi-circle';
-        updateState();
-      });
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateState);
     });
 
-    // initialize state
-    document.addEventListener('DOMContentLoaded', updateState);
+    updateState();
   })();
 </script>
 }

@@ -1,19 +1,45 @@
 @model IEnumerable<VoteMaster.Models.Poll>
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
 }
-<h3>Open Polls</h3>
+
+<div class="polls-header mb-4">
+    <div>
+        <h3 class="mb-1">Open Polls</h3>
+        <p class="text-muted mb-0">Cast your vote on active polls</p>
+    </div>
+    <a href="/Client/Home/PastPolls" class="btn btn-dark">
+        <i class="bi bi-clock-history me-2"></i>View Past Polls
+    </a>
+</div>
+
 @if (!Model.Any()) {
-    <div class="alert alert-info">No active polls right now.</div>
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>No active polls right now. Check back later!
+    </div>
 }
-<ul class="list-group">
-@foreach (var p in Model) {
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-            <strong>@p.Title</strong><br />
-            <small>@p.Description</small>
+else
+{
+    <div class="polls-grid">
+    @foreach (var p in Model) {
+        <div class="poll-card-item">
+            <div class="poll-card-content">
+                <div class="poll-card-header">
+                    <h5 class="poll-card-title">@p.Title</h5>
+                    <p class="poll-card-description">@p.Description</p>
+                </div>
+                <div class="poll-card-footer">
+                    <div class="poll-card-meta">
+                        <i class="bi bi-calendar-event"></i>
+                        <span>Ends @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")</span>
+                    </div>
+                    <a class="btn btn-primary" href="/Client/Vote/@p.Id">
+                        <i class="bi bi-hand-index me-2"></i>Vote Now
+                    </a>
+                </div>
+            </div>
         </div>
-        <a class="btn btn-primary btn-sm" href="/Client/Vote/@p.Id">Vote</a>
-    </li>
+    }
+    </div>
 }
-</ul>

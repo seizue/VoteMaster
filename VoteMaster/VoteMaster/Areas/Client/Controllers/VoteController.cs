@@ -22,10 +22,25 @@ namespace VoteMaster.Areas.Client.Controllers
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var hasVoted = await _polls.HasUserVotedAsync(pollId, userId);
             var voteCount = await _polls.GetUserVoteCountAsync(pollId, userId);
+            
+            // Get user's votes if they have voted
+            var userVotes = new List<int>();
+            if (hasVoted)
+            {
+                var votes = await _polls.GetUserVotesForPollAsync(pollId, userId);
+                userVotes = votes;
+            }
+
+            // Check if poll has ended
+            var pollStatus = _polls.GetPollStatus(poll);
+            var showResults = pollStatus == "Archived" || (hasVoted && poll.AllowPublicResults);
 
             ViewBag.HasVoted = hasVoted;
             ViewBag.VoteCount = voteCount;
             ViewBag.MaxVotes = poll.MaxVotesPerVoter;
+            ViewBag.UserVotes = userVotes;
+            ViewBag.ShowResults = showResults;
+            ViewBag.PollStatus = pollStatus;
 
             return View(poll);
         }
@@ -78,5 +93,29 @@ namespace VoteMaster.Areas.Client.Controllers
 
         [Route("Client/Vote/Thanks/{pollId:int}")]
         public IActionResult Thanks(int pollId) => View(model: pollId);
+
+        [HttpPost]
+        [Route("Client/Vote/Reset")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reset(int pollId)
+        {
+            try
+            {
+                var poll = await _polls.GetPollAsync(pollId);
+                if (poll == null) return NotFound();
+
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                
+                await _polls.ResetUserVotesAsync(pollId, userId);
+                
+                TempData["Success"] = "Your votes have been reset successfully. You can vote again.";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while resetting your votes";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+        }
     }
 }

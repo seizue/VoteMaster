@@ -12,7 +12,12 @@ namespace VoteMaster.Controllers
                     ? RedirectToAction("Index", "Dashboard", new { area = "Admin" })
                     : RedirectToAction("Index", "Home", new { area = "Client" });
             }
-            return RedirectToAction("Login", "Account");
+            return View("Landing");
+        }
+        
+        public IActionResult Landing()
+        {
+            return View();
         }
     }
 }
