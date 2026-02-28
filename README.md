@@ -11,6 +11,15 @@ For example:
 - Microsoft SQL Server – ensures reliable data storage and querying.
 - Voting Results – displays final tallies and resolution outcomes based on weighted votes.
 
+## Live Demo
+
+The application is deployed on Azure and accessible at:
+**https://votemaster-seizue.azurewebsites.net**
+
+Default login credentials:
+- Username: `admin`
+- Password: `admin123`
+
 ## Local Development
 
 1. **Clone this repository**  
@@ -34,7 +43,7 @@ You can modify these values to fit your environment.
   "Admin": {
     "Username": "admin",
     "Password": "admin123",
-    "Weight": 3
+    "Weight": 1
   },
   "Users": [
     { "Username": "bob", "Password": "pass123", "Weight": 1, "Role": "Voter" }
@@ -43,4 +52,43 @@ You can modify these values to fit your environment.
 ```
 - You can add or remove default Users in the Users array.
 - Once logged in as Admin, you can also add multiple voters directly through the system.
+
+## Azure Deployment
+
+This application is configured for automatic deployment to Azure App Service using GitHub Actions.
+
+### Deployment Architecture
+- **Hosting**: Azure App Service (Free F1 tier)
+- **Database**: Azure SQL Database (Free tier)
+- **CI/CD**: GitHub Actions workflow
+- **Region**: Southeast Asia
+
+### Automatic Deployment
+Every push to the `main` branch triggers an automatic deployment:
+1. GitHub Actions builds the application
+2. Runs tests (if available)
+3. Publishes the app
+4. Deploys to Azure App Service
+
+### Manual Deployment Setup
+For detailed step-by-step instructions on setting up Azure deployment from scratch, see [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md).
+
+Quick overview:
+1. Create Azure SQL Database (free tier)
+2. Create Azure App Service (F1 free tier)
+3. Configure connection string in App Service
+4. Add publish profile to GitHub Secrets
+5. Push to main branch to deploy
+
+### Environment Configuration
+Production settings are managed through:
+- **Connection String**: Configured in Azure App Service → Environment variables
+- **App Settings**: `appsettings.Production.json`
+- **GitHub Secrets**: `Azure_VoteMaster_Publish_Profile` (contains Azure publish profile for deployment)
+- **GitHub Workflow**: `.github/workflows/dotnet.yml` (CI/CD pipeline configuration)
+
+### Monitoring
+- View logs: Azure Portal → App Service → Log stream
+- Deployment history: GitHub → Actions tab
+- App insights: Azure Portal → App Service → Monitoring
 
