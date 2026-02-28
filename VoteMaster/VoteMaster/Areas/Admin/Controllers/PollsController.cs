@@ -35,12 +35,6 @@ namespace VoteMaster.Areas.Admin.Controllers
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
 
-            // Check if poll is archived - if so, don't allow editing
-            if (_polls.GetPollStatus(poll) == "Archived")
-            {
-                return BadRequest("Cannot edit archived polls");
-            }
-
             ViewBag.Poll = poll;
             ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text));
             ViewBag.StartDateTime = poll.StartTime.ToString("yyyy-MM-ddTHH:mm");
@@ -50,16 +44,11 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         [HttpPost]
         public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string optionsCsv,
-            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
+            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false)
         {
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
-
-            // Check if poll is archived - if so, don't allow editing
-            if (_polls.GetPollStatus(poll) == "Archived")
-            {
-                return BadRequest("Cannot edit archived polls");
-            }
 
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -117,6 +106,8 @@ namespace VoteMaster.Areas.Admin.Controllers
             poll.MinVotesPerVoter = minVotesPerVoter;
             poll.StartTime = startTime;
             poll.EndTime = endTime;
+            poll.EnableLiveVoteCount = enableLiveVoteCount;
+            poll.EnablePollNotifications = enablePollNotifications;
 
             // Update options - clear and recreate
             poll.Options.Clear();
@@ -131,7 +122,8 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         [HttpPost]
         public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
-            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1)
+            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false)
         {
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -191,7 +183,9 @@ namespace VoteMaster.Areas.Admin.Controllers
                 MaxVotesPerVoter = maxVotesPerVoter, 
                 MinVotesPerVoter = minVotesPerVoter,
                 StartTime = startTime,
-                EndTime = endTime
+                EndTime = endTime,
+                EnableLiveVoteCount = enableLiveVoteCount,
+                EnablePollNotifications = enablePollNotifications
             };
             await _polls.CreatePollAsync(poll, options);
             return RedirectToAction(nameof(Index));

@@ -58,7 +58,7 @@
                     var percentage = totalVotes > 0 ? (votes * 100.0 / totalVotes) : 0;
                     var isUserVote = userVotes.Contains(option.Id);
                     
-                    <div class="result-card @(isUserVote ? "user-voted" : "")">
+                    <div class="result-card @(isUserVote ? "user-voted" : "")" data-result-option-id="@option.Id">
                         <div class="result-header">
                             <div class="result-title">
                                 @option.Text
@@ -103,7 +103,7 @@
                 var votes = option.Votes.Count;
                 var isDisabled = hasVoted && voteCount >= maxVotes;
                 
-                <div class="vote-option-card @(isDisabled ? "disabled" : "")">
+                <div class="vote-option-card @(isDisabled ? "disabled" : "")" data-option-id="@option.Id">
                     <input type="checkbox" name="optionIds" value="@option.Id" id="option-@option.Id" class="vote-checkbox" @(isDisabled ? "disabled" : "") />
                     <label for="option-@option.Id" class="vote-option-label">
                         <div class="vote-option-header">
@@ -150,6 +150,7 @@
 </div>
 
 @section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <script>
   (function(){
     const min = @Model.MinVotesPerVoter;
@@ -158,39 +159,101 @@
     const hint = document.getElementById('voteHint');
     const checkboxes = document.querySelectorAll('.vote-checkbox');
     const cards = document.querySelectorAll('.vote-option-card');
+    const enableLiveVoteCount = @(Model.EnableLiveVoteCount.ToString().ToLower());
+    const pollId = @Model.Id;
 
-    function updateState() {
-      const checked = document.querySelectorAll('input[name="optionIds"]:checked').length;
-      
-      // Update card states
-      checkboxes.forEach((checkbox, index) => {
-        if (checkbox.checked) {
-          cards[index].classList.add('selected');
+    // Only run voting logic if form elements exist
+    if (submit && hint && checkboxes.length > 0) {
+      function updateState() {
+        const checked = document.querySelectorAll('input[name="optionIds"]:checked').length;
+        
+        // Update card states
+        checkboxes.forEach((checkbox, index) => {
+          if (checkbox.checked) {
+            cards[index].classList.add('selected');
+          } else {
+            cards[index].classList.remove('selected');
+          }
+        });
+        
+        // Update submit button
+        if (checked < min) {
+          submit.disabled = true;
+          hint.textContent = `Please select at least ${min} option${min > 1 ? 's' : ''}.`;
+          hint.style.display = 'block';
+        } else if (checked > max) {
+          submit.disabled = true;
+          hint.textContent = `Maximum ${max} option${max > 1 ? 's' : ''} allowed.`;
+          hint.style.display = 'block';
         } else {
-          cards[index].classList.remove('selected');
+          submit.disabled = false;
+          hint.style.display = 'none';
         }
-      });
-      
-      // Update submit button
-      if (checked < min) {
-        submit.disabled = true;
-        hint.textContent = `Please select at least ${min} option${min > 1 ? 's' : ''}.`;
-        hint.style.display = 'block';
-      } else if (checked > max) {
-        submit.disabled = true;
-        hint.textContent = `Maximum ${max} option${max > 1 ? 's' : ''} allowed.`;
-        hint.style.display = 'block';
-      } else {
-        submit.disabled = false;
-        hint.style.display = 'none';
       }
+
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateState);
+      });
+
+      updateState();
     }
 
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', updateState);
-    });
+    // SignalR connection for real-time updates
+    if (enableLiveVoteCount) {
+      const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/results")
+        .withAutomaticReconnect()
+        .build();
 
-    updateState();
+      connection.on("VoteUpdated", function (optionId, newVoteCount) {
+        const badge = document.querySelector(`[data-option-id="${optionId}"] .vote-count-badge span`);
+        if (badge) {
+          badge.textContent = newVoteCount;
+          badge.parentElement.classList.add('pulse-animation');
+          setTimeout(() => badge.parentElement.classList.remove('pulse-animation'), 600);
+        }
+        
+        // Update result bars if on results view
+        const resultCard = document.querySelector(`[data-result-option-id="${optionId}"]`);
+        if (resultCard) {
+          const countEl = resultCard.querySelector('.result-count');
+          const barEl = resultCard.querySelector('.result-bar');
+          const percentEl = resultCard.querySelector('.result-percentage');
+          
+          if (countEl) countEl.textContent = `${newVoteCount} vote${newVoteCount !== 1 ? 's' : ''}`;
+          
+          // Recalculate percentage
+          const allCounts = Array.from(document.querySelectorAll('.result-count'))
+            .map(el => parseInt(el.textContent.match(/\d+/)[0]));
+          const total = allCounts.reduce((a, b) => a + b, 0);
+          const percentage = total > 0 ? (newVoteCount * 100.0 / total) : 0;
+          
+          if (barEl) barEl.style.width = percentage.toFixed(1) + '%';
+          if (percentEl) percentEl.textContent = percentage.toFixed(1) + '%';
+        }
+      });
+
+      connection.on("VoterParticipationUpdated", function (totalVoters, votedCount) {
+        const summary = document.querySelector('.results-summary');
+        if (summary) {
+          const percentage = totalVoters > 0 ? ((votedCount / totalVoters) * 100).toFixed(1) : 0;
+          summary.innerHTML = `<i class="bi bi-people-fill me-2"></i><strong>Participation:</strong> ${votedCount}/${totalVoters} voters (${percentage}%)`;
+        }
+      });
+
+      connection.start()
+        .then(() => {
+          console.log("SignalR connected");
+          connection.invoke("JoinPollGroup", pollId);
+        })
+        .catch(err => console.error("SignalR connection error:", err));
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        connection.invoke("LeavePollGroup", pollId);
+        connection.stop();
+      });
+    }
   })();
 </script>
 }

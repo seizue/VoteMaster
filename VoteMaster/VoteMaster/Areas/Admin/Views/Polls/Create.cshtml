@@ -68,9 +68,19 @@
     
     <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" id="allowPublicResults" name="allowPublicResults" value="true" @( (ViewBag.AllowPublicResults ?? true) ? "checked" : "" ) />
-        <input type="hidden" name="allowPublicResults" value="false" />
         <label class="form-check-label" for="allowPublicResults">Allow Public Results</label>
     </div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="enableLiveVoteCount" name="enableLiveVoteCount" value="true" />
+        <label class="form-check-label" for="enableLiveVoteCount">Enable live vote count updates for users</label>
+    </div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="enablePollNotifications" name="enablePollNotifications" value="true" />
+        <label class="form-check-label" for="enablePollNotifications">Enable notifications when poll starts/ends</label>
+    </div>
+    
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Create Poll</button>
         <a href="/Admin/Dashboard" class="btn btn-secondary">Cancel</a>

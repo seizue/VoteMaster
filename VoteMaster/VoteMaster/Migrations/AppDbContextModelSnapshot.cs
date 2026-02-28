@@ -67,6 +67,12 @@ namespace VoteMaster.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EnableLiveVoteCount")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EnablePollNotifications")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
 

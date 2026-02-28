@@ -14,5 +14,9 @@ namespace VoteMaster.Models
         public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
         public int MaxVotesPerVoter { get; set; } = 1;
         public int MinVotesPerVoter { get; set; } = 1;
+        
+        // Real-time features
+        public bool EnableLiveVoteCount { get; set; } = false;
+        public bool EnablePollNotifications { get; set; } = false;
     }
 }

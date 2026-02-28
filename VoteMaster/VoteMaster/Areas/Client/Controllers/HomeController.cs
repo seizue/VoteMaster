@@ -17,12 +17,14 @@ namespace VoteMaster.Areas.Client.Controllers
         public async Task<IActionResult> PastPolls()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var archivedPolls = await _polls.GetArchivedPollsAsync();
             
-            // Get polls where user has voted
+            // Get all polls with their options and votes loaded
+            var allPolls = await _polls.GetAllPollsAsync();
+            
+            // Get all polls where user has voted
             var userVotedPolls = new List<(VoteMaster.Models.Poll poll, int voteCount)>();
             
-            foreach (var poll in archivedPolls)
+            foreach (var poll in allPolls)
             {
                 var voteCount = await _polls.GetUserVoteCountAsync(poll.Id, userId);
                 if (voteCount > 0)
@@ -30,6 +32,13 @@ namespace VoteMaster.Areas.Client.Controllers
                     userVotedPolls.Add((poll, voteCount));
                 }
             }
+            
+            // Sort by end time descending (most recent first)
+            userVotedPolls = userVotedPolls.OrderByDescending(p => p.poll.EndTime).ToList();
+            
+            // Debug: Log the count
+            ViewBag.TotalPolls = allPolls.Count;
+            ViewBag.UserVotedCount = userVotedPolls.Count;
             
             return View(userVotedPolls);
         }

@@ -52,13 +52,69 @@
         @RenderBody()
     </main>
 
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="pollNotificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-bell-fill me-2 text-primary"></i>
+                <strong class="me-auto">Poll Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                <!-- Message will be inserted here -->
+            </div>
+        </div>
+    </div>
+
     <footer class="mt-auto py-4">
         <div class="container text-center text-muted small">© @DateTime.UtcNow.Year VoteMaster — Simple modern voting</div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/%40microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    
     @await RenderSectionAsync("Scripts", required: false)
+    
+    <script>
+        // Global SignalR connection for poll notifications
+        @if (user?.IsAuthenticated ?? false)
+        {
+            <text>
+            if (typeof signalR !== 'undefined') {
+                const notificationConnection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/results")
+                    .withAutomaticReconnect()
+                    .build();
+
+                notificationConnection.on("PollStarted", function (pollId, pollTitle) {
+                    showToast(`New poll started: ${pollTitle}`, `/Client/Vote/${pollId}`);
+                });
+
+                notificationConnection.on("PollEnded", function (pollId, pollTitle) {
+                    showToast(`Poll ended: ${pollTitle}`, `/Client/Vote/${pollId}`);
+                });
+
+                notificationConnection.start()
+                    .then(() => console.log("Notification hub connected"))
+                    .catch(err => console.error("Notification hub error:", err));
+
+                function showToast(message, link) {
+                    const toastEl = document.getElementById('pollNotificationToast');
+                    const toastBody = document.getElementById('toastMessage');
+                    
+                    if (link) {
+                        toastBody.innerHTML = `${message} <a href="${link}" class="btn btn-sm btn-primary mt-2 w-100">View Poll</a>`;
+                    } else {
+                        toastBody.textContent = message;
+                    }
+                    
+                    const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+                    toast.show();
+                }
+            }
+            </text>
+        }
+    </script>
 </body>
 </html>

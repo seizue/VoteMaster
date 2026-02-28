@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
+using VoteMaster.Hubs;
 using VoteMaster.Services;
 
 namespace VoteMaster.Areas.Client.Controllers
@@ -10,7 +12,13 @@ namespace VoteMaster.Areas.Client.Controllers
     public class VoteController : Controller
     {
         private readonly IPollService _polls;
-        public VoteController(IPollService polls) { _polls = polls; }
+        private readonly IHubContext<ResultsHub> _hubContext;
+        
+        public VoteController(IPollService polls, IHubContext<ResultsHub> hubContext) 
+        { 
+            _polls = polls;
+            _hubContext = hubContext;
+        }
 
         [HttpGet]
         [Route("Client/Vote/{pollId:int}")]
@@ -74,6 +82,18 @@ namespace VoteMaster.Areas.Client.Controllers
                     try
                     {
                         await _polls.CastVoteAsync(optionId, userId);
+                        
+                        // Send real-time update if enabled
+                        if (poll.EnableLiveVoteCount)
+                        {
+                            var option = poll.Options.FirstOrDefault(o => o.Id == optionId);
+                            if (option != null)
+                            {
+                                var newVoteCount = option.Votes.Count + 1;
+                                await _hubContext.Clients.Group($"Poll_{pollId}")
+                                    .SendAsync("VoteUpdated", optionId, newVoteCount);
+                            }
+                        }
                     }
                     catch (InvalidOperationException ex)
                     {
@@ -81,6 +101,13 @@ namespace VoteMaster.Areas.Client.Controllers
                         return RedirectToAction(nameof(Index), new { pollId });
                     }
                 }
+
+                // Update voter participation
+                var voterStatus = await _polls.GetVoterVotingStatusAsync(pollId);
+                var totalVoters = voterStatus.Count;
+                var votedCount = voterStatus.Count(v => v.HasVoted);
+                await _hubContext.Clients.Group($"Poll_{pollId}")
+                    .SendAsync("VoterParticipationUpdated", totalVoters, votedCount);
 
                 return RedirectToAction(nameof(Thanks), new { pollId });
             }
