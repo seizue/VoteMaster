@@ -28,7 +28,7 @@ jobs:
       run: dotnet test VoteMaster/VoteMaster/VoteMaster.csproj --no-build --configuration Release --verbosity normal
     
     - name: Publish
-      run: dotnet publish VoteMaster/VoteMaster/VoteMaster.csproj --no-build --configuration Release --output ./publish
+      run: dotnet publish VoteMaster/VoteMaster/VoteMaster.csproj --configuration Release --output ./publish
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
