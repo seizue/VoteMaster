@@ -48,11 +48,9 @@ jobs:
         name: voteMaster-app
         path: ./publish
     
-    # Add your deployment steps here
-    # Example for Azure Web App:
-    # - name: Deploy to Azure Web App
-    #   uses: azure/webapps-deploy@v2
-    #   with:
-    #     app-name: your-app-name
-    #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-    #     package: ./publish
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'votemaster-app'  # Replace with your actual Azure App Service name
+        publish-profile: ${{ secrets.Azure_VoteMaster_Publish_Profile }}
+        package: ./publish
