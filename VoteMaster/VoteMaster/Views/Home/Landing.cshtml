@@ -1,0 +1,142 @@
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "VoteMaster - Modern Voting Platform";
+}
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <h1 class="hero-title">
+                    Voting Made <br/>
+                    <span style="color: var(--vm-accent);">Simple & Secure</span>
+                </h1>
+                <p class="hero-subtitle">
+                    VoteMaster is a modern, intuitive platform for creating and managing polls. 
+                    Perfect for organizations, teams, and communities.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="/Account/Login" class="btn btn-primary btn-hero">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Get Started
+                    </a>
+                    <a href="#features" class="btn btn-hero" style="background: var(--vm-bg); color: var(--vm-text-primary);">
+                        <i class="bi bi-info-circle me-2"></i>Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <div style="font-size: 15rem; color: var(--vm-accent); opacity: 0.3;">
+                        <i class="bi bi-check2-square"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="mb-3" style="font-size: 2.5rem; font-weight: 700; color: var(--vm-text-primary);">
+                Why Choose VoteMaster?
+            </h2>
+            <p style="font-size: 1.125rem; color: var(--vm-text-secondary); max-width: 600px; margin: 0 auto;">
+                Everything you need to run fair, transparent, and efficient voting processes
+            </p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon teal">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <h3 class="feature-title">Fast & Easy</h3>
+                    <p class="feature-description">
+                        Create polls in seconds with our intuitive interface. No technical knowledge required.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon mint">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h3 class="feature-title">Secure Voting</h3>
+                    <p class="feature-description">
+                        Built-in authentication and vote tracking ensure every vote counts and is legitimate.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon blue">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h3 class="feature-title">Real-time Results</h3>
+                    <p class="feature-description">
+                        Watch results update live as votes come in with our real-time dashboard.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon purple">
+                        <i class="bi bi-phone"></i>
+                    </div>
+                    <h3 class="feature-title">Mobile Friendly</h3>
+                    <p class="feature-description">
+                        Fully responsive design works perfectly on any device - desktop, tablet, or mobile.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon yellow">
+                        <i class="bi bi-sliders"></i>
+                    </div>
+                    <h3 class="feature-title">Flexible Options</h3>
+                    <p class="feature-description">
+                        Configure voting limits, time periods, and multiple choice options to fit your needs.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon pink">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h3 class="feature-title">User Management</h3>
+                    <p class="feature-description">
+                        Easily manage voters and administrators with role-based access control.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card">
+            <h2 class="mb-4" style="font-size: 2.5rem; font-weight: 700; color: var(--vm-text-primary);">
+                Ready to Get Started?
+            </h2>
+            <p class="mb-4" style="font-size: 1.125rem; color: var(--vm-text-secondary); max-width: 600px; margin: 0 auto 2rem;">
+                Join VoteMaster today and experience the future of digital voting
+            </p>
+            <a href="/Account/Login" class="btn btn-primary btn-hero">
+                <i class="bi bi-rocket-takeoff me-2"></i>Start Voting Now
+            </a>
+        </div>
+    </div>
+</section>
