@@ -16,11 +16,6 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddEventSourceLogger();
 
-// Log startup information
-var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
-logger.LogInformation("Application starting...");
-logger.LogInformation($"Environment: {builder.Environment.EnvironmentName}");
-
 // ===== Services =====
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddSignalR();
