@@ -1,0 +1,58 @@
+name: .NET CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore VoteMaster/VoteMaster/VoteMaster.csproj
+    
+    - name: Build
+      run: dotnet build VoteMaster/VoteMaster/VoteMaster.csproj --no-restore --configuration Release
+    
+    - name: Test
+      run: dotnet test VoteMaster/VoteMaster/VoteMaster.csproj --no-build --configuration Release --verbosity normal
+    
+    - name: Publish
+      run: dotnet publish VoteMaster/VoteMaster/VoteMaster.csproj --no-build --configuration Release --output ./publish
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: voteMaster-app
+        path: ./publish
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: voteMaster-app
+        path: ./publish
+    
+    # Add your deployment steps here
+    # Example for Azure Web App:
+    # - name: Deploy to Azure Web App
+    #   uses: azure/webapps-deploy@v2
+    #   with:
+    #     app-name: your-app-name
+    #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+    #     package: ./publish
