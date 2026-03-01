@@ -41,7 +41,7 @@ Default settings are stored in `appsettings.json`:
 
 You can add or modify default users in the `Seed.Users` array in `appsettings.json`. Once logged in as admin, you can also manage users directly through the system.
 
-For detailed configuration options and deployment-specific settings, see [Docs.md](Docs.md).
+For detailed configuration options and deployment-specific settings, see [DOCS.md](DOCS.md).
 
 ## Deployment
 
@@ -59,5 +59,5 @@ For complete deployment instructions including:
 - Security best practices
 - Troubleshooting tips
 
-See the comprehensive [Deployment Guide (Docs.md)](Docs.md).
+See the comprehensive [Deployment Guide (DOCS.md)](DOCS.md).
 
