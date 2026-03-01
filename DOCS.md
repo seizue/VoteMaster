@@ -1,25 +1,37 @@
-# VoteMaster - Azure Deployment Guide
+# VoteMaster - Deployment Guide
 
-This guide provides detailed step-by-step instructions for deploying VoteMaster to Azure App Service with Azure SQL Database, both using free tiers.
+This guide provides detailed instructions for deploying VoteMaster to various hosting platforms. The application is built with ASP.NET Core and can be deployed to any platform that supports .NET applications.
 
 ## Prerequisites
 
-- Azure account (sign up at https://azure.microsoft.com/free/)
-- GitHub account with your VoteMaster repository
-- Basic understanding of Azure Portal navigation
+- .NET 9 SDK (or .NET 8 LTS)
+- SQL Server database (local, cloud, or managed service)
+- Git for version control
+- Basic understanding of web application deployment
 
-## Overview
+## Deployment Options
 
-You'll be setting up:
-- **Azure SQL Database** (Free tier - 32 GB storage)
-- **Azure App Service** (F1 Free tier - 60 min/day compute)
-- **GitHub Actions** (Automated CI/CD pipeline)
+VoteMaster can be deployed to:
+- **Azure App Service** (with Azure SQL Database)
+- **AWS Elastic Beanstalk** (with RDS SQL Server)
+- **Google Cloud Run** (with Cloud SQL)
+- **Docker containers** (any container platform)
+- **Traditional IIS hosting** (Windows Server)
+- **Linux servers** (with Nginx/Apache reverse proxy)
 
-Total cost: **$0/month** (using free tiers)
+This guide covers the most common deployment scenarios.
 
 ---
 
-## Part 1: Create Azure SQL Database
+## Deployment Option 1: Azure (Free Tier)
+
+Total cost: **$0/month** using free tiers
+
+### Prerequisites
+- Azure account (sign up at https://azure.microsoft.com/free/)
+- GitHub account with your VoteMaster repository
+
+### Part 1: Create Azure SQL Database
 
 ### Step 1: Access Azure Portal
 
@@ -464,22 +476,393 @@ If you need to deploy manually:
 
 ---
 
+## Deployment Option 2: Docker Container
+
+### Prerequisites
+- Docker installed on your system
+- Docker Hub account (optional, for pushing images)
+
+### Step 1: Create Dockerfile
+
+Create a `Dockerfile` in the project root:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["VoteMaster/VoteMaster/VoteMaster.csproj", "VoteMaster/VoteMaster/"]
+RUN dotnet restore "VoteMaster/VoteMaster/VoteMaster.csproj"
+COPY . .
+WORKDIR "/src/VoteMaster/VoteMaster"
+RUN dotnet build "VoteMaster.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "VoteMaster.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "VoteMaster.dll"]
+```
+
+### Step 2: Create docker-compose.yml
+
+```yaml
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=db;Database=VoteMasterDb;User Id=sa;Password=YourStrong@Password;TrustServerCertificate=True;
+    depends_on:
+      - db
+  
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Password
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+volumes:
+  sqldata:
+```
+
+### Step 3: Build and Run
+
+```bash
+# Build and start containers
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop containers
+docker-compose down
+```
+
+Access the application at `http://localhost:5000`
+
+---
+
+## Deployment Option 3: AWS Elastic Beanstalk
+
+### Prerequisites
+- AWS account
+- AWS CLI installed and configured
+- EB CLI installed (`pip install awsebcli`)
+
+### Step 1: Initialize Elastic Beanstalk
+
+```bash
+cd VoteMaster/VoteMaster
+eb init -p "64bit Amazon Linux 2 v2.6.0 running .NET Core" -r us-east-1 votemaster
+```
+
+### Step 2: Create RDS SQL Server Instance
+
+1. Go to AWS RDS Console
+2. Create database → SQL Server Express (free tier eligible)
+3. Set master username and password
+4. Note the endpoint URL
+
+### Step 3: Configure Environment
+
+Create `.ebextensions/environment.config`:
+
+```yaml
+option_settings:
+  aws:elasticbeanstalk:application:environment:
+    ASPNETCORE_ENVIRONMENT: Production
+    ConnectionStrings__DefaultConnection: "Server=your-rds-endpoint.rds.amazonaws.com;Database=VoteMasterDb;User Id=admin;Password=yourpassword;"
+```
+
+### Step 4: Deploy
+
+```bash
+eb create votemaster-env
+eb open
+```
+
+---
+
+## Deployment Option 4: Traditional IIS Hosting
+
+### Prerequisites
+- Windows Server with IIS installed
+- SQL Server installed (Express or higher)
+- .NET 9 Hosting Bundle installed
+
+### Step 1: Publish Application
+
+```bash
+dotnet publish -c Release -o ./publish
+```
+
+### Step 2: Configure IIS
+
+1. Open IIS Manager
+2. Create new Application Pool:
+   - Name: VoteMaster
+   - .NET CLR Version: No Managed Code
+3. Create new Website:
+   - Site name: VoteMaster
+   - Physical path: Point to publish folder
+   - Application pool: VoteMaster
+   - Binding: Port 80 or 443 (with SSL)
+
+### Step 3: Configure Connection String
+
+Edit `appsettings.Production.json` in the publish folder:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=VoteMasterDb;Integrated Security=True;TrustServerCertificate=True;"
+  }
+}
+```
+
+### Step 4: Set Permissions
+
+Grant IIS_IUSRS read/execute permissions to the publish folder.
+
+---
+
+## Deployment Option 5: Linux Server (Ubuntu/Debian)
+
+### Prerequisites
+- Ubuntu 20.04+ or Debian 11+
+- Nginx installed
+- .NET 9 runtime installed
+
+### Step 1: Install .NET Runtime
+
+```bash
+wget https://dot.net/v1/dotnet-install.sh
+chmod +x dotnet-install.sh
+./dotnet-install.sh --runtime aspnetcore --version 9.0
+```
+
+### Step 2: Publish and Transfer Application
+
+```bash
+# On development machine
+dotnet publish -c Release -o ./publish
+
+# Transfer to server
+scp -r ./publish user@server:/var/www/votemaster
+```
+
+### Step 3: Create Systemd Service
+
+Create `/etc/systemd/system/votemaster.service`:
+
+```ini
+[Unit]
+Description=VoteMaster Application
+
+[Service]
+WorkingDirectory=/var/www/votemaster
+ExecStart=/usr/bin/dotnet /var/www/votemaster/VoteMaster.dll
+Restart=always
+RestartSec=10
+SyslogIdentifier=votemaster
+User=www-data
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ConnectionStrings__DefaultConnection="Server=localhost;Database=VoteMasterDb;User Id=votemaster;Password=yourpassword;"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Step 4: Configure Nginx
+
+Create `/etc/nginx/sites-available/votemaster`:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection keep-alive;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Step 5: Start Services
+
+```bash
+sudo systemctl enable votemaster
+sudo systemctl start votemaster
+sudo ln -s /etc/nginx/sites-available/votemaster /etc/nginx/sites-enabled/
+sudo systemctl restart nginx
+```
+
+---
+
+## Database Configuration
+
+### Connection String Formats
+
+**SQL Server (Windows Authentication)**:
+```
+Server=localhost\\SQLEXPRESS;Database=VoteMasterDb;Integrated Security=True;TrustServerCertificate=True;
+```
+
+**SQL Server (SQL Authentication)**:
+```
+Server=your-server.com;Database=VoteMasterDb;User Id=username;Password=password;TrustServerCertificate=True;
+```
+
+**Azure SQL Database**:
+```
+Server=tcp:your-server.database.windows.net,1433;Database=VoteMasterDb;User ID=username;Password=password;Encrypt=True;
+```
+
+**AWS RDS SQL Server**:
+```
+Server=your-instance.rds.amazonaws.com;Database=VoteMasterDb;User Id=admin;Password=password;
+```
+
+### Running Migrations
+
+After deployment, run migrations to create the database schema:
+
+```bash
+# Using dotnet CLI
+dotnet ef database update
+
+# Or let the application auto-migrate on startup (already configured in Program.cs)
+```
+
+---
+
+## Environment Variables
+
+Configure these environment variables based on your deployment platform:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `ASPNETCORE_ENVIRONMENT` | Environment name | `Production` |
+| `ConnectionStrings__DefaultConnection` | Database connection | See formats above |
+| `ASPNETCORE_URLS` | Listening URLs | `http://0.0.0.0:5000` |
+
+---
+
+## Security Best Practices
+
+### 1. Change Default Credentials
+After first deployment, immediately change the default admin password.
+
+### 2. Use HTTPS
+- Enable HTTPS in production
+- Obtain SSL certificate (Let's Encrypt for free)
+- Redirect HTTP to HTTPS
+
+### 3. Secure Connection Strings
+- Use environment variables or secret managers
+- Never commit connection strings to source control
+- Use Azure Key Vault, AWS Secrets Manager, or similar
+
+### 4. Database Security
+- Use strong passwords
+- Restrict database access by IP
+- Enable firewall rules
+- Regular backups
+
+### 5. Application Security
+- Keep .NET runtime updated
+- Enable request validation
+- Implement rate limiting
+- Monitor application logs
+
+---
+
+## Monitoring and Maintenance
+
+### Application Logs
+- Configure logging in `appsettings.json`
+- Use structured logging (Serilog recommended)
+- Monitor error rates and performance
+
+### Database Maintenance
+- Regular backups (automated)
+- Monitor query performance
+- Index optimization
+- Clean up old data
+
+### Performance Monitoring
+- Track response times
+- Monitor memory usage
+- Database connection pooling
+- Enable caching where appropriate
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**HTTP 500 Error**
+- Check application logs
+- Verify connection string
+- Ensure database is accessible
+- Check file permissions
+
+**Database Connection Failed**
+- Test connection string separately
+- Verify firewall rules
+- Check SQL Server is running
+- Validate credentials
+
+**Application Won't Start**
+- Check .NET runtime version
+- Verify all dependencies installed
+- Review systemd/service logs
+- Check port availability
+
+**Slow Performance**
+- Enable response caching
+- Optimize database queries
+- Scale up resources
+- Use CDN for static files
+
+---
+
 ## Support and Resources
 
+- **ASP.NET Core Documentation**: https://docs.microsoft.com/aspnet/core
+- **Docker Documentation**: https://docs.docker.com
 - **Azure Documentation**: https://docs.microsoft.com/azure
-- **ASP.NET Core Docs**: https://docs.microsoft.com/aspnet/core
-- **GitHub Actions**: https://docs.github.com/actions
-- **Azure Free Account**: https://azure.microsoft.com/free/
+- **AWS Documentation**: https://docs.aws.amazon.com
+- **Nginx Documentation**: https://nginx.org/en/docs/
 
 ## Conclusion
 
-You now have a fully deployed VoteMaster application running on Azure with:
-- ✅ Free SQL Database
-- ✅ Free App Service hosting
-- ✅ Automated CI/CD pipeline
-- ✅ Public internet access
-- ✅ Scalable architecture
+VoteMaster is flexible and can be deployed to various platforms based on your needs:
+- Cloud platforms (Azure, AWS, GCP)
+- Container orchestration (Docker, Kubernetes)
+- Traditional hosting (IIS, Linux servers)
+- Scalable architecture
+- Production-ready configuration
 
-Your application is accessible at: `https://your-app-name.azurewebsites.net`
-
-Enjoy your cloud-hosted weighted voting system!
+Choose the deployment option that best fits your infrastructure and requirements!

@@ -17,8 +17,8 @@ The application is deployed on Azure and accessible at:
 **https://votemaster-seizue.azurewebsites.net**
 
 Default login credentials:
-- Username: `admin`
-- Password: `admin123`
+- Admin: Username `admin` / Password `admin123`
+- Test Voter: Username `bob` / Password `pass123`
 
 ## Local Development
 
@@ -33,62 +33,31 @@ Default login credentials:
 3. **Frontend: `http://localhost:5000`**
 
 ## Configuration
-All default settings (Admin account, Test voters, and database connection) are stored in `appsettings.json.`
-You can modify these values to fit your environment. 
- ```csharp
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=VoteMasterDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
-},
-"Seed": {
-  "Admin": {
-    "Username": "admin",
-    "Password": "admin123",
-    "Weight": 1
-  },
-  "Users": [
-    { "Username": "bob", "Password": "pass123", "Weight": 1, "Role": "Voter" }
-  ]
-}
-```
-- You can add or remove default Users in the Users array.
-- Once logged in as Admin, you can also add multiple voters directly through the system.
 
-## Azure Deployment
+Default settings are stored in `appsettings.json`:
+- Admin account credentials
+- Test voter accounts (e.g., bob/pass123)
+- Database connection string
 
-This application is configured for automatic deployment to Azure App Service using GitHub Actions.
+You can add or modify default users in the `Seed.Users` array in `appsettings.json`. Once logged in as admin, you can also manage users directly through the system.
 
-### Deployment Architecture
-- **Hosting**: Azure App Service (Free F1 tier)
-- **Database**: Azure SQL Database (Free tier)
-- **CI/CD**: GitHub Actions workflow
-- **Region**: Southeast Asia
+For detailed configuration options and deployment-specific settings, see [Docs.md](Docs.md).
 
-### Automatic Deployment
-Every push to the `main` branch triggers an automatic deployment:
-1. GitHub Actions builds the application
-2. Runs tests (if available)
-3. Publishes the app
-4. Deploys to Azure App Service
+## Deployment
 
-### Manual Deployment Setup
-For detailed step-by-step instructions on setting up Azure deployment from scratch, see [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md).
+VoteMaster can be deployed to multiple platforms:
+- Azure App Service (with Azure SQL Database)
+- AWS Elastic Beanstalk (with RDS)
+- Docker containers
+- Traditional IIS hosting
+- Linux servers with Nginx
 
-Quick overview:
-1. Create Azure SQL Database (free tier)
-2. Create Azure App Service (F1 free tier)
-3. Configure connection string in App Service
-4. Add publish profile to GitHub Secrets
-5. Push to main branch to deploy
+For complete deployment instructions including:
+- Step-by-step setup guides
+- Database configuration
+- CI/CD pipeline setup
+- Security best practices
+- Troubleshooting tips
 
-### Environment Configuration
-Production settings are managed through:
-- **Connection String**: Configured in Azure App Service → Environment variables
-- **App Settings**: `appsettings.Production.json`
-- **GitHub Secrets**: `Azure_VoteMaster_Publish_Profile` (contains Azure publish profile for deployment)
-- **GitHub Workflow**: `.github/workflows/dotnet.yml` (CI/CD pipeline configuration)
-
-### Monitoring
-- View logs: Azure Portal → App Service → Log stream
-- Deployment history: GitHub → Actions tab
-- App insights: Azure Portal → App Service → Monitoring
+See the comprehensive [Deployment Guide (Docs.md)](Docs.md).
 
