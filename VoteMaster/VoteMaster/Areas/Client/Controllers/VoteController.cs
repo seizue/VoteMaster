@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using VoteMaster.Hubs;
@@ -73,6 +74,7 @@ namespace VoteMaster.Areas.Client.Controllers
         [HttpPost]
         [Route("Client/Vote/Cast")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("voting")]
         public async Task<IActionResult> Cast(int pollId, int[] optionIds)
         {
             try

@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using VoteMaster.Services;
 
 namespace VoteMaster.Controllers.Api
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [EnableRateLimiting("api")]
     public class PollsController : ControllerBase
     {
         private readonly IPollService _polls;

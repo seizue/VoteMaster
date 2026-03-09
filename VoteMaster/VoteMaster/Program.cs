@@ -7,6 +7,8 @@ using VoteMaster.Models;
 using Microsoft.AspNetCore.Identity; 
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,10 +18,90 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddEventSourceLogger();
 
+// ===== Rate Limiting Configuration =====
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Login endpoint rate limit (stricter) - Protects against brute force
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(5);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+
+    // API rate limit - Protects API from abuse
+    options.AddSlidingWindowLimiter("api", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 30;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.SegmentsPerWindow = 3;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+
+    // Voting endpoint rate limit - Prevents rapid-fire voting attempts
+    options.AddFixedWindowLimiter("voting", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        context.HttpContext.Response.ContentType = "application/json";
+        
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Too many requests",
+            message = "You have exceeded the rate limit. Please slow down and try again later.",
+            retryAfter = "60 seconds"
+        }, cancellationToken: token);
+    };
+});
+ 
 // ===== Services =====
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
+
+// ===== Anti-Forgery Token Configuration =====
+builder.Services.AddAntiforgery(options =>
+{
+    // Allow HTTP in development or when not using HTTPS
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.HttpOnly = true;
+});
+
+// ===== Memory Cache for Login Attempts =====
+builder.Services.AddMemoryCache();
+builder.Services.AddDistributedMemoryCache();
+
+// ===== Session Configuration =====
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout after 30 minutes of inactivity
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
@@ -35,16 +117,31 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+// ===== Enhanced Authentication Configuration =====
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/Denied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8); // Cookie expires after 8 hours
+        options.SlidingExpiration = true; // Renew cookie on activity
+        options.Cookie.HttpOnly = true; // Prevent XSS attacks
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Allow HTTP and HTTPS
+        options.Cookie.SameSite = SameSiteMode.Lax; // CSRF protection (Lax for better compatibility)
+        options.Cookie.Name = "VoteMaster.Auth";
     });
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
+
+// ===== Security Headers =====
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
 });
 
 var app = builder.Build();
@@ -125,9 +222,22 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Security Headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    await next();
+});
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRateLimiter(); // Enable rate limiting
+app.UseSession(); // Enable session
 app.UseAuthentication();
 app.UseAuthorization();
 
