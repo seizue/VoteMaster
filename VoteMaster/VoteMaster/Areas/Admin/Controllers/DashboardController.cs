@@ -11,7 +11,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         private readonly IPollService _polls;
         public DashboardController(IPollService polls) { _polls = polls; }
 
-        public async Task<IActionResult> Index(string status = "all")
+        public async Task<IActionResult> Index(string status = "active")
         {
             var polls = await _polls.GetPollsAsync(status);
             var pollDtos = polls.Select(p => new PollViewDto 

@@ -420,9 +420,16 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     });
     
+    // Set default date range to current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('dateTo').value = lastDay.toISOString().split('T')[0];
+    
     filteredPolls = [...allPolls];
-    updatePagination();
-    displayPage(1);
+    applyFilters();
 });
 
 function displayPage(page) {
