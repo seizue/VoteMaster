@@ -23,6 +23,14 @@
         color: var(--vm-text-primary);
         font-size: 1.75rem;
     }
+    .dashboard-header .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .dashboard-header .button-group .btn {
+        white-space: nowrap;
+    }
     .filter-buttons {
         display: flex;
         gap: 0.5rem;
@@ -142,8 +150,12 @@
             order: 1;
             width: 100%;
         }
-        .dashboard-header .btn {
+        .dashboard-header .button-group {
             order: 2;
+            width: 100%;
+            flex-direction: column;
+        }
+        .dashboard-header .button-group .btn {
             width: 100%;
         }
         .filter-buttons .btn {
@@ -170,9 +182,14 @@
 
 <div class="dashboard-header">
     <h3><i class="bi bi-speedometer2 me-2"></i>Polling Dashboard</h3>
-    <a class="btn btn-success" href="/Admin/Polls/Create">
-        <i class="bi bi-plus-circle me-2"></i>Create New Poll
-    </a>
+    <div class="button-group">
+        <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
+            <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+        </button>
+        <a class="btn btn-success" href="/Admin/Polls/Create">
+            <i class="bi bi-plus-circle me-2"></i>Create New Poll
+        </a>
+    </div>
 </div>
 
 <!-- Search and Filters -->
@@ -390,6 +407,9 @@ else
         </div>
     </div>
 </div>
+
+<!-- SheetJS library for Excel export -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
 <script>
 let currentArchiveDeleteId = null;
@@ -641,5 +661,50 @@ function confirmArchiveDelete() {
         errorDiv.classList.remove('d-none');
         errorDiv.textContent = 'Invalid credentials. Please try again.';
     }
+}
+
+function exportToExcel() {
+    // Prepare data for export
+    const exportData = filteredPolls.map(poll => {
+        const startDate = poll.startDate ? poll.startDate.toLocaleDateString() + ' ' + poll.startDate.toLocaleTimeString() : 'N/A';
+        const endDate = poll.endDate ? poll.endDate.toLocaleDateString() + ' ' + poll.endDate.toLocaleTimeString() : 'N/A';
+        
+        return {
+            'Poll Title': poll.title,
+            'Status': poll.status,
+            'Start Date': startDate,
+            'End Date': endDate
+        };
+    });
+    
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Set column widths
+    ws['!cols'] = [
+        { wch: 40 }, // Poll Title
+        { wch: 12 }, // Status
+        { wch: 20 }, // Start Date
+        { wch: 20 }  // End Date
+    ];
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Polls');
+    
+    // Generate filename with current date
+    const now = new Date();
+    const filename = `VoteMaster_Polls_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
+    
+    // Show success message
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show';
+    alert.innerHTML = `<i class="bi bi-check-circle me-2"></i>Exported ${filteredPolls.length} poll(s) to Excel successfully! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.querySelector('.dashboard-header').after(alert);
+    
+    setTimeout(() => alert.remove(), 3000);
 }
 </script>

@@ -20,6 +20,14 @@
         flex: 1;
         min-width: 100px;
     }
+    .polls-header .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .polls-header .button-group .btn {
+        white-space: nowrap;
+    }
     .filter-buttons {
         display: flex;
         gap: 0.5rem;
@@ -65,8 +73,16 @@
             order: 1;
             width: 100%;
         }
-        .filter-buttons {
+        .polls-header .button-group {
             order: 2;
+            width: 100%;
+            flex-direction: column;
+        }
+        .polls-header .button-group .btn {
+            width: 100%;
+        }
+        .filter-buttons {
+            order: 3;
             width: 100%;
         }
         .filter-buttons .btn {
@@ -124,16 +140,50 @@
 
 <div class="polls-header">
     <h3>Polls</h3>
-    <div class="filter-buttons">
-        @foreach (var option in statusOptions)
-        {
-            var isActive = currentStatus.Equals(option, StringComparison.OrdinalIgnoreCase);
-            var btnClass = isActive ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
-            <a href="/Admin/Polls?status=@option" class="@btnClass">
-                @(char.ToUpper(option[0]) + option.Substring(1))
-            </a>
-        }
+    <div class="button-group">
+        <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
+            <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+        </button>
+        <a class="btn btn-dark" href="/Admin/Dashboard">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
     </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="dashboard-filters">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search polls...">
+    </div>
+    
+    <div class="filter-group">
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateFrom" class="form-control" placeholder="From">
+        </div>
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateTo" class="form-control" placeholder="To">
+        </div>
+        <button class="btn btn-outline-primary" onclick="applyFilters()">
+            <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+            <i class="bi bi-x-circle me-1"></i>Clear
+        </button>
+    </div>
+</div>
+
+<div class="filter-buttons mb-3">
+    @foreach (var option in statusOptions)
+    {
+        var isActive = currentStatus.Equals(option, StringComparison.OrdinalIgnoreCase);
+        var btnClass = isActive ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
+        <a href="/Admin/Polls?status=@option" class="@btnClass">
+            @(char.ToUpper(option[0]) + option.Substring(1))
+        </a>
+    }
 </div>
 
 @if (!Model.Any())
@@ -238,21 +288,69 @@ else
     </div>
 </div>
 
+<!-- SheetJS library for Excel export -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
 <script>
 let currentArchiveDeleteId = null;
 let currentPage = 1;
 let itemsPerPage = 10;
 let allPolls = [];
+let filteredPolls = [];
+let pollsData = [];
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     const pollItems = document.querySelectorAll('.poll-item');
-    allPolls = Array.from(pollItems);
+    allPolls = Array.from(pollItems).map(item => {
+        const title = item.querySelector('strong').textContent.trim();
+        const status = item.querySelector('.badge').textContent.trim();
+        const description = item.querySelector('small.text-muted').textContent.trim();
+        const timeText = item.querySelectorAll('small.text-muted')[1].textContent.trim();
+        
+        // Extract dates from time text
+        const dateMatch = timeText.match(/Start: (.+?) \| End: (.+?)$/);
+        let startDate = null;
+        let endDate = null;
+        
+        if (dateMatch) {
+            startDate = new Date(dateMatch[1]);
+            endDate = new Date(dateMatch[2]);
+        }
+        
+        return {
+            element: item,
+            title: title,
+            status: status,
+            description: description,
+            timeText: timeText,
+            startDate: startDate,
+            endDate: endDate
+        };
+    });
+    
+    // Collect poll data for export
+    pollsData = allPolls.map(poll => ({
+        'Poll Title': poll.title,
+        'Status': poll.status,
+        'Description': poll.description,
+        'Time Period': poll.timeText
+    }));
+    
+    // Don't set default date range - leave filters empty initially
+    filteredPolls = [...allPolls];
     
     if (allPolls.length > 0) {
         updatePagination();
         displayPage(1);
     }
+});
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('searchInput')?.addEventListener('input', function(e) {
+        applyFilters();
+    });
 });
 
 function displayPage(page) {
@@ -262,25 +360,25 @@ function displayPage(page) {
     
     // Hide all items
     allPolls.forEach(poll => {
-        poll.style.display = 'none';
+        poll.element.style.display = 'none';
     });
     
     // Show items for current page
-    const itemsToShow = allPolls.slice(start, end);
+    const itemsToShow = filteredPolls.slice(start, end);
     itemsToShow.forEach(poll => {
-        poll.style.display = '';
+        poll.element.style.display = '';
     });
     
     // Update pagination info
-    document.getElementById('showingStart').textContent = allPolls.length > 0 ? start + 1 : 0;
-    document.getElementById('showingEnd').textContent = Math.min(end, allPolls.length);
-    document.getElementById('totalItems').textContent = allPolls.length;
+    document.getElementById('showingStart').textContent = filteredPolls.length > 0 ? start + 1 : 0;
+    document.getElementById('showingEnd').textContent = Math.min(end, filteredPolls.length);
+    document.getElementById('totalItems').textContent = filteredPolls.length;
     
     updatePaginationButtons();
 }
 
 function updatePagination() {
-    const totalPages = Math.ceil(allPolls.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
     const pagination = document.getElementById('pagination');
     pagination.innerHTML = '';
     
@@ -348,9 +446,68 @@ function updatePaginationButtons() {
 }
 
 function changePage(page) {
-    const totalPages = Math.ceil(allPolls.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
     if (page < 1 || page > totalPages) return;
     displayPage(page);
+}
+
+// Filter by search and date
+function applyFilters() {
+    const dateFromInput = document.getElementById('dateFrom').value;
+    const dateToInput = document.getElementById('dateTo').value;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    const dateFrom = dateFromInput ? new Date(dateFromInput) : null;
+    const dateTo = dateToInput ? new Date(dateToInput) : null;
+    
+    // Set time to end of day for dateTo to include the entire day
+    if (dateTo) {
+        dateTo.setHours(23, 59, 59, 999);
+    }
+    
+    filteredPolls = allPolls.filter(poll => {
+        let matches = true;
+        
+        // Search filter
+        if (searchTerm) {
+            const titleMatch = poll.title.toLowerCase().includes(searchTerm);
+            const descMatch = poll.description.toLowerCase().includes(searchTerm);
+            if (!titleMatch && !descMatch) {
+                matches = false;
+            }
+        }
+        
+        // Date filter - check if poll's date range overlaps with filter range
+        if (dateFrom || dateTo) {
+            if (!poll.startDate || !poll.endDate) {
+                matches = false;
+            } else {
+                if (dateFrom && poll.endDate < dateFrom) {
+                    matches = false;
+                }
+                if (dateTo && poll.startDate > dateTo) {
+                    matches = false;
+                }
+            }
+        }
+        
+        return matches;
+    });
+    
+    currentPage = 1;
+    updatePagination();
+    displayPage(1);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    
+    filteredPolls = [...allPolls];
+    currentPage = 1;
+    updatePagination();
+    displayPage(1);
 }
 
 function showArchiveDeleteModal(pollId, pollTitle) {
@@ -376,8 +533,15 @@ function confirmArchiveDelete() {
             setTimeout(() => {
                 item.remove();
                 
-                // Update polls array
-                allPolls = allPolls.filter(p => p.dataset.pollId !== currentArchiveDeleteId.toString());
+                // Update polls arrays
+                allPolls = allPolls.filter(p => p.element.dataset.pollId !== currentArchiveDeleteId.toString());
+                filteredPolls = filteredPolls.filter(p => p.element.dataset.pollId !== currentArchiveDeleteId.toString());
+                pollsData = allPolls.map(poll => ({
+                    'Poll Title': poll.title,
+                    'Status': poll.status,
+                    'Description': poll.description,
+                    'Time Period': poll.timeText
+                }));
                 
                 updatePagination();
                 displayPage(currentPage);
@@ -396,5 +560,45 @@ function confirmArchiveDelete() {
         errorDiv.classList.remove('d-none');
         errorDiv.textContent = 'Invalid credentials. Please try again.';
     }
+}
+
+function exportToExcel() {
+    // Export only filtered polls
+    const exportData = filteredPolls.map(poll => ({
+        'Poll Title': poll.title,
+        'Status': poll.status,
+        'Description': poll.description,
+        'Time Period': poll.timeText
+    }));
+    
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Set column widths
+    ws['!cols'] = [
+        { wch: 40 }, // Poll Title
+        { wch: 12 }, // Status
+        { wch: 50 }, // Description
+        { wch: 40 }  // Time Period
+    ];
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Polls');
+    
+    // Generate filename with current date
+    const now = new Date();
+    const filename = `VoteMaster_Polls_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
+    
+    // Show success message
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+    alert.innerHTML = `<i class="bi bi-check-circle me-2"></i>Exported ${exportData.length} poll(s) to Excel successfully! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.querySelector('.container').insertAdjacentElement('afterbegin', alert);
+    
+    setTimeout(() => alert.remove(), 3000);
 }
 </script>

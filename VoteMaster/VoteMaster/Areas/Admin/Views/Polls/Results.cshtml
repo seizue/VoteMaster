@@ -7,16 +7,28 @@
 }
 
 <div class="mb-4">
-    <h3 class="mb-1" style="font-weight: 700; color: #0f172a;">
-        <i class="bi bi-bar-chart-fill me-2"></i>Voting Results
-    </h3>
-    <p class="text-muted">Real-time poll results and rankings</p>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h3 class="mb-1" style="font-weight: 700; color: #0f172a;">
+                <i class="bi bi-bar-chart-fill me-2"></i>Voting Results
+            </h3>
+            <p class="text-muted mb-0">Real-time poll results and rankings</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
+                <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+            </button>
+            <a class="btn btn-dark" href="/Admin/Dashboard">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table mb-0">
+            <table class="table mb-0" id="resultsTable">
                 <thead>
                     <tr>
                         <th style="width: 100px;">Rank</th>
@@ -112,8 +124,22 @@
         .table tbody td {
             padding: 0.875rem 0.75rem;
         }
+        .mb-4 .d-flex {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        .mb-4 .d-flex .d-flex {
+            flex-direction: column;
+            width: 100%;
+        }
+        .mb-4 .btn {
+            width: 100%;
+        }
     }
 </style>
+
+<!-- SheetJS library for Excel export -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
 @section Scripts {
     <script>
@@ -125,5 +151,68 @@
             }
         });
         connection.start();
+        
+        function exportToExcel() {
+            // Collect results data from the table
+            const rows = document.querySelectorAll('#resultsTable tbody tr');
+            const exportData = [];
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const rank = cells[0].textContent.trim().replace('#', '');
+                const candidate = cells[1].textContent.trim();
+                const votes = cells[2].textContent.trim().replace(/,/g, '');
+                
+                // Calculate percentage
+                const totalVotes = @totalVotes;
+                const voteCount = parseInt(votes);
+                const percentage = totalVotes > 0 ? ((voteCount * 100.0) / totalVotes).toFixed(1) : '0.0';
+                
+                exportData.push({
+                    'Rank': rank,
+                    'Candidate': candidate,
+                    'Votes': voteCount,
+                    'Percentage': percentage + '%'
+                });
+            });
+            
+            // Add total row
+            exportData.push({
+                'Rank': '',
+                'Candidate': 'TOTAL',
+                'Votes': @totalVotes,
+                'Percentage': '100.0%'
+            });
+            
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 8 },  // Rank
+                { wch: 40 }, // Candidate
+                { wch: 12 }, // Votes
+                { wch: 12 }  // Percentage
+            ];
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Results');
+            
+            // Generate filename with current date
+            const now = new Date();
+            const filename = `Poll_Results_${pollId}_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+            
+            // Save file
+            XLSX.writeFile(wb, filename);
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alert.innerHTML = '<i class="bi bi-check-circle me-2"></i>Results exported to Excel successfully! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            document.querySelector('.container').insertAdjacentElement('afterbegin', alert);
+            
+            setTimeout(() => alert.remove(), 3000);
+        }
     </script>
 }
