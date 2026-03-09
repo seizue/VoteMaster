@@ -7,22 +7,10 @@
 }
 
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h3 class="mb-1" style="font-weight: 700; color: #0f172a;">
-                <i class="bi bi-bar-chart-fill me-2"></i>Voting Results
-            </h3>
-            <p class="text-muted mb-0">Real-time poll results and rankings</p>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
-                <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
-            </button>
-            <a class="btn btn-dark" href="/Admin/Dashboard">
-                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
-            </a>
-        </div>
-    </div>
+    <h3 class="mb-1" style="font-weight: 700; color: #0f172a;">
+        <i class="bi bi-bar-chart-fill me-2"></i>Voting Results
+    </h3>
+    <p class="text-muted mb-0">Real-time poll results and rankings</p>
 </div>
 
 <div class="card">
@@ -90,6 +78,22 @@
     </div>
 </div>
 
+<!-- Action Buttons -->
+<div class="mt-4 d-flex gap-2 flex-wrap justify-content-end action-buttons-container">
+    <button class="btn btn-outline-primary" onclick="copyPollLink()">
+        <i class="bi bi-link-45deg me-2"></i>Copy Link
+    </button>
+    <button class="btn btn-success" onclick="showQRCode()">
+        <i class="bi bi-qr-code me-2"></i>QR Code
+    </button>
+    <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
+        <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+    </button>
+    <a class="btn btn-dark" href="/Admin/Dashboard">
+        <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
 @functions {
     private string GetRankIcon(int rank) => rank switch
     {
@@ -116,6 +120,10 @@
         transition: width 0.6s ease;
     }
     
+    .action-buttons-container .btn {
+        white-space: nowrap;
+    }
+    
     @@media (max-width: 768px) {
         .table thead th {
             font-size: 0.8125rem;
@@ -133,6 +141,14 @@
             width: 100%;
         }
         .mb-4 .btn {
+            width: 100%;
+        }
+        /* Make action buttons stack vertically on mobile */
+        .action-buttons-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        .action-buttons-container .btn {
             width: 100%;
         }
     }
@@ -214,5 +230,96 @@
             
             setTimeout(() => alert.remove(), 3000);
         }
+        
+        // Share and QR Code functionality
+        const pollUrl = window.location.origin + '/Client/Vote/' + pollId;
+        
+        function copyPollLink() {
+            navigator.clipboard.writeText(pollUrl).then(() => {
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.style.position = 'fixed';
+                alert.style.top = '20px';
+                alert.style.right = '20px';
+                alert.style.zIndex = '9999';
+                alert.innerHTML = '<i class="bi bi-check-circle me-2"></i>Poll link copied to clipboard! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => alert.remove(), 3000);
+            }).catch(err => {
+                alert('Failed to copy link. Please copy manually: ' + pollUrl);
+            });
+        }
+        
+        function showQRCode() {
+            // Generate QR code
+            const qrContainer = document.getElementById('qrCodeContainer');
+            qrContainer.innerHTML = ''; // Clear previous QR code
+            
+            const qr = new QRCode(qrContainer, {
+                text: pollUrl,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            modal.show();
+        }
+        
+        function downloadQRCode() {
+            const canvas = document.querySelector('#qrCodeContainer canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `poll-${pollId}-qr-code.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        }
+        
+        // Set poll URL in modal input
+        document.addEventListener('DOMContentLoaded', function() {
+            const pollLinkInput = document.getElementById('pollLinkInput');
+            if (pollLinkInput) {
+                pollLinkInput.value = pollUrl;
+            }
+        });
     </script>
 }
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrCodeModalLabel">
+                    <i class="bi bi-qr-code me-2"></i>Share Poll QR Code
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-3">Share this QR code for voters to access the poll</p>
+                <div id="qrCodeContainer" class="d-flex justify-content-center mb-3"></div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="pollLinkInput" readonly>
+                    <button class="btn btn-outline-primary" onclick="copyPollLink()">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="downloadQRCode()">
+                    <i class="bi bi-download me-2"></i>Download QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Code Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

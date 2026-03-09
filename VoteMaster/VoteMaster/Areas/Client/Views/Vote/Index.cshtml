@@ -7,16 +7,25 @@
     var userVotes = (List<int>?)ViewBag.UserVotes ?? new List<int>();
     bool showResults = (bool?)ViewBag.ShowResults ?? false;
     string pollStatus = (string?)ViewBag.PollStatus ?? "Active";
+    bool isAuthenticated = (bool?)ViewBag.IsAuthenticated ?? false;
     var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
     var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
 
 <div class="vote-page">
-    <!-- Back to Home Button -->
-    <div class="mb-3">
+    <!-- Back to Home and Share Buttons -->
+    <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <a class="btn btn-outline-secondary" href="/">
             <i class="bi bi-arrow-left me-2"></i>Back to Home
         </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="copyPollLink()">
+                <i class="bi bi-link-45deg me-2"></i>Copy Link
+            </button>
+            <button class="btn btn-success" onclick="showQRCode()">
+                <i class="bi bi-qr-code me-2"></i>QR Code
+            </button>
+        </div>
     </div>
     
     <!-- Poll Header Card -->
@@ -131,18 +140,34 @@
         </div>
 
         <div class="vote-submit-container">
-            <div class="vote-hint" id="voteHint"></div>
-            <div class="vote-buttons">
-                <button type="submit" class="btn btn-primary btn-lg" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
-                    <i class="bi bi-check2-circle me-2"></i>@(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Submit Your Votes")
-                </button>
-                @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
-                {
-                    <button type="button" class="btn btn-dark btn-lg" onclick="if(confirm('Are you sure you want to reset your votes? This will remove all your current votes for this poll.')) { document.getElementById('resetForm').submit(); }">
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reset My Votes
+            @if (!isAuthenticated)
+            {
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Sign in required to vote</strong>
+                    <p class="mb-0 mt-2">You need to sign in to participate in this poll.</p>
+                </div>
+                <div class="vote-buttons">
+                    <a href="/Account/Login?returnUrl=@Uri.EscapeDataString(Context.Request.Path)" class="btn btn-primary btn-lg" style="background: #14b8a6 !important; box-shadow: 0 2px 8px rgba(20,184,166,0.25) !important;">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Vote
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="vote-hint" id="voteHint"></div>
+                <div class="vote-buttons">
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
+                        <i class="bi bi-check2-circle me-2"></i>@(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Submit Your Votes")
                     </button>
-                }
-            </div>
+                    @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
+                    {
+                        <button type="button" class="btn btn-dark btn-lg" onclick="if(confirm('Are you sure you want to reset your votes? This will remove all your current votes for this poll.')) { document.getElementById('resetForm').submit(); }">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset My Votes
+                        </button>
+                    }
+                </div>
+            }
         </div>
     </form>
     }
@@ -262,5 +287,95 @@
       });
     }
   })();
+  
+  // Share and QR Code functionality
+  const pollUrl = window.location.href;
+  
+  function copyPollLink() {
+    navigator.clipboard.writeText(pollUrl).then(() => {
+      // Show success message
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-success alert-dismissible fade show';
+      alert.style.position = 'fixed';
+      alert.style.top = '20px';
+      alert.style.right = '20px';
+      alert.style.zIndex = '9999';
+      alert.innerHTML = '<i class="bi bi-check-circle me-2"></i>Poll link copied to clipboard! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+      document.body.appendChild(alert);
+      
+      setTimeout(() => alert.remove(), 3000);
+    }).catch(err => {
+      alert('Failed to copy link. Please copy manually: ' + pollUrl);
+    });
+  }
+  
+  function showQRCode() {
+    // Generate QR code
+    const qrContainer = document.getElementById('qrCodeContainer');
+    qrContainer.innerHTML = ''; // Clear previous QR code
+    
+    const qr = new QRCode(qrContainer, {
+      text: pollUrl,
+      width: 256,
+      height: 256,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+    modal.show();
+  }
+  
+  function downloadQRCode() {
+    const canvas = document.querySelector('#qrCodeContainer canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = 'poll-qr-code.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  }
+  
+  // Set poll URL in modal input
+  document.addEventListener('DOMContentLoaded', function() {
+    const pollLinkInput = document.getElementById('pollLinkInput');
+    if (pollLinkInput) {
+      pollLinkInput.value = window.location.href;
+    }
+  });
 </script>
+<!-- QR Code Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 }
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrCodeModalLabel">
+                    <i class="bi bi-qr-code me-2"></i>Share Poll QR Code
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-3">Scan this QR code to access the poll</p>
+                <div id="qrCodeContainer" class="d-flex justify-content-center mb-3"></div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="pollLinkInput" readonly>
+                    <button class="btn btn-outline-primary" onclick="copyPollLink()">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="downloadQRCode()">
+                    <i class="bi bi-download me-2"></i>Download QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

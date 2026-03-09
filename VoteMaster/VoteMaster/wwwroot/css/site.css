@@ -875,6 +875,16 @@ footer{
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
+.vote-submit-container .btn-primary.btn-signin{
+  background: var(--vm-accent) !important;
+  box-shadow: 0 2px 8px rgba(20,184,166,0.25) !important;
+}
+
+.vote-submit-container .btn-primary.btn-signin:hover{
+  background: var(--vm-accent-hover) !important;
+  box-shadow: 0 4px 12px rgba(20,184,166,0.35) !important;
+}
+
 .vote-submit-container .btn-primary:hover:not(:disabled){
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);

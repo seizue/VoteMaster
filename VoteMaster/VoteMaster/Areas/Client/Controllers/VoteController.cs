@@ -22,10 +22,26 @@ namespace VoteMaster.Areas.Client.Controllers
 
         [HttpGet]
         [Route("Client/Vote/{pollId:int}")]
+        [AllowAnonymous]
         public async Task<IActionResult> Index(int pollId)
         {
             var poll = await _polls.GetPollAsync(pollId);
             if (poll is null) return NotFound();
+
+            // Check if user is authenticated
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                // For non-authenticated users, show poll details but not voting functionality
+                ViewBag.HasVoted = false;
+                ViewBag.VoteCount = 0;
+                ViewBag.MaxVotes = poll.MaxVotesPerVoter;
+                ViewBag.UserVotes = new List<int>();
+                ViewBag.ShowResults = false;
+                ViewBag.PollStatus = _polls.GetPollStatus(poll);
+                ViewBag.IsAuthenticated = false;
+
+                return View(poll);
+            }
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var hasVoted = await _polls.HasUserVotedAsync(pollId, userId);
@@ -49,6 +65,7 @@ namespace VoteMaster.Areas.Client.Controllers
             ViewBag.UserVotes = userVotes;
             ViewBag.ShowResults = showResults;
             ViewBag.PollStatus = pollStatus;
+            ViewBag.IsAuthenticated = true;
 
             return View(poll);
         }
