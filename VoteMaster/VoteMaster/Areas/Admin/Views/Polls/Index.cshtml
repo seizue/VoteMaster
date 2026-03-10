@@ -64,6 +64,96 @@
         white-space: nowrap;
         font-size: 0.875rem;
     }
+    
+    /* Mobile card view */
+    .poll-card {
+        display: none;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        background: white;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--vm-shadow-sm);
+        transition: all 0.2s ease;
+    }
+    .poll-card:hover {
+        box-shadow: var(--vm-shadow-md);
+        transform: translateY(-2px);
+    }
+    .poll-card-header {
+        margin-bottom: 1rem;
+    }
+    .poll-card-title {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: var(--vm-text-primary);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .poll-card-description {
+        font-size: 0.875rem;
+        color: var(--vm-text-secondary);
+        margin-bottom: 0.75rem;
+    }
+    .poll-card-time {
+        font-size: 0.8125rem;
+        color: var(--vm-text-secondary);
+        margin-bottom: 1rem;
+    }
+    .poll-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .poll-card-actions .btn,
+    .poll-card-actions form {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 100px;
+    }
+    .poll-card-actions form .btn {
+        width: 100%;
+    }
+    
+    @@media (max-width: 768px) {
+        .list-group {
+            display: none !important;
+        }
+        .poll-card {
+            display: block;
+        }
+        .poll-card {
+            padding: 1.25rem;
+        }
+        .poll-card-title {
+            font-size: 1rem;
+        }
+        .poll-card-actions {
+            flex-direction: column;
+        }
+        .poll-card-actions .btn,
+        .poll-card-actions form {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: auto;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        .poll-card {
+            padding: 1rem;
+        }
+        .poll-card-title {
+            font-size: 0.9375rem;
+        }
+        .poll-card-actions .btn {
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.75rem;
+        }
+    }
+    
     @@media (max-width: 576px) {
         .polls-header {
             flex-direction: column;
@@ -244,6 +334,64 @@ else
     }
     </ul>
     
+    <!-- Mobile Card View -->
+    @foreach (var item in Model) {
+        var poll = item.Poll;
+        var status = item.Status;
+        var statusBadgeClass = status switch 
+        {
+            "Active" => "badge bg-success",
+            "Archived" => "badge bg-secondary",
+            "Upcoming" => "badge bg-info",
+            _ => "badge bg-light"
+        };
+        
+        <div class="poll-card" data-poll-id="@poll.Id">
+            <div class="poll-card-header">
+                <div class="poll-card-title">
+                    <span>@poll.Title</span>
+                    <span class="@statusBadgeClass">@status</span>
+                </div>
+                <div class="poll-card-description">@poll.Description</div>
+                <div class="poll-card-time">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    Start: @poll.StartTime.ToString("g")<br>
+                    <i class="bi bi-calendar-event me-1"></i>
+                    End: @poll.EndTime.ToString("g")
+                </div>
+            </div>
+            <div class="poll-card-actions">
+                <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@poll.Id">
+                    <i class="bi bi-bar-chart me-1"></i>Results
+                </a>
+                <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@poll.Id">
+                    <i class="bi bi-people me-1"></i>Voter Status
+                </a>
+                @if (status != "Archived")
+                {
+                    <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@poll.Id">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </a>
+                }
+                @if (status == "Upcoming" || status == "Active")
+                {
+                    <form method="post" action="/Admin/Polls/Delete/@poll.Id" onsubmit="return confirm('Are you sure?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                }
+                @if (status == "Archived")
+                {
+                    <button type="button" class="btn btn-danger btn-sm" onclick="showArchiveDeleteModal(@poll.Id, '@poll.Title')">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    
     <!-- Pagination -->
     <div class="pagination-container mt-4">
         <div class="pagination-info">
@@ -302,7 +450,9 @@ let pollsData = [];
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     const pollItems = document.querySelectorAll('.poll-item');
-    allPolls = Array.from(pollItems).map(item => {
+    const pollCards = document.querySelectorAll('.poll-card');
+    
+    allPolls = Array.from(pollItems).map((item, index) => {
         const title = item.querySelector('strong').textContent.trim();
         const status = item.querySelector('.badge').textContent.trim();
         const description = item.querySelector('small.text-muted').textContent.trim();
@@ -320,6 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return {
             element: item,
+            card: pollCards[index],
             title: title,
             status: status,
             description: description,
@@ -361,12 +512,14 @@ function displayPage(page) {
     // Hide all items
     allPolls.forEach(poll => {
         poll.element.style.display = 'none';
+        if (poll.card) poll.card.style.display = 'none';
     });
     
     // Show items for current page
     const itemsToShow = filteredPolls.slice(start, end);
     itemsToShow.forEach(poll => {
         poll.element.style.display = '';
+        if (poll.card) poll.card.style.display = '';
     });
     
     // Update pagination info

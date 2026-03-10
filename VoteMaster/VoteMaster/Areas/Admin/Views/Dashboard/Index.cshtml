@@ -149,6 +149,7 @@
         .dashboard-header h3 {
             order: 1;
             width: 100%;
+            font-size: 1.5rem;
         }
         .dashboard-header .button-group {
             order: 2;
@@ -160,8 +161,8 @@
         }
         .filter-buttons .btn {
             flex: 1;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
         }
         
         /* Hide table, show cards on mobile */
@@ -176,6 +177,19 @@
     @@media (min-width: 769px) {
         .table-actions {
             flex-wrap: nowrap;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        .dashboard-header h3 {
+            font-size: 1.25rem;
+        }
+        .filter-buttons {
+            padding: 0.75rem;
+        }
+        .filter-buttons .btn {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.625rem;
         }
     }
 </style>
@@ -274,6 +288,9 @@ else
                             <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
                                 <i class="bi bi-bar-chart me-1"></i>Results
                             </a>
+                            <a class="btn btn-secondary btn-sm" href="/Admin/Analytics/PollDetails/@p.Id">
+                                <i class="bi bi-graph-up me-1"></i>Analytics
+                            </a>
                             <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
                                 <i class="bi bi-people me-1"></i>Status
                             </a>
@@ -330,6 +347,9 @@ else
                 <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
                     <i class="bi bi-bar-chart me-1"></i>Results
                 </a>
+                <a class="btn btn-secondary btn-sm" href="/Admin/Analytics/PollDetails/@p.Id">
+                    <i class="bi bi-graph-up me-1"></i>Analytics
+                </a>
                 <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
                     <i class="bi bi-people me-1"></i>Status
                 </a>
@@ -375,6 +395,9 @@ else
     </a>
     <a class="btn btn-dark" href="/Admin/Users">
         <i class="bi bi-people me-2"></i>Manage Users
+    </a>
+    <a class="btn btn-dark" href="/Admin/Analytics">
+        <i class="bi bi-graph-up me-2"></i>Analytics Dashboard
     </a>
 </div>
 <!-- Archive Delete Modal -->

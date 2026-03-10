@@ -79,19 +79,44 @@
 </div>
 
 <!-- Action Buttons -->
-<div class="mt-4 d-flex gap-2 flex-wrap justify-content-end action-buttons-container">
-    <button class="btn btn-outline-primary" onclick="copyPollLink()">
-        <i class="bi bi-link-45deg me-2"></i>Copy Link
-    </button>
-    <button class="btn btn-success" onclick="showQRCode()">
-        <i class="bi bi-qr-code me-2"></i>QR Code
-    </button>
-    <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
-        <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
-    </button>
-    <a class="btn btn-dark" href="/Admin/Dashboard">
-        <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
-    </a>
+<div class="action-buttons-wrapper">
+    <div class="action-buttons-section">
+        <h6 class="action-section-title">Analytics & Reports</h6>
+        <div class="action-buttons-group">
+            <a class="btn btn-outline-secondary" href="/Admin/Analytics/PollDetails/@pollId">
+                <i class="bi bi-graph-up me-2"></i>View Analytics
+            </a>
+            <a class="btn btn-outline-success" href="/Admin/Analytics/ExportCsv/@pollId">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Export CSV
+            </a>
+            <a class="btn btn-outline-danger" href="/Admin/Analytics/ExportPdf/@pollId">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Export PDF
+            </a>
+            <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+            </button>
+        </div>
+    </div>
+    
+    <div class="action-buttons-section">
+        <h6 class="action-section-title">Share Poll</h6>
+        <div class="action-buttons-group">
+            <button class="btn btn-outline-primary" onclick="copyPollLink()">
+                <i class="bi bi-link-45deg me-2"></i>Copy Link
+            </button>
+            <button class="btn btn-success" onclick="showQRCode()">
+                <i class="bi bi-qr-code me-2"></i>QR Code
+            </button>
+        </div>
+    </div>
+    
+    <div class="action-buttons-section">
+        <div class="action-buttons-group">
+            <a class="btn btn-dark" href="/Admin/Dashboard">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
 </div>
 
 @functions {
@@ -120,8 +145,83 @@
         transition: width 0.6s ease;
     }
     
-    .action-buttons-container .btn {
+    .action-buttons-wrapper {
+        margin-top: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .action-buttons-section {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--vm-shadow-sm);
+    }
+    
+    .action-section-title {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--vm-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+    }
+    
+    .action-buttons-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .action-buttons-group .btn {
         white-space: nowrap;
+        flex: 0 1 auto;
+    }
+    
+    .action-buttons-group .btn-outline-secondary {
+        border: 2px solid #6b7280;
+        color: #6b7280;
+    }
+    
+    .action-buttons-group .btn-outline-secondary:hover {
+        background: #6b7280;
+        border-color: #6b7280;
+        color: white;
+    }
+    
+    .action-buttons-group .btn-outline-success {
+        border: 2px solid #10b981;
+        color: #10b981;
+    }
+    
+    .action-buttons-group .btn-outline-success:hover {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    
+    .action-buttons-group .btn-outline-danger {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+    }
+    
+    .action-buttons-group .btn-outline-danger:hover {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+    
+    .action-buttons-group .btn-outline-primary {
+        border: 2px solid var(--vm-accent);
+        color: var(--vm-accent);
+    }
+    
+    .action-buttons-group .btn-outline-primary:hover {
+        background: var(--vm-accent);
+        border-color: var(--vm-accent);
+        color: white;
     }
     
     @@media (max-width: 768px) {
@@ -132,24 +232,27 @@
         .table tbody td {
             padding: 0.875rem 0.75rem;
         }
-        .mb-4 .d-flex {
+        
+        .action-buttons-wrapper {
+            gap: 1rem;
+        }
+        
+        .action-buttons-section {
+            padding: 1.25rem;
+        }
+        
+        .action-section-title {
+            font-size: 0.8125rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .action-buttons-group {
             flex-direction: column;
-            align-items: stretch !important;
         }
-        .mb-4 .d-flex .d-flex {
-            flex-direction: column;
+        
+        .action-buttons-group .btn {
             width: 100%;
-        }
-        .mb-4 .btn {
-            width: 100%;
-        }
-        /* Make action buttons stack vertically on mobile */
-        .action-buttons-container {
-            flex-direction: column !important;
-            align-items: stretch !important;
-        }
-        .action-buttons-container .btn {
-            width: 100%;
+            flex: 1 1 100%;
         }
     }
 </style>

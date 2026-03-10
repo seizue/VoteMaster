@@ -1,0 +1,656 @@
+@model List<VoteMaster.Models.Analytics.PollAnalyticsDto>
+@{
+    ViewData["Title"] = "Analytics Dashboard";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .analytics-header h3 {
+        margin: 0;
+        flex: 1;
+        min-width: 150px;
+        font-weight: 700;
+        color: var(--vm-text-primary);
+        font-size: 1.75rem;
+    }
+    .analytics-header .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .summary-card {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 1.75rem;
+        box-shadow: var(--vm-shadow-sm);
+        transition: all 0.2s ease;
+    }
+    .summary-card:hover {
+        box-shadow: var(--vm-shadow-md);
+        transform: translateY(-2px);
+    }
+    .summary-card.primary {
+        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+        color: white;
+    }
+    .summary-card.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    .summary-card.info {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+    }
+    .summary-card.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+    }
+    .summary-card h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .summary-card h2 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .card {
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        box-shadow: var(--vm-shadow-sm);
+        margin-bottom: 2rem;
+    }
+    
+    .table {
+        color: var(--vm-text-primary);
+    }
+    
+    .table thead th {
+        background: #f8fafc;
+        color: var(--vm-text-secondary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--vm-border);
+        padding: 1rem 1.5rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--vm-border);
+    }
+    
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .pagination-info {
+        color: var(--vm-text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .pagination {
+        margin: 0;
+        gap: 0.25rem;
+    }
+    
+    .pagination .page-link {
+        border: 1px solid var(--vm-border);
+        color: var(--vm-text-primary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .pagination .page-link:hover {
+        background: var(--vm-accent);
+        color: white;
+        border-color: var(--vm-accent);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background: var(--vm-accent);
+        border-color: var(--vm-accent);
+        color: white;
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Mobile card view for table */
+    .poll-card {
+        display: none;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        background: white;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--vm-shadow-sm);
+        transition: all 0.2s ease;
+    }
+    .poll-card:hover {
+        box-shadow: var(--vm-shadow-md);
+        transform: translateY(-2px);
+    }
+    .poll-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    .poll-card-title {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: var(--vm-text-primary);
+        margin-bottom: 0.5rem;
+    }
+    .poll-card-meta {
+        font-size: 0.875rem;
+        color: var(--vm-text-secondary);
+        margin-bottom: 1rem;
+    }
+    .poll-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    .poll-card-actions .btn {
+        flex: 1 1 calc(33.333% - 0.5rem);
+        min-width: 80px;
+    }
+    
+    @@media (max-width: 768px) {
+        .analytics-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .analytics-header h3 {
+            font-size: 1.5rem;
+        }
+        .analytics-header .button-group {
+            flex-direction: column;
+        }
+        .analytics-header .button-group .btn {
+            width: 100%;
+        }
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .summary-card {
+            padding: 1.25rem;
+        }
+        .summary-card h6 {
+            font-size: 0.75rem;
+        }
+        .summary-card h2 {
+            font-size: 1.75rem;
+        }
+        
+        .card .card-header h5 {
+            font-size: 1rem;
+        }
+        
+        /* Hide table, show cards on mobile */
+        .table-responsive {
+            display: none !important;
+        }
+        .poll-card {
+            display: block;
+        }
+        .poll-card-actions {
+            flex-direction: column;
+        }
+        .poll-card-actions .btn {
+            flex: 1 1 100%;
+            width: 100%;
+            font-size: 0.875rem;
+        }
+        
+        .pagination-container {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        
+        .pagination {
+            justify-content: center;
+        }
+        
+        .pagination .page-link {
+            padding: 0.5rem 0.625rem;
+            font-size: 0.875rem;
+            min-width: 36px;
+            height: 36px;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        .summary-cards {
+            grid-template-columns: 1fr;
+        }
+        
+        .poll-card {
+            padding: 1rem;
+        }
+        
+        .poll-card-title {
+            font-size: 1rem;
+        }
+        
+        .analytics-header h3 {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+<div class="analytics-header">
+    <h3><i class="bi bi-graph-up me-2"></i>Analytics Dashboard</h3>
+    <div class="button-group">
+        <a href="/Admin/Analytics/HistoricalTrends" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history me-2"></i>Historical Trends
+        </a>
+        <a href="/Admin/Dashboard" class="btn btn-dark">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="dashboard-filters">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search polls...">
+    </div>
+    
+    <div class="filter-group">
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateFrom" class="form-control" placeholder="From">
+        </div>
+        <div class="date-filter">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="dateTo" class="form-control" placeholder="To">
+        </div>
+        <button class="btn btn-outline-primary" onclick="applyFilters()">
+            <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+            <i class="bi bi-x-circle me-1"></i>Clear
+        </button>
+    </div>
+</div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>No polls available for analytics yet.
+        </div>
+    }
+    else
+    {
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card primary">
+                <h6>Total Polls</h6>
+                <h2>@Model.Count</h2>
+            </div>
+            <div class="summary-card success">
+                <h6>Total Votes Cast</h6>
+                <h2>@Model.Sum(p => p.TotalVotesCast)</h2>
+            </div>
+            <div class="summary-card info">
+                <h6>Avg Participation</h6>
+                <h2>@(Model.Any() ? $"{Model.Average(p => p.ParticipationRate):F1}%" : "0%")</h2>
+            </div>
+            <div class="summary-card warning">
+                <h6>Total Weighted Votes</h6>
+                <h2>@Model.Sum(p => p.TotalWeightedVotes)</h2>
+            </div>
+        </div>
+
+        <!-- Polls Table -->
+        <div class="card">
+            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid var(--vm-border); padding: 1.25rem 1.5rem;">
+                <h5 class="mb-0" style="font-weight: 700; color: var(--vm-text-primary);">Poll Analytics Overview</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Poll Title</th>
+                                <th style="width: 15%;">Date</th>
+                                <th style="width: 25%;">Participation</th>
+                                <th style="width: 10%;">Votes</th>
+                                <th style="width: 15%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsTableBody">
+                            @foreach (var poll in Model)
+                            {
+                                <tr data-poll-id="@poll.PollId" 
+                                    data-title="@poll.PollTitle.ToLower()" 
+                                    data-date="@poll.StartTime.ToString("yyyy-MM-dd")"
+                                    data-participation="@poll.ParticipationRate">
+                                    <td>
+                                        <strong style="color: var(--vm-text-primary);">@poll.PollTitle</strong>
+                                    </td>
+                                    <td>
+                                        <small style="color: var(--vm-text-secondary);">@poll.StartTime.ToString("MMM dd, yyyy")</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress flex-grow-1" style="height: 24px; border-radius: 0.5rem;">
+                                                <div class="progress-bar @(poll.ParticipationRate >= 75 ? "bg-success" : poll.ParticipationRate >= 50 ? "bg-info" : poll.ParticipationRate >= 25 ? "bg-warning" : "bg-danger")" 
+                                                     role="progressbar" 
+                                                     style="width: @(poll.ParticipationRate)%"
+                                                     aria-valuenow="@poll.ParticipationRate" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    <span style="font-size: 0.8125rem; font-weight: 600;">@poll.ParticipationRate.ToString("F1")%</span>
+                                                </div>
+                                            </div>
+                                            <small style="color: var(--vm-text-secondary); white-space: nowrap;">@poll.VotedCount/@poll.TotalVoters</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light" style="color: var(--vm-text-primary); font-weight: 600;">@poll.TotalVotesCast</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/Admin/Analytics/PollDetails/@poll.PollId" class="btn btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="/Admin/Analytics/ExportCsv/@poll.PollId" class="btn btn-outline-success" title="Export CSV">
+                                                <i class="bi bi-file-earmark-spreadsheet"></i>
+                                            </a>
+                                            <a href="/Admin/Analytics/ExportPdf/@poll.PollId" class="btn btn-outline-danger" title="Export PDF">
+                                                <i class="bi bi-file-earmark-pdf"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Card View -->
+        @foreach (var poll in Model)
+        {
+            <div class="poll-card" 
+                 data-poll-id="@poll.PollId" 
+                 data-title="@poll.PollTitle.ToLower()" 
+                 data-date="@poll.StartTime.ToString("yyyy-MM-dd")"
+                 data-participation="@poll.ParticipationRate">
+                <div class="poll-card-header">
+                    <div class="flex-grow-1">
+                        <div class="poll-card-title">@poll.PollTitle</div>
+                    </div>
+                </div>
+                <div class="poll-card-meta">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    @poll.StartTime.ToString("MMM dd, yyyy")
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small style="color: var(--vm-text-secondary); font-weight: 600;">Participation</small>
+                        <small style="color: var(--vm-text-secondary);">@poll.VotedCount/@poll.TotalVoters</small>
+                    </div>
+                    <div class="progress" style="height: 24px; border-radius: 0.5rem;">
+                        <div class="progress-bar @(poll.ParticipationRate >= 75 ? "bg-success" : poll.ParticipationRate >= 50 ? "bg-info" : poll.ParticipationRate >= 25 ? "bg-warning" : "bg-danger")" 
+                             role="progressbar" 
+                             style="width: @(poll.ParticipationRate)%"
+                             aria-valuenow="@poll.ParticipationRate" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            <span style="font-size: 0.8125rem; font-weight: 600;">@poll.ParticipationRate.ToString("F1")%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <small style="color: var(--vm-text-secondary); font-weight: 600;">Total Votes:</small>
+                    <span class="badge bg-light ms-2" style="color: var(--vm-text-primary); font-weight: 600;">@poll.TotalVotesCast</span>
+                </div>
+                <div class="poll-card-actions">
+                    <a href="/Admin/Analytics/PollDetails/@poll.PollId" class="btn btn-primary btn-sm">
+                        <i class="bi bi-eye me-1"></i>View Details
+                    </a>
+                    <a href="/Admin/Analytics/ExportCsv/@poll.PollId" class="btn btn-success btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV
+                    </a>
+                    <a href="/Admin/Analytics/ExportPdf/@poll.PollId" class="btn btn-danger btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        }
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing <span id="showingStart">1</span> to <span id="showingEnd">5</span> of <span id="totalItems">@Model.Count</span> polls
+            </div>
+            <nav>
+                <ul class="pagination" id="pagination">
+                    <!-- Pagination will be generated by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    }
+
+<script>
+let currentPage = 1;
+let itemsPerPage = 5;
+let allPolls = [];
+let filteredPolls = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Collect all polls data from both table rows and mobile cards
+    const tableRows = document.querySelectorAll('#analyticsTableBody tr');
+    const mobileCards = document.querySelectorAll('.poll-card');
+    
+    allPolls = Array.from(tableRows).map((row, index) => {
+        return {
+            id: row.dataset.pollId,
+            title: row.dataset.title,
+            date: row.dataset.date ? new Date(row.dataset.date) : null,
+            participation: parseFloat(row.dataset.participation) || 0,
+            element: row,
+            card: mobileCards[index]
+        };
+    });
+    
+    filteredPolls = [...allPolls];
+    applyFilters();
+});
+
+function displayPage(page) {
+    currentPage = page;
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    
+    // Hide all items
+    allPolls.forEach(poll => {
+        poll.element.style.display = 'none';
+        if (poll.card) poll.card.style.display = 'none';
+    });
+    
+    // Show items for current page
+    const itemsToShow = filteredPolls.slice(start, end);
+    itemsToShow.forEach(poll => {
+        poll.element.style.display = '';
+        if (poll.card) poll.card.style.display = '';
+    });
+    
+    // Update pagination info
+    document.getElementById('showingStart').textContent = filteredPolls.length > 0 ? start + 1 : 0;
+    document.getElementById('showingEnd').textContent = Math.min(end, filteredPolls.length);
+    document.getElementById('totalItems').textContent = filteredPolls.length;
+    
+    updatePagination();
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a>`;
+    pagination.appendChild(prevLi);
+    
+    // Page numbers
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    if (startPage > 1) {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        pagination.appendChild(li);
+        
+        if (startPage > 2) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('li');
+            dots.className = 'page-item disabled';
+            dots.innerHTML = `<span class="page-link">...</span>`;
+            pagination.appendChild(dots);
+        }
+        
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;"><i class="bi bi-chevron-right"></i></a>`;
+    pagination.appendChild(nextLi);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredPolls.length / itemsPerPage);
+    if (page < 1 || page > totalPages) return;
+    displayPage(page);
+}
+
+// Search functionality
+document.getElementById('searchInput')?.addEventListener('input', function(e) {
+    applyFilters();
+});
+
+// Filter by date
+function applyFilters() {
+    const dateFromInput = document.getElementById('dateFrom').value;
+    const dateToInput = document.getElementById('dateTo').value;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    const dateFrom = dateFromInput ? new Date(dateFromInput) : null;
+    const dateTo = dateToInput ? new Date(dateToInput) : null;
+    
+    // Set time to end of day for dateTo to include the entire day
+    if (dateTo) {
+        dateTo.setHours(23, 59, 59, 999);
+    }
+    
+    filteredPolls = allPolls.filter(poll => {
+        let matches = true;
+        
+        // Search filter
+        if (searchTerm && !poll.title.includes(searchTerm)) {
+            matches = false;
+        }
+        
+        // Date filter
+        if (dateFrom || dateTo) {
+            if (!poll.date) {
+                matches = false;
+            } else {
+                if (dateFrom && poll.date < dateFrom) {
+                    matches = false;
+                }
+                if (dateTo && poll.date > dateTo) {
+                    matches = false;
+                }
+            }
+        }
+        
+        return matches;
+    });
+    
+    currentPage = 1;
+    displayPage(1);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    
+    filteredPolls = [...allPolls];
+    currentPage = 1;
+    displayPage(1);
+}
+</script>

@@ -1,0 +1,335 @@
+@model VoteMaster.Models.Analytics.PollAnalyticsDto
+@{
+    ViewData["Title"] = "Poll Analytics - " + Model.PollTitle;
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .analytics-header h3 {
+        margin: 0;
+        flex: 1;
+        min-width: 200px;
+        font-weight: 700;
+        color: var(--vm-text-primary);
+        font-size: 1.75rem;
+    }
+    .analytics-header .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .summary-card {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 1.75rem;
+        box-shadow: var(--vm-shadow-sm);
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    .summary-card:hover {
+        box-shadow: var(--vm-shadow-md);
+        transform: translateY(-2px);
+    }
+    .summary-card h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--vm-text-secondary);
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .summary-card h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--vm-text-primary);
+    }
+    .summary-card.success h2 {
+        color: #10b981;
+    }
+    .summary-card.info h2 {
+        color: #06b6d4;
+    }
+    .summary-card.primary h2 {
+        color: var(--vm-accent);
+    }
+    @@media (max-width: 768px) {
+        .analytics-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .analytics-header h3 {
+            font-size: 1.5rem;
+        }
+        .analytics-header .button-group {
+            flex-direction: column;
+        }
+        .analytics-header .button-group .btn {
+            width: 100%;
+        }
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<div class="analytics-header">
+    <div>
+        <h3>@Model.PollTitle</h3>
+        <p class="text-muted mb-0" style="font-size: 0.9375rem;">
+            <i class="bi bi-calendar me-1"></i>@Model.StartTime.ToString("MMM dd, yyyy HH:mm") - @Model.EndTime.ToString("MMM dd, yyyy HH:mm")
+        </p>
+    </div>
+    <div class="button-group">
+        <a href="/Admin/Analytics/ExportCsv/@Model.PollId" class="btn btn-success">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV
+        </a>
+        <a href="/Admin/Analytics/ExportPdf/@Model.PollId" class="btn btn-danger">
+            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+    </div>
+</div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h6>Total Voters</h6>
+            <h2>@Model.TotalVoters</h2>
+        </div>
+        <div class="summary-card success">
+            <h6>Voted</h6>
+            <h2>@Model.VotedCount</h2>
+        </div>
+        <div class="summary-card info">
+            <h6>Participation Rate</h6>
+            <h2>@Model.ParticipationRate.ToString("F1")%</h2>
+        </div>
+        <div class="summary-card primary">
+            <h6>Total Votes Cast</h6>
+            <h2>@Model.TotalVotesCast</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Results Chart -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid var(--vm-border); padding: 1.25rem 1.5rem;">
+                    <h5 class="mb-0" style="font-weight: 700; color: var(--vm-text-primary);">Voting Results</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="resultsChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <!-- Time Series Chart -->
+            @if (Model.VotingTimeSeries.Any())
+            {
+                <div class="card mt-4">
+                    <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid var(--vm-border); padding: 1.25rem 1.5rem;">
+                        <h5 class="mb-0" style="font-weight: 700; color: var(--vm-text-primary);">Voting Timeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="timeSeriesChart" height="80"></canvas>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Side Panel -->
+        <div class="col-lg-4">
+            <!-- Option Breakdown -->
+            <div class="card mb-4">
+                <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid var(--vm-border); padding: 1.25rem 1.5rem;">
+                    <h5 class="mb-0" style="font-weight: 700; color: var(--vm-text-primary);">Option Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var option in Model.OptionAnalytics.OrderByDescending(o => o.WeightedVoteCount))
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <strong style="color: var(--vm-text-primary);">@option.OptionText</strong>
+                                <span class="badge bg-primary">@option.WeightedVoteCount</span>
+                            </div>
+                            <div class="progress mb-1" style="height: 25px; border-radius: 0.5rem;">
+                                <div class="progress-bar bg-success" 
+                                     role="progressbar" 
+                                     style="width: @(option.WeightedPercentage)%"
+                                     aria-valuenow="@option.WeightedPercentage" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    <span style="font-weight: 600;">@option.WeightedPercentage.ToString("F1")%</span>
+                                </div>
+                            </div>
+                            <small style="color: var(--vm-text-secondary);">
+                                @option.VoteCount votes | @option.WeightedVoteCount weighted
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Demographic Breakdown -->
+            @if (Model.DemographicBreakdown.Any())
+            {
+                <div class="card">
+                    <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid var(--vm-border); padding: 1.25rem 1.5rem;">
+                        <h5 class="mb-0" style="font-weight: 700; color: var(--vm-text-primary);">Demographic Breakdown</h5>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var demo in Model.DemographicBreakdown)
+                        {
+                            <div class="mb-3">
+                                <h6 style="font-weight: 700; color: var(--vm-text-primary);">@demo.Role</h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small style="color: var(--vm-text-secondary);">Participation</small>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.ParticipationRate.ToString("F1")%</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small style="color: var(--vm-text-secondary);">Voted</small>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.VotedCount/@demo.VoterCount</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small style="color: var(--vm-text-secondary);">Total Weight</small>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.TotalWeight</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small style="color: var(--vm-text-secondary);">Weight Used</small>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.WeightUsed</div>
+                                    </div>
+                                </div>
+                                <hr style="border-color: var(--vm-border);" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="mt-4 text-center">
+    <a href="/Admin/Analytics" class="btn btn-dark">
+        <i class="bi bi-arrow-left me-2"></i>Back to Analytics
+    </a>
+</div>
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Results Chart
+        const resultsCtx = document.getElementById('resultsChart').getContext('2d');
+        const resultsChart = new Chart(resultsCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.OptionAnalytics.Select(o => o.OptionText))),
+                datasets: [
+                    {
+                        label: 'Vote Count',
+                        data: @Html.Raw(Json.Serialize(Model.OptionAnalytics.Select(o => o.VoteCount))),
+                        backgroundColor: 'rgba(20, 184, 166, 0.6)',
+                        borderColor: 'rgba(20, 184, 166, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Weighted Vote Count',
+                        data: @Html.Raw(Json.Serialize(Model.OptionAnalytics.Select(o => o.WeightedVoteCount))),
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+
+        @if (Model.VotingTimeSeries.Any())
+        {
+            <text>
+            // Time Series Chart
+            const timeSeriesCtx = document.getElementById('timeSeriesChart').getContext('2d');
+            const timeSeriesChart = new Chart(timeSeriesCtx, {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.VotingTimeSeries.Select(v => v.Timestamp.ToString("HH:mm:ss")))),
+                    datasets: [
+                        {
+                            label: 'Cumulative Votes',
+                            data: @Html.Raw(Json.Serialize(Model.VotingTimeSeries.Select(v => v.CumulativeVotes))),
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'Cumulative Voters',
+                            data: @Html.Raw(Json.Serialize(Model.VotingTimeSeries.Select(v => v.CumulativeVoters))),
+                            borderColor: 'rgba(20, 184, 166, 1)',
+                            backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            </text>
+        }
+    </script>
+}

@@ -116,6 +116,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // ===== Enhanced Authentication Configuration =====
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
