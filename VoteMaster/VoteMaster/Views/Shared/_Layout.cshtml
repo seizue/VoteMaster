@@ -120,13 +120,26 @@
             animation: spin 0.7s linear infinite;
         }
         @@keyframes spin { to { transform: rotate(360deg); } }
+        /* Hide content immediately before JS runs to prevent flash */
+        body.js-loading .table tbody tr,
+        body.js-loading .poll-card { visibility: hidden; }
     </style>
     <div id="page-loader"><div class="loader-spinner"></div></div>
     <script>
-        window.addEventListener('load', function () {
-            const loader = document.getElementById('page-loader');
-            loader.classList.add('hidden');
-            setTimeout(() => loader.remove(), 300);
+        // Add class immediately — before any paint
+        document.body.classList.add('js-loading');
+        document.addEventListener('DOMContentLoaded', function () {
+            // Remove after a short tick so JS pagination has run
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.body.classList.remove('js-loading');
+                    const loader = document.getElementById('page-loader');
+                    if (loader) {
+                        loader.classList.add('hidden');
+                        setTimeout(() => loader.remove(), 300);
+                    }
+                });
+            });
         });
     </script>
     
