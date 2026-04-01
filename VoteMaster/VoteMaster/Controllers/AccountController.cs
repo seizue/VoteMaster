@@ -182,68 +182,75 @@ namespace VoteMaster.Controllers
         [HttpGet]
         public async Task<IActionResult> GoogleCallback(string? returnUrl = null, string? remoteError = null)
         {
-            if (remoteError != null)
+            try
             {
-                _logger.LogWarning("Google OAuth remote error: {Error}", remoteError);
-                TempData["Error"] = $"Google sign-in error: {remoteError}";
-                return RedirectToAction(nameof(Login));
-            }
-
-            // Read the external cookie the Google middleware wrote
-            var result = await HttpContext.AuthenticateAsync(
-                Microsoft.AspNetCore.Authentication.Google.GoogleDefaults.AuthenticationScheme);
-
-            if (result?.Principal == null || !result.Succeeded)
-            {
-                _logger.LogWarning("Google callback failed. Succeeded={S}", result?.Succeeded);
-                TempData["Error"] = "Google authentication failed. Please try again.";
-                return RedirectToAction(nameof(Login));
-            }
-
-            var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
-            var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? "";
-            // Sanitise: use email prefix if name is empty
-            var username = (string.IsNullOrWhiteSpace(name) ? email.Split('@')[0] : name)
-                               .Replace(" ", "")
-                               .ToLowerInvariant();
-
-            _logger.LogInformation("Google callback: email={Email} username={Username}", email, username);
-
-            // Auto-register if first time, otherwise just sign in
-            var existing = await _users.GetByUsernameAsync(username);
-            if (existing is null)
-            {
-                var newUser = new AppUser
+                if (remoteError != null)
                 {
-                    Username     = username,
-                    Role         = "Admin",
-                    Weight       = 1,
-                    PasswordHash = ""
+                    _logger.LogWarning("Google OAuth remote error: {Error}", remoteError);
+                    TempData["Error"] = $"Google sign-in error: {remoteError}";
+                    return RedirectToAction(nameof(Login));
+                }
+
+                var result = await HttpContext.AuthenticateAsync(
+                    Microsoft.AspNetCore.Authentication.Google.GoogleDefaults.AuthenticationScheme);
+
+                _logger.LogInformation("Google callback: Succeeded={S}, Principal={P}",
+                    result?.Succeeded, result?.Principal?.Identity?.Name);
+
+                if (result?.Principal == null || !result.Succeeded)
+                {
+                    TempData["Error"] = "Google authentication failed. Please try again.";
+                    return RedirectToAction(nameof(Login));
+                }
+
+                var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+                var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? "";
+                var username = (string.IsNullOrWhiteSpace(name) ? email.Split('@')[0] : name)
+                                   .Replace(" ", "").ToLowerInvariant();
+
+                _logger.LogInformation("Google callback: email={Email} username={Username}", email, username);
+
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    TempData["Error"] = "Could not retrieve your Google profile. Please try again.";
+                    return RedirectToAction(nameof(Login));
+                }
+
+                var existing = await _users.GetByUsernameAsync(username);
+                if (existing is null)
+                {
+                    var newUser = new AppUser { Username = username, Role = "Admin", Weight = 1, PasswordHash = "" };
+                    existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
+                    _logger.LogInformation("Auto-registered new Admin via Google: {Username}", username);
+                }
+
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, existing.Id.ToString()),
+                    new Claim(ClaimTypes.Name, existing.Username),
+                    new Claim(ClaimTypes.Role, existing.Role),
+                    new Claim("LoginTime", DateTime.UtcNow.ToString("o")),
+                    new Claim("Email", email)
                 };
-                existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
-                _logger.LogInformation("Auto-registered new Admin via Google: {Username}", username);
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+                    new AuthenticationProperties { IsPersistent = false, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) });
+
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+
+                return existing.Role == "Admin"
+                    ? RedirectToAction("Index", "Dashboard", new { area = "Admin" })
+                    : RedirectToAction("Index", "Home", new { area = "Client" });
             }
-
-            var claims = new List<Claim>
+            catch (Exception ex)
             {
-                new Claim(ClaimTypes.NameIdentifier, existing.Id.ToString()),
-                new Claim(ClaimTypes.Name, existing.Username),
-                new Claim(ClaimTypes.Role, existing.Role),
-                new Claim("LoginTime", DateTime.UtcNow.ToString("o")),
-                new Claim("Email", email)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
-                new AuthenticationProperties { IsPersistent = false, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) });
-
-            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
-
-            return existing.Role == "Admin"
-                ? RedirectToAction("Index", "Dashboard", new { area = "Admin" })
-                : RedirectToAction("Index", "Home", new { area = "Client" });
+                _logger.LogError(ex, "Unhandled exception in GoogleCallback");
+                TempData["Error"] = $"Sign-in failed: {ex.Message}";
+                return RedirectToAction(nameof(Login));
+            }
         }
 
         public IActionResult Denied() => View();
