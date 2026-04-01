@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
@@ -188,28 +189,27 @@ namespace VoteMaster.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            // Google middleware stores the result in an external cookie scheme
-            var result = await HttpContext.AuthenticateAsync("Google");
+            // Read the external cookie the Google middleware wrote
+            var result = await HttpContext.AuthenticateAsync(
+                Microsoft.AspNetCore.Authentication.Google.GoogleDefaults.AuthenticationScheme);
 
             if (result?.Principal == null || !result.Succeeded)
             {
-                _logger.LogWarning("Google callback: authentication result was null or failed.");
+                _logger.LogWarning("Google callback failed. Succeeded={S}", result?.Succeeded);
                 TempData["Error"] = "Google authentication failed. Please try again.";
                 return RedirectToAction(nameof(Login));
             }
 
             var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
-            var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? email.Split('@')[0];
-            var username = name.Replace(" ", "").ToLowerInvariant();
+            var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? "";
+            // Sanitise: use email prefix if name is empty
+            var username = (string.IsNullOrWhiteSpace(name) ? email.Split('@')[0] : name)
+                               .Replace(" ", "")
+                               .ToLowerInvariant();
 
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                TempData["Error"] = "Could not retrieve your Google profile. Please try again.";
-                return RedirectToAction(nameof(Login));
-            }
+            _logger.LogInformation("Google callback: email={Email} username={Username}", email, username);
 
-            _logger.LogInformation("Google OAuth callback for email: {Email}, username: {Username}", email, username);
-
+            // Auto-register if first time, otherwise just sign in
             var existing = await _users.GetByUsernameAsync(username);
             if (existing is null)
             {
@@ -221,7 +221,7 @@ namespace VoteMaster.Controllers
                     PasswordHash = ""
                 };
                 existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
-                _logger.LogInformation("Created new Admin user via Google OAuth: {Username}", username);
+                _logger.LogInformation("Auto-registered new Admin via Google: {Username}", username);
             }
 
             var claims = new List<Claim>
@@ -233,10 +233,9 @@ namespace VoteMaster.Controllers
                 new Claim("Email", email)
             };
 
-            var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
-
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
                 new AuthenticationProperties { IsPersistent = false, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) });
 
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
