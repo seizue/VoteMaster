@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
+using VoteMaster.Models;
 using VoteMaster.Services;
 
 namespace VoteMaster.Controllers
@@ -155,6 +156,73 @@ namespace VoteMaster.Controllers
             HttpContext.Session.Clear();
             
             return RedirectToAction("Login");
+        }
+
+        // ── Google OAuth ──
+        [HttpGet]
+        public IActionResult GoogleLogin(string? returnUrl = null)
+        {
+            var redirectUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl });
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GoogleCallback(string? returnUrl = null, string? remoteError = null)
+        {
+            if (remoteError != null)
+            {
+                ViewBag.Error = $"Google sign-in error: {remoteError}";
+                return View("Login");
+            }
+
+            var result = await HttpContext.AuthenticateAsync("Google");
+            if (!result.Succeeded)
+            {
+                ViewBag.Error = "Google authentication failed.";
+                return View("Login");
+            }
+
+            var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+            var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? email.Split('@')[0];
+            // Use email prefix as username, sanitised
+            var username = name.Replace(" ", "").ToLowerInvariant();
+
+            // Find or create user — Google-registered accounts get Admin role
+            var existing = await _users.GetByUsernameAsync(username);
+            if (existing is null)
+            {
+                var newUser = new VoteMaster.Models.AppUser
+                {
+                    Username = username,
+                    Role     = "Admin",
+                    Weight   = 1,
+                    PasswordHash = "" // no password for OAuth users
+                };
+                existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, existing.Id.ToString()),
+                new Claim(ClaimTypes.Name, existing.Username),
+                new Claim(ClaimTypes.Role, existing.Role),
+                new Claim("LoginTime", DateTime.UtcNow.ToString("o")),
+                new Claim("Email", email)
+            };
+
+            var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+                new AuthenticationProperties { IsPersistent = false, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) });
+
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return existing.Role == "Admin"
+                ? RedirectToAction("Index", "Dashboard", new { area = "Admin" })
+                : RedirectToAction("Index", "Home", new { area = "Client" });
         }
 
         public IActionResult Denied() => View();

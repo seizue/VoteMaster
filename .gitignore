@@ -1,2 +1,5 @@
 /VoteMaster/VoteMaster/obj
 /VoteMaster/VoteMaster/bin
+
+# User secrets
+**/secrets.json

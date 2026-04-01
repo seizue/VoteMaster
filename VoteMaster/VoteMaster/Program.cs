@@ -126,12 +126,18 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/Denied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8); // Cookie expires after 8 hours
-        options.SlidingExpiration = true; // Renew cookie on activity
-        options.Cookie.HttpOnly = true; // Prevent XSS attacks
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Allow HTTP and HTTPS
-        options.Cookie.SameSite = SameSiteMode.Lax; // CSRF protection (Lax for better compatibility)
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Name = "VoteMaster.Auth";
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId     = builder.Configuration["Authentication:Google:ClientId"] ?? "";
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+        options.CallbackPath = "/Account/GoogleCallback";
     });
 
 builder.Services.AddAuthorization(options =>
