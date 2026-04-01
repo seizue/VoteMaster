@@ -139,15 +139,22 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Name = "VoteMaster.Auth";
-    })
-    .AddGoogle(options =>
-    {
-        options.ClientId     = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-        // Middleware handles this path internally — do NOT map it to a controller
-        options.CallbackPath = "/signin-google";
-        options.SaveTokens   = false;
     });
+
+// Only register Google OAuth if credentials are configured
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId     = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.CallbackPath = "/signin-google";
+            options.SaveTokens   = false;
+        });
+}
 
 builder.Services.AddAuthorization(options =>
 {

@@ -103,13 +103,13 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
-    <!-- Page loader: hides flash of unstyled/unfiltered content -->
+    <!-- Page loader -->
     <style>
         #page-loader {
             position: fixed; inset: 0; z-index: 99999;
             background: white;
             display: flex; align-items: center; justify-content: center;
-            transition: opacity 0.25s ease;
+            transition: opacity 0.2s ease;
         }
         #page-loader.hidden { opacity: 0; pointer-events: none; }
         .loader-spinner {
@@ -120,27 +120,18 @@
             animation: spin 0.7s linear infinite;
         }
         @@keyframes spin { to { transform: rotate(360deg); } }
-        /* Hide content immediately before JS runs to prevent flash */
-        body.js-loading .table tbody tr,
-        body.js-loading .poll-card { visibility: hidden; }
     </style>
     <div id="page-loader"><div class="loader-spinner"></div></div>
     <script>
-        // Add class immediately — before any paint
-        document.body.classList.add('js-loading');
-        document.addEventListener('DOMContentLoaded', function () {
-            // Remove after a short tick so JS pagination has run
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    document.body.classList.remove('js-loading');
-                    const loader = document.getElementById('page-loader');
-                    if (loader) {
-                        loader.classList.add('hidden');
-                        setTimeout(() => loader.remove(), 300);
-                    }
-                });
-            });
-        });
+        // Global function pages call when they're ready to show
+        function dismissLoader() {
+            const loader = document.getElementById('page-loader');
+            if (!loader) return;
+            loader.classList.add('hidden');
+            setTimeout(() => loader.remove(), 250);
+        }
+        // Fallback: dismiss after 2s no matter what
+        setTimeout(dismissLoader, 2000);
     </script>
     
     @await RenderSectionAsync("Scripts", required: false)

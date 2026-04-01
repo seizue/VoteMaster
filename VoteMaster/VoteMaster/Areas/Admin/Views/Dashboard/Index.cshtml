@@ -502,6 +502,8 @@ function displayPage(page) {
     document.getElementById('totalItems').textContent = filteredPolls.length;
     
     updatePaginationButtons();
+    // Dismiss loader now that correct rows are visible
+    if (typeof dismissLoader === 'function') dismissLoader();
 }
 
 function updatePagination() {
