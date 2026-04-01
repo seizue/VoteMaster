@@ -14,14 +14,16 @@ namespace VoteMaster.Controllers
         private readonly IUserService _users;
         private readonly IMemoryCache _cache;
         private readonly ILogger<AccountController> _logger;
+        private readonly IConfiguration _config;
         private const int MaxLoginAttempts = 5;
         private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
-        public AccountController(IUserService users, IMemoryCache cache, ILogger<AccountController> logger)
+        public AccountController(IUserService users, IMemoryCache cache, ILogger<AccountController> logger, IConfiguration config)
         {
             _users = users;
             _cache = cache;
             _logger = logger;
+            _config = config;
         }
 
         [HttpGet]
@@ -162,8 +164,17 @@ namespace VoteMaster.Controllers
         [HttpGet]
         public IActionResult GoogleLogin(string? returnUrl = null)
         {
+            var clientId = _config["Authentication:Google:ClientId"];
+
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                TempData["Error"] = "Google sign-in is not configured yet. Please contact the administrator.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            // After Google auth completes, middleware redirects to RedirectUri
             var redirectUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl });
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            var properties  = new AuthenticationProperties { RedirectUri = redirectUrl };
             return Challenge(properties, "Google");
         }
 
@@ -172,34 +183,45 @@ namespace VoteMaster.Controllers
         {
             if (remoteError != null)
             {
-                ViewBag.Error = $"Google sign-in error: {remoteError}";
-                return View("Login");
+                _logger.LogWarning("Google OAuth remote error: {Error}", remoteError);
+                TempData["Error"] = $"Google sign-in error: {remoteError}";
+                return RedirectToAction(nameof(Login));
             }
 
+            // Google middleware stores the result in an external cookie scheme
             var result = await HttpContext.AuthenticateAsync("Google");
-            if (!result.Succeeded)
+
+            if (result?.Principal == null || !result.Succeeded)
             {
-                ViewBag.Error = "Google authentication failed.";
-                return View("Login");
+                _logger.LogWarning("Google callback: authentication result was null or failed.");
+                TempData["Error"] = "Google authentication failed. Please try again.";
+                return RedirectToAction(nameof(Login));
             }
 
             var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
             var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? email.Split('@')[0];
-            // Use email prefix as username, sanitised
             var username = name.Replace(" ", "").ToLowerInvariant();
 
-            // Find or create user — Google-registered accounts get Admin role
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                TempData["Error"] = "Could not retrieve your Google profile. Please try again.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            _logger.LogInformation("Google OAuth callback for email: {Email}, username: {Username}", email, username);
+
             var existing = await _users.GetByUsernameAsync(username);
             if (existing is null)
             {
-                var newUser = new VoteMaster.Models.AppUser
+                var newUser = new AppUser
                 {
-                    Username = username,
-                    Role     = "Admin",
-                    Weight   = 1,
-                    PasswordHash = "" // no password for OAuth users
+                    Username     = username,
+                    Role         = "Admin",
+                    Weight       = 1,
+                    PasswordHash = ""
                 };
                 existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
+                _logger.LogInformation("Created new Admin user via Google OAuth: {Username}", username);
             }
 
             var claims = new List<Claim>

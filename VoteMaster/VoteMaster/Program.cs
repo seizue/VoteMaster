@@ -137,7 +137,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.ClientId     = builder.Configuration["Authentication:Google:ClientId"] ?? "";
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-        options.CallbackPath = "/Account/GoogleCallback";
+        // Middleware handles this path internally — do NOT map it to a controller
+        options.CallbackPath = "/signin-google";
+        options.SaveTokens   = false;
     });
 
 builder.Services.AddAuthorization(options =>
