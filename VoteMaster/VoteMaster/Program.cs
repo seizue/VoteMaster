@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using VoteMaster.Data;
 using VoteMaster.Services;
@@ -79,6 +80,12 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
+
+// ===== Data Protection (required for OAuth correlation cookies on Azure) =====
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys")))
+    .SetApplicationName("VoteMaster");
 
 // ===== Anti-Forgery Token Configuration =====
 builder.Services.AddAntiforgery(options =>
