@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using VoteMaster.Models;
 using VoteMaster.Services;
 
@@ -10,17 +11,19 @@ namespace VoteMaster.Areas.Admin.Controllers
     public class PollsController : Controller
     {
         private readonly IPollService _polls;
-        public PollsController(IPollService polls) { _polls = polls; }
+        private readonly IUserService _users;
+        public PollsController(IPollService polls, IUserService users) { _polls = polls; _users = users; }
 
         public async Task<IActionResult> Index(string status = "active")
         {
-            var polls = await _polls.GetPollsAsync(status);
-            var pollDtos = polls.Select(p => new PollViewDto 
-            { 
-                Poll = p, 
-                Status = _polls.GetPollStatus(p) 
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            var polls = await _polls.GetPollsForOwnerAsync(status, ownerId);
+            var pollDtos = polls.Select(p => new PollViewDto
+            {
+                Poll = p,
+                Status = _polls.GetPollStatus(p)
             }).ToList();
-            
+
             ViewBag.CurrentStatus = status;
             ViewBag.StatusOptions = new List<string> { "active", "archived", "upcoming", "all" };
             return View(pollDtos);
@@ -35,10 +38,16 @@ namespace VoteMaster.Areas.Admin.Controllers
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
 
+            var sharedUsers = await _polls.GetSharedUsersAsync(id);
+            var allAdmins = await _users.GetAllAsync();
+            var currentOwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+
             ViewBag.Poll = poll;
             ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text));
             ViewBag.StartDateTime = poll.StartTime.ToString("yyyy-MM-ddTHH:mm");
             ViewBag.EndDateTime = poll.EndTime.ToString("yyyy-MM-ddTHH:mm");
+            ViewBag.SharedUsers = sharedUsers;
+            ViewBag.AllAdmins = allAdmins.Where(u => u.Role == "Admin" && u.Id != currentOwnerId).ToList();
             return View();
         }
 
@@ -185,7 +194,8 @@ namespace VoteMaster.Areas.Admin.Controllers
                 StartTime = startTime,
                 EndTime = endTime,
                 EnableLiveVoteCount = enableLiveVoteCount,
-                EnablePollNotifications = enablePollNotifications
+                EnablePollNotifications = enablePollNotifications,
+                OwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0")
             };
             await _polls.CreatePollAsync(poll, options);
             return RedirectToAction(nameof(Index));
@@ -214,6 +224,22 @@ namespace VoteMaster.Areas.Admin.Controllers
         {
             await _polls.DeletePollAsync(id);
             return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Share(int pollId, int withUserId)
+        {
+            await _polls.SharePollAsync(pollId, withUserId);
+            return RedirectToAction(nameof(Edit), new { id = pollId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Unshare(int pollId, int withUserId)
+        {
+            await _polls.UnsharePollAsync(pollId, withUserId);
+            return RedirectToAction(nameof(Edit), new { id = pollId });
         }
     }
 }

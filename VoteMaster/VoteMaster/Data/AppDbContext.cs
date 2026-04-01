@@ -12,6 +12,7 @@ namespace VoteMaster.Data
         public DbSet<PollOption> Options => Set<PollOption>();
         public DbSet<Vote> Votes => Set<Vote>();
         public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
+        public DbSet<PollShare> PollShares => Set<PollShare>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +26,29 @@ namespace VoteMaster.Data
             modelBuilder.Entity<Vote>(e =>
             {
                 e.HasIndex(v => new { v.UserId, v.OptionId }).IsUnique();
+            });
+
+            // Poll ownership — no cascade delete on owner to avoid accidental poll loss
+            modelBuilder.Entity<Poll>(e =>
+            {
+                e.HasOne(p => p.Owner)
+                 .WithMany()
+                 .HasForeignKey(p => p.OwnerId)
+                 .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // PollShare — unique per poll+user pair
+            modelBuilder.Entity<PollShare>(e =>
+            {
+                e.HasIndex(s => new { s.PollId, s.SharedWithUserId }).IsUnique();
+                e.HasOne(s => s.Poll)
+                 .WithMany(p => p.Shares)
+                 .HasForeignKey(s => s.PollId)
+                 .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(s => s.SharedWithUser)
+                 .WithMany()
+                 .HasForeignKey(s => s.SharedWithUserId)
+                 .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

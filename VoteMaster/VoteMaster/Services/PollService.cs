@@ -57,6 +57,26 @@ namespace VoteMaster.Services
             };
         }
 
+        // Returns polls owned by OR shared with the given admin
+        public async Task<List<Poll>> GetPollsForOwnerAsync(string status, int ownerId)
+        {
+            var now = DateTime.UtcNow;
+            var query = _db.Polls.Include(p => p.Options)
+                .Where(p => p.OwnerId == ownerId
+                         || p.OwnerId == null   // legacy polls (no owner) visible to all
+                         || p.Shares.Any(s => s.SharedWithUserId == ownerId));
+
+            query = status.ToLower() switch
+            {
+                "active"   => query.Where(p => p.StartTime <= now && p.EndTime >= now),
+                "archived" => query.Where(p => p.EndTime < now),
+                "upcoming" => query.Where(p => p.StartTime > now),
+                _          => query
+            };
+
+            return await query.OrderByDescending(p => p.StartTime).ToListAsync();
+        }
+
         public string GetPollStatus(Poll poll)
         {
             var now = DateTime.UtcNow;
@@ -209,5 +229,33 @@ namespace VoteMaster.Services
                 await _db.SaveChangesAsync();
             }
         }
+
+        public async Task SharePollAsync(int pollId, int withUserId)
+        {
+            var exists = await _db.PollShares
+                .AnyAsync(s => s.PollId == pollId && s.SharedWithUserId == withUserId);
+            if (!exists)
+            {
+                _db.PollShares.Add(new PollShare { PollId = pollId, SharedWithUserId = withUserId });
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task UnsharePollAsync(int pollId, int withUserId)
+        {
+            var share = await _db.PollShares
+                .FirstOrDefaultAsync(s => s.PollId == pollId && s.SharedWithUserId == withUserId);
+            if (share != null)
+            {
+                _db.PollShares.Remove(share);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task<List<AppUser>> GetSharedUsersAsync(int pollId) =>
+            await _db.PollShares
+                .Where(s => s.PollId == pollId)
+                .Select(s => s.SharedWithUser)
+                .ToListAsync();
     }
 }

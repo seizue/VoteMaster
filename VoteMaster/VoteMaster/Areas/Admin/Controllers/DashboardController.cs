@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using VoteMaster.Services;
 
 namespace VoteMaster.Areas.Admin.Controllers
@@ -13,13 +14,14 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         public async Task<IActionResult> Index(string status = "active")
         {
-            var polls = await _polls.GetPollsAsync(status);
-            var pollDtos = polls.Select(p => new PollViewDto 
-            { 
-                Poll = p, 
-                Status = _polls.GetPollStatus(p) 
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            var polls = await _polls.GetPollsForOwnerAsync(status, ownerId);
+            var pollDtos = polls.Select(p => new PollViewDto
+            {
+                Poll = p,
+                Status = _polls.GetPollStatus(p)
             }).ToList();
-            
+
             ViewBag.CurrentStatus = status;
             ViewBag.StatusOptions = new List<string> { "active", "archived", "upcoming", "all" };
             return View(pollDtos);

@@ -110,3 +110,65 @@
         </form>
     </div>
 </div>
+
+@{
+    var sharedUsers  = ViewBag.SharedUsers as List<VoteMaster.Models.AppUser> ?? new();
+    var allAdmins    = ViewBag.AllAdmins   as List<VoteMaster.Models.AppUser> ?? new();
+    var sharePoll    = ViewBag.Poll as VoteMaster.Models.Poll;
+}
+
+@if (sharePoll != null)
+{
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm p-4">
+            <h5 class="fw-700 mb-3"><i class="bi bi-share me-2"></i>Share with other Admins</h5>
+
+            @if (sharedUsers.Any())
+            {
+                <div class="mb-3">
+                    <div class="fw-semibold small text-muted mb-2">Currently shared with:</div>
+                    @foreach (var u in sharedUsers)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-info">@u.Username</span>
+                            <form method="post" action="/Admin/Polls/Unshare" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="pollId" value="@sharePoll.Id" />
+                                <input type="hidden" name="withUserId" value="@u.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                                    <i class="bi bi-x"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (allAdmins.Any())
+            {
+                <form method="post" action="/Admin/Polls/Share" class="d-flex gap-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="pollId" value="@sharePoll.Id" />
+                    <div class="flex-grow-1">
+                        <label class="form-label small fw-semibold">Add admin:</label>
+                        <select name="withUserId" class="form-select form-select-sm">
+                            @foreach (var a in allAdmins.Where(a => !sharedUsers.Select(s => s.Id).Contains(a.Id)))
+                            {
+                                <option value="@a.Id">@a.Username</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-share me-1"></i>Share
+                    </button>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted small mb-0">No other admins to share with.</p>
+            }
+        </div>
+    </div>
+</div>
+}

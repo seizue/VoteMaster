@@ -10,6 +10,8 @@ namespace VoteMaster.Services
         Task<List<Poll>> GetArchivedPollsAsync();
         Task<List<Poll>> GetUpcomingPollsAsync();
         Task<List<Poll>> GetPollsAsync(string status);
+        // Owner-scoped versions for admin dashboard
+        Task<List<Poll>> GetPollsForOwnerAsync(string status, int ownerId);
         Task<Poll> CreatePollAsync(Poll poll, IEnumerable<string> options);
         Task UpdatePollAsync(Poll poll);
         Task CastVoteAsync(int optionId, int userId);
@@ -21,6 +23,10 @@ namespace VoteMaster.Services
         Task<List<int>> GetUserVotesForPollAsync(int pollId, int userId);
         Task ResetUserVotesAsync(int pollId, int userId);
         string GetPollStatus(Poll poll);
+        // Sharing
+        Task SharePollAsync(int pollId, int withUserId);
+        Task UnsharePollAsync(int pollId, int withUserId);
+        Task<List<AppUser>> GetSharedUsersAsync(int pollId);
     }
 
     public class VoterStatusDto

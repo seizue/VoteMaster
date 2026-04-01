@@ -14,9 +14,16 @@ namespace VoteMaster.Models
         public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
         public int MaxVotesPerVoter { get; set; } = 1;
         public int MinVotesPerVoter { get; set; } = 1;
-        
+
         // Real-time features
         public bool EnableLiveVoteCount { get; set; } = false;
         public bool EnablePollNotifications { get; set; } = false;
+
+        // Ownership — nullable so existing polls without an owner still work
+        public int? OwnerId { get; set; }
+        public AppUser? Owner { get; set; }
+
+        // Shared admins
+        public ICollection<PollShare> Shares { get; set; } = new List<PollShare>();
     }
 }
