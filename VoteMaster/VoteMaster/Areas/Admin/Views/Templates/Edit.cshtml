@@ -1,0 +1,113 @@
+@model VoteMaster.Models.TicketTemplate
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    var polls = ViewBag.Polls as List<VoteMaster.Models.Poll> ?? new();
+}
+
+<style>
+    .create-card {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 2rem;
+        max-width: 640px;
+        margin: 0 auto;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+    }
+    .image-preview-wrap {
+        width: 100%;
+        height: 140px;
+        border: 2px dashed var(--vm-border);
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        cursor: pointer;
+        background: var(--vm-bg);
+        transition: border-color 0.2s;
+        margin-bottom: 0.5rem;
+    }
+    .image-preview-wrap:hover { border-color: var(--vm-accent); }
+    .image-preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .placeholder-text { color: var(--vm-text-secondary); font-size: 0.875rem; text-align: center; }
+</style>
+
+<div class="create-card">
+    <h4 class="fw-700 mb-4"><i class="bi bi-pencil me-2"></i>Edit Template</h4>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@err.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <form method="post" enctype="multipart/form-data" action="/Admin/Templates/Edit/@Model.Id">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Template Name</label>
+            <input type="text" name="name" class="form-control" value="@Model.Name" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Header Image <span class="text-muted fw-normal">(PNG or JPG — leave blank to keep current)</span></label>
+            <div class="image-preview-wrap" onclick="document.getElementById('headerImageInput').click()">
+                @if (!string.IsNullOrEmpty(Model.HeaderImagePath))
+                {
+                    <img id="headerPreview" src="@Model.HeaderImagePath" alt="Header" style="display:block;" />
+                    <div class="placeholder-text" id="imagePlaceholder" style="display:none;">
+                        <i class="bi bi-cloud-upload fs-3 d-block mb-1"></i>Click to replace
+                    </div>
+                }
+                else
+                {
+                    <img id="headerPreview" src="" alt="" style="display:none;" />
+                    <div class="placeholder-text" id="imagePlaceholder">
+                        <i class="bi bi-cloud-upload fs-3 d-block mb-1"></i>Click to upload header image
+                    </div>
+                }
+            </div>
+            <input type="file" id="headerImageInput" name="headerImage" accept=".png,.jpg,.jpeg" class="d-none" onchange="previewImage(this)" />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Select Poll</label>
+            <select name="pollId" class="form-select" required>
+                <option value="">— Choose a poll —</option>
+                @foreach (var p in polls)
+                {
+                    <option value="@p.Id" @(p.Id == Model.PollId ? "selected" : "")>@p.Title</option>
+                }
+            </select>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-2"></i>Save Changes
+            </button>
+            <a class="btn btn-secondary" href="/Admin/Templates">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+function previewImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = document.getElementById('headerPreview');
+        img.src = e.target.result;
+        img.style.display = 'block';
+        document.getElementById('imagePlaceholder').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+}

@@ -1,0 +1,384 @@
+@model VoteMaster.Models.TicketTemplate
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    var voteUrl   = ViewBag.VoteUrl as string ?? "";
+    var qrBase64  = ViewBag.QrCodeBase64 as string ?? "";
+    var voters    = ViewBag.Voters as List<VoteMaster.Models.AppUser> ?? new();
+    var poll      = Model.Poll;
+
+    var initials   = string.Concat((poll?.Title ?? Model.Name)
+                         .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(w => char.ToUpper(w[0])));
+    var ticketCode = $"{initials}-{Model.CreatedAt:yyyyMMdd}";
+}
+
+<style>
+    .ticket-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .page-nav {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .page-indicator {
+        font-size: 0.875rem;
+        color: var(--vm-text-secondary);
+        font-weight: 600;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .a4-scaler {
+        width: 794px;
+        transform-origin: top left;
+        margin: 0 auto 2rem;
+    }
+
+    .a4-page {
+        width: 794px;
+        height: 1123px;
+        background: white;
+        box-shadow: 0 4px 24px rgba(15,23,42,0.15);
+        padding: 8px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow: hidden;
+    }
+
+    .ticket-row {
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
+        height: 362px;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+
+    /* ── Ticket card ── */
+    .ticket {
+        flex: 1;
+        min-width: 0;
+        border: 1.5px solid #1e293b;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+        background: white;
+    }
+
+    /* Header image — auto height based on image's natural ratio */
+    .ticket-header-wrap {
+        flex-shrink: 0;
+        overflow: hidden;
+        line-height: 0;
+    }
+    .ticket-header-wrap img {
+        width: 100%;
+        height: auto;
+        display: block;
+        max-height: 55px;
+        object-fit: cover;
+        object-position: top;
+    }
+    .ticket-header-placeholder {
+        height: 24px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #0f172a, #1e3a5f);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 7pt;
+        font-weight: 700;
+    }
+
+    /* Poll title strip */
+    .ticket-title-strip {
+        padding: 2px 5px;
+        flex-shrink: 0;
+        border-bottom: 1px dashed #cbd5e1;
+    }
+    .ticket-poll-title {
+        font-size: 7pt;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .ticket-poll-desc {
+        font-size: 5pt;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    /* QR center section */
+    .ticket-qr-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 6px;
+        gap: 2px;
+    }
+    .ticket-scan-label {
+        font-size: 7pt;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #0f172a;
+    }
+    .ticket-qr-img {
+        width: 160px;
+        height: 160px;
+        display: block;
+    }
+    .ticket-scan-sub {
+        font-size: 5.5pt;
+        color: #0f172a;
+        font-weight: 600;
+        font-family: monospace;
+        text-align: center;
+        word-break: break-all;
+    }
+
+    /* Bottom fields */
+    .ticket-fields {
+        padding: 4px 7px 5px;
+        flex-shrink: 0;
+        border-top: 2px solid #0f172a;
+        background: #f0f9ff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .ticket-field-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+    }
+    .ticket-field-label {
+        font-size: 8pt;
+        font-weight: 700;
+        color: #475569;
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding-bottom: 1px;
+    }
+    .ticket-field-line {
+        flex: 1;
+        border-bottom: 1.5px solid #0f172a;
+        height: 14px;
+        min-width: 0;
+    }
+    .ticket-field-value {
+        font-size: 8pt;
+        font-weight: 600;
+        color: #0f172a;
+        border-bottom: 1.5px solid #0f172a;
+        padding-bottom: 1px;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Code strip at very bottom */
+    .ticket-code-strip {
+        padding: 2px 5px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .ticket-code-text {
+        font-size: 5pt;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.05em;
+    }
+    .ticket-date-text {
+        font-size: 5pt;
+        color: #94a3b8;
+    }
+
+    @@media print {
+        .ticket-actions, nav, footer, .toast-container { display: none !important; }
+        body { background: white !important; margin: 0; padding: 0; }
+        .a4-scaler { transform: none !important; width: 794px; margin: 0; }
+        .a4-page { box-shadow: none; margin: 0; page-break-after: always; break-after: page; }
+        .ticket-row { break-inside: avoid; }
+    }
+</style>
+
+<div class="ticket-actions">
+    <button class="btn btn-primary" onclick="window.print()">
+        <i class="bi bi-printer me-2"></i>Print All Tickets
+    </button>
+    <a class="btn btn-success" href="/Admin/Templates/ExportPdf/@Model.Id" target="_blank">
+        <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
+    </a>
+    <a class="btn btn-secondary" href="/Admin/Templates">
+        <i class="bi bi-arrow-left me-2"></i>Back to Templates
+    </a>
+</div>
+
+@if (!voters.Any())
+{
+    <div class="alert alert-warning">No voters found. Add users in Manage Users first.</div>
+}
+
+@{
+    int perPage = 6;
+    var pages = voters
+        .Select((v, i) => new { v, i })
+        .GroupBy(x => x.i / perPage)
+        .Select(g => g.Select(x => x.v).ToList())
+        .ToList();
+    int totalPages = pages.Count;
+}
+
+@for (int p = 0; p < totalPages; p++)
+{
+    var page = pages[p];
+    <div class="a4-scaler" data-page="@p" style="@(p == 0 ? "" : "display:none;")">
+        <div class="a4-page">
+            @for (int r = 0; r < 3; r++)
+            {
+                <div class="ticket-row">
+                    @for (int c = 0; c < 2; c++)
+                    {
+                        int idx = r * 2 + c;
+                        if (idx >= page.Count) { <div class="ticket" style="border:none;background:transparent;box-shadow:none;"></div> break; }
+                        var voter = page[idx];
+
+                        <div class="ticket">
+
+                            @* Header *@
+                            @if (!string.IsNullOrEmpty(Model.HeaderImagePath))
+                            {
+                                <div class="ticket-header-wrap">
+                                    <img src="@Model.HeaderImagePath" alt="Header" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="ticket-header-placeholder">@(poll?.Title ?? Model.Name)</div>
+                            }
+
+                            @* Poll title *@
+                            <div class="ticket-title-strip">
+                                <div class="ticket-poll-title">@(poll?.Title ?? Model.Name)</div>
+                                @if (!string.IsNullOrEmpty(poll?.Description))
+                                {
+                                    <div class="ticket-poll-desc">@poll.Description</div>
+                                }
+                            </div>
+
+                            @* QR center *@
+                            <div class="ticket-qr-section">
+                                <div class="ticket-scan-label">Scan to Vote</div>
+                                @if (!string.IsNullOrEmpty(qrBase64))
+                                {
+                                    <img class="ticket-qr-img" src="data:image/png;base64,@qrBase64" alt="QR Code" />
+                                }
+                                <div class="ticket-scan-sub">@voteUrl</div>
+                            </div>
+
+                            @* Fields *@
+                            <div class="ticket-fields">
+                                <div class="ticket-field-row" id="top-row-@voter.Username">
+                                    <span class="ticket-field-label">Username:</span>
+                                    <div class="ticket-field-value">@voter.Username</div>
+                                    <span class="ticket-field-label" style="margin-left:16px;">Pass:</span>
+                                    <div class="ticket-field-line"></div>
+                                </div>
+                                <div class="ticket-field-row">
+                                    <span class="ticket-field-label">Signature:</span>
+                                    <div class="ticket-field-line" style="flex:1;"></div>
+                                </div>
+                            </div>
+
+                            @* Code strip *@
+                            <div class="ticket-code-strip">
+                                <span class="ticket-code-text">Code: @ticketCode</span>
+                                <span class="ticket-date-text">@Model.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                            </div>
+
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* Pagination — bottom of page *@
+@if (totalPages > 1)
+{
+    <div class="page-nav" id="pageNav" style="margin-top:1rem;">
+        <button class="btn btn-sm btn-outline-secondary" onclick="changePage(-1)" id="btnPrev">
+            <i class="bi bi-chevron-left"></i> Prev
+        </button>
+        <span class="page-indicator" id="pageIndicator">Page 1 of @totalPages</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="changePage(1)" id="btnNext">
+            Next <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
+}
+
+@section Scripts {
+<script>
+    const totalPages = @totalPages;
+    let currentPage = 0;
+
+    function changePage(dir) {
+        const next = currentPage + dir;
+        if (next < 0 || next >= totalPages) return;
+
+        document.querySelector(`.a4-scaler[data-page="${currentPage}"]`).style.display = 'none';
+        currentPage = next;
+        const el = document.querySelector(`.a4-scaler[data-page="${currentPage}"]`);
+        el.style.display = '';
+        scalePages();
+
+        document.getElementById('pageIndicator').textContent = `Page ${currentPage + 1} of ${totalPages}`;
+        document.getElementById('btnPrev').disabled = currentPage === 0;
+        document.getElementById('btnNext').disabled = currentPage === totalPages - 1;
+    }
+
+    function scalePages() {
+        const wrapper = document.querySelector(`.a4-scaler[data-page="${currentPage}"]`);
+        if (!wrapper) return;
+        const page = wrapper.querySelector('.a4-page');
+        if (!page) return;
+        const available = wrapper.parentElement.clientWidth;
+        const natural = page.offsetWidth;
+        if (natural > 0 && available > 0) {
+            const scale = Math.min(1, available / natural);
+            page.style.transform = `scale(${scale})`;
+            page.style.transformOrigin = 'top left';
+            wrapper.style.height = (page.offsetHeight * scale) + 'px';
+        }
+    }
+
+    window.addEventListener('load', () => {
+        scalePages();
+        if (totalPages > 0) {
+            document.getElementById('btnPrev') && (document.getElementById('btnPrev').disabled = true);
+        }
+    });
+    window.addEventListener('resize', scalePages);
+</script>
+}

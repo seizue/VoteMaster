@@ -118,6 +118,7 @@ builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddHostedService<PollCleanupService>();
+builder.Services.AddSingleton<VoteMaster.Services.BrowserService>();
 
 // ===== Enhanced Authentication Configuration =====
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

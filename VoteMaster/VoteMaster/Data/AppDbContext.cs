@@ -11,6 +11,7 @@ namespace VoteMaster.Data
         public DbSet<Poll> Polls => Set<Poll>();
         public DbSet<PollOption> Options => Set<PollOption>();
         public DbSet<Vote> Votes => Set<Vote>();
+        public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
