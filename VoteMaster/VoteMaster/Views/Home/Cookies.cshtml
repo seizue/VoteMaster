@@ -1,0 +1,95 @@
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Cookie Consent";
+}
+
+<div style="max-width:760px;margin:0 auto;">
+    <h3 class="fw-700 mb-1"><i class="bi bi-cookie me-2" style="color:#14b8a6;"></i>Cookie Consent</h3>
+    <p class="text-muted small mb-4">Manage your cookie preferences for VoteMaster.</p>
+
+    <div class="card border-0 shadow-sm p-4 mb-3">
+        <h5 class="fw-700">What are cookies?</h5>
+        <p class="text-muted small mb-0">Cookies are small text files stored on your device when you visit a website. They help the site remember your session and preferences.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h5 class="fw-700 mb-1"><i class="bi bi-lock-fill me-2 text-success"></i>Essential Cookies</h5>
+                <p class="text-muted small mb-0">Required for the site to function. These handle your login session and security tokens. They cannot be disabled.</p>
+            </div>
+            <span class="badge bg-success align-self-center">Always On</span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h5 class="fw-700 mb-1"><i class="bi bi-bar-chart me-2 text-muted"></i>Analytics Cookies</h5>
+                <p class="text-muted small mb-0">We do not use any analytics or tracking cookies. No data is sent to third-party analytics services.</p>
+            </div>
+            <span class="badge bg-secondary align-self-center">Not Used</span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h5 class="fw-700 mb-1"><i class="bi bi-megaphone me-2 text-muted"></i>Marketing Cookies</h5>
+                <p class="text-muted small mb-0">We do not use advertising or marketing cookies of any kind.</p>
+            </div>
+            <span class="badge bg-secondary align-self-center">Not Used</span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 mb-4" style="background:#f0fdf4;border:1px solid #bbf7d0 !important;">
+        <h5 class="fw-700 mb-3"><i class="bi bi-sliders me-2" style="color:#14b8a6;"></i>Your Preference</h5>
+        <p class="text-muted small mb-3">Your current consent status: <strong id="currentStatus">Loading...</strong></p>
+        <div class="d-flex gap-2 flex-wrap">
+            <button onclick="acceptCookies(true)" class="btn btn-success btn-sm">
+                <i class="bi bi-check-circle me-1"></i>Accept All
+            </button>
+            <button onclick="declineCookies(true)" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle me-1"></i>Decline Non-Essential
+            </button>
+            <button onclick="resetCookies()" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Preference
+            </button>
+        </div>
+    </div>
+
+
+</div>
+
+@section Scripts {
+<script>
+function updateStatus() {
+    const consent = localStorage.getItem('cookieConsent');
+    const el = document.getElementById('currentStatus');
+    if (consent === 'accepted') el.innerHTML = '<span class="text-success">Accepted</span>';
+    else if (consent === 'declined') el.innerHTML = '<span class="text-danger">Declined</span>';
+    else el.innerHTML = '<span class="text-warning">Not set</span>';
+}
+
+function acceptCookies(fromPage) {
+    localStorage.setItem('cookieConsent', 'accepted');
+    document.getElementById('cookieBanner') && (document.getElementById('cookieBanner').style.display = 'none');
+    if (fromPage) updateStatus();
+}
+
+function declineCookies(fromPage) {
+    localStorage.setItem('cookieConsent', 'declined');
+    document.getElementById('cookieBanner') && (document.getElementById('cookieBanner').style.display = 'none');
+    if (fromPage) updateStatus();
+}
+
+function resetCookies() {
+    localStorage.removeItem('cookieConsent');
+    updateStatus();
+    const banner = document.getElementById('cookieBanner');
+    if (banner) banner.style.display = 'block';
+}
+
+updateStatus();
+</script>
+}

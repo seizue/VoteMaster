@@ -29,6 +29,12 @@ namespace VoteMaster.Controllers
             return View();
         }
 
+        [HttpGet("Privacy")]
+        public IActionResult Privacy() => View();
+
+        [HttpGet("Cookies")]
+        public IActionResult Cookies() => View();
+
         [HttpGet("health")]
         public IActionResult Health()
         {

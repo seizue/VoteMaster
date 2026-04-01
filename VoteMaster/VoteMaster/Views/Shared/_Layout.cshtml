@@ -69,13 +69,35 @@
     <footer class="mt-auto py-4">
         <div class="container text-center text-muted small">
             <div>© @DateTime.UtcNow.Year VoteMaster — Simple modern voting</div>
-            <div class="mt-2">
-                <a href="https://github.com/seizue/VoteMaster" target="_blank" rel="noopener noreferrer" class="text-muted" title="View on GitHub">
+            <div class="mt-2 d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                <a href="https://github.com/seizure/VoteMaster" target="_blank" rel="noopener noreferrer" class="text-muted" title="View on GitHub">
                     <i class="bi bi-github fs-5"></i>
+                </a>
+                <a href="/Privacy" class="text-muted text-decoration-none d-flex align-items-center gap-1">
+                    <i class="bi bi-shield-lock"></i> Privacy Policy
+                </a>
+                <a href="/Cookies" class="text-muted text-decoration-none d-flex align-items-center gap-1">
+                    <i class="bi bi-cookie"></i> Cookie Consent
                 </a>
             </div>
         </div>
     </footer>
+
+    <!-- GDPR Cookie Consent Banner — bottom-right card -->
+    <div id="cookieBanner" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;max-width:320px;background:white;border-radius:1rem;box-shadow:0 8px 32px rgba(15,23,42,0.18);padding:1.25rem 1.5rem;border:1px solid #e2e8f0;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+            <i class="bi bi-shield-lock-fill" style="color:#14b8a6;font-size:1.25rem;"></i>
+            <span style="font-weight:700;color:#0f172a;font-size:0.9375rem;">Cookie Notice</span>
+        </div>
+        <p style="font-size:0.8125rem;color:#475569;margin-bottom:1rem;line-height:1.5;">
+            We use essential session cookies to keep you logged in. No tracking or third-party cookies.
+            <a href="/Privacy" style="color:#14b8a6;font-weight:600;">Privacy Policy</a>
+        </p>
+        <div style="display:flex;gap:0.5rem;">
+            <button onclick="acceptCookies()" style="flex:1;background:#14b8a6;color:white;border:none;border-radius:0.5rem;padding:0.5rem;font-size:0.8125rem;font-weight:600;cursor:pointer;">Accept</button>
+            <button onclick="declineCookies()" style="flex:1;background:transparent;color:#64748b;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem;font-size:0.8125rem;font-weight:600;cursor:pointer;">Decline</button>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -83,6 +105,22 @@
     
     @await RenderSectionAsync("Scripts", required: false)
     
+    <script>
+        // GDPR Cookie Consent
+        (function() {
+            const consent = localStorage.getItem('cookieConsent');
+            if (!consent) document.getElementById('cookieBanner').style.display = 'block';
+        })();
+        function acceptCookies() {
+            localStorage.setItem('cookieConsent', 'accepted');
+            document.getElementById('cookieBanner').style.display = 'none';
+        }
+        function declineCookies() {
+            localStorage.setItem('cookieConsent', 'declined');
+            document.getElementById('cookieBanner').style.display = 'none';
+        }
+    </script>
+
     <script>
         // Global SignalR connection for poll notifications
         @if (user?.IsAuthenticated ?? false)
