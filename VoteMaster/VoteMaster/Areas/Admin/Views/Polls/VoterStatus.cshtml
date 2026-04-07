@@ -1,73 +1,140 @@
 @model List<VoteMaster.Services.VoterStatusDto>
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
-    var poll = ViewBag.Poll as VoteMaster.Models.Poll;
+    var poll     = ViewBag.Poll as VoteMaster.Models.Poll;
+    var voted    = Model?.Count(v => v.HasVoted) ?? 0;
+    var notVoted = Model?.Count(v => !v.HasVoted) ?? 0;
+    var total    = Model?.Count ?? 0;
+    var rate     = total > 0 ? voted * 100 / total : 0;
+    var sorted   = Model?.OrderByDescending(v => v.HasVoted).ThenBy(v => v.Username).ToList()
+                   ?? new List<VoteMaster.Services.VoterStatusDto>();
 }
 
-<div class="mb-4">
-    <h3 class="mb-1" style="font-weight: 700; color: #0f172a;">
-        <i class="bi bi-people-fill me-2"></i>Voter Status for Poll: @poll?.Title
-    </h3>
-    <p class="text-muted">Poll ID: @poll?.Id</p>
+<style>
+    .vs-header { margin-bottom: 1.5rem; }
+    .vs-header h3 { font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
+
+    /* Stats bar */
+    .vs-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .vs-stat {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        text-align: center;
+    }
+    .vs-stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    .vs-stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+
+    /* Desktop table */
+    .vs-table-wrap { display: block; }
+    .vs-cards-wrap  { display: none; }
+
+    /* Voter card for mobile */
+    .voter-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+    .voter-card-avatar {
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .voter-card-info { flex: 1; min-width: 0; }
+    .voter-card-name { font-weight: 700; color: #0f172a; font-size: 0.9375rem; }
+    .voter-card-meta { font-size: 0.8125rem; color: #64748b; margin-top: 0.125rem; }
+
+    @@media (max-width: 640px) {
+        .vs-stats { grid-template-columns: repeat(2, 1fr); }
+        .vs-table-wrap { display: none; }
+        .vs-cards-wrap  { display: block; }
+    }
+</style>
+
+<div class="vs-header">
+    <h3><i class="bi bi-people-fill me-2"></i>Voter Status</h3>
+    <p class="text-muted small mb-0">@poll?.Title</p>
 </div>
 
-<div class="card">
-    <div class="card-body p-0">
-        @if (Model == null || Model.Count == 0)
-        {
-            <div class="p-4 text-center text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                No voters found.
-            </div>
-        }
-        else
-        {
+@if (Model == null || Model.Count == 0)
+{
+    <div class="card p-5 text-center text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>No voters found.
+    </div>
+}
+else
+{
+    <!-- Stats -->
+    <div class="vs-stats">
+        <div class="vs-stat">
+            <div class="vs-stat-value text-primary">@total</div>
+            <div class="vs-stat-label">Total</div>
+        </div>
+        <div class="vs-stat">
+            <div class="vs-stat-value text-success">@voted</div>
+            <div class="vs-stat-label">Voted</div>
+        </div>
+        <div class="vs-stat">
+            <div class="vs-stat-value text-danger">@notVoted</div>
+            <div class="vs-stat-label">Pending</div>
+        </div>
+        <div class="vs-stat">
+            <div class="vs-stat-value text-info">@rate%</div>
+            <div class="vs-stat-label">Rate</div>
+        </div>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="vs-table-wrap card">
+        <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 30%;">Username</th>
-                            <th style="width: 25%;">Voting Status</th>
-                            <th style="width: 20%;">Votes Cast</th>
-                            <th style="width: 25%;">Status Badge</th>
+                            <th>Username</th>
+                            <th>Status</th>
+                            <th>Votes Cast</th>
+                            <th>Badge</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var voter in Model.OrderByDescending(v => v.HasVoted).ThenBy(v => v.Username))
+                        @foreach (var voter in sorted)
                         {
                             <tr>
-                                <td class="align-middle fw-semibold" style="color: #1e293b;">@voter.Username</td>
+                                <td class="align-middle fw-semibold">@voter.Username</td>
                                 <td class="align-middle">
                                     @if (voter.HasVoted)
                                     {
-                                        <span class="text-success fw-semibold">
-                                            <i class="bi bi-check-circle-fill me-1"></i>Voted
-                                        </span>
+                                        <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Voted</span>
                                     }
                                     else
                                     {
-                                        <span class="text-danger fw-semibold">
-                                            <i class="bi bi-x-circle-fill me-1"></i>Not Voted
-                                        </span>
+                                        <span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Not Voted</span>
                                     }
                                 </td>
                                 <td class="align-middle">
-                                    <span class="badge bg-light text-dark" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
-                                        @voter.VoteCount
-                                    </span>
+                                    <span class="badge bg-light text-dark px-3 py-2">@voter.VoteCount</span>
                                 </td>
                                 <td class="align-middle">
                                     @if (voter.HasVoted)
                                     {
-                                        <span class="badge bg-success" style="font-size: 0.8125rem; padding: 0.5rem 0.75rem;">
-                                            <i class="bi bi-check-lg me-1"></i>Completed
-                                        </span>
+                                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-lg me-1"></i>Completed</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning" style="font-size: 0.8125rem; padding: 0.5rem 0.75rem;">
-                                            <i class="bi bi-clock me-1"></i>Pending
-                                        </span>
+                                        <span class="badge bg-warning px-3 py-2"><i class="bi bi-clock me-1"></i>Pending</span>
                                     }
                                 </td>
                             </tr>
@@ -75,52 +142,39 @@
                     </tbody>
                 </table>
             </div>
-            <div class="border-top p-3 bg-light" style="border-radius: 0 0 1rem 1rem;">
-                <div class="row g-3">
-                    <div class="col-md-3 col-6">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold" style="color: #475569;">Total Voters</span>
-                            <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">@Model.Count</span>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold" style="color: #475569;">Voted</span>
-                            <span class="badge bg-success" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">@Model.Count(v => v.HasVoted)</span>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold" style="color: #475569;">Not Voted</span>
-                            <span class="badge bg-danger" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">@Model.Count(v => !v.HasVoted)</span>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold" style="color: #475569;">Voting Rate</span>
-                            <span class="badge bg-info" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">@((Model.Count > 0 ? (Model.Count(v => v.HasVoted) * 100 / Model.Count) : 0))%</span>
-                        </div>
-                    </div>
+        </div>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="vs-cards-wrap">
+        @foreach (var voter in sorted)
+        {
+            var bgColor  = voter.HasVoted ? "#f0fdf4" : "#fff7ed";
+            var dotColor = voter.HasVoted ? "#22c55e" : "#f97316";
+            var initials = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
+            <div class="voter-card">
+                <div class="voter-card-avatar" style="background:@bgColor;color:@dotColor;">
+                    @initials
                 </div>
+                <div class="voter-card-info">
+                    <div class="voter-card-name">@voter.Username</div>
+                    <div class="voter-card-meta">@voter.VoteCount vote(s) cast</div>
+                </div>
+                @if (voter.HasVoted)
+                {
+                    <span class="badge bg-success px-3 py-2"><i class="bi bi-check-lg me-1"></i>Voted</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning px-3 py-2"><i class="bi bi-clock me-1"></i>Pending</span>
+                }
             </div>
         }
     </div>
-</div>
+}
 
 <div class="mt-3">
-    <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })" class="btn btn-outline-secondary">
+    <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })" class="btn btn-dark">
         <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
     </a>
 </div>
-
-<style>
-    @@media (max-width: 768px) {
-        .table thead th {
-            font-size: 0.8125rem;
-            padding: 0.875rem 0.75rem;
-        }
-        .table tbody td {
-            padding: 0.875rem 0.75rem;
-        }
-    }
-</style>
