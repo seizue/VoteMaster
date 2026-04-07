@@ -63,7 +63,6 @@ namespace VoteMaster.Services
             var now = DateTime.UtcNow;
             var query = _db.Polls.Include(p => p.Options)
                 .Where(p => p.OwnerId == ownerId
-                         || p.OwnerId == null   // legacy polls (no owner) visible to all
                          || p.Shares.Any(s => s.SharedWithUserId == ownerId));
 
             query = status.ToLower() switch

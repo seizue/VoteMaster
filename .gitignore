@@ -3,3 +3,12 @@
 
 # User secrets
 **/secrets.json
+
+# Local dev secrets
+appsettings.Development.json
+
+# Local appsettings with secrets (use appsettings.Production.json for Azure)
+VoteMaster/VoteMaster/appsettings.json
+
+# Data Protection keys
+VoteMaster/VoteMaster/DataProtectionKeys/

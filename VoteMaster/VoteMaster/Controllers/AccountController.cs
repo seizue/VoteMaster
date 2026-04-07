@@ -221,6 +221,9 @@ namespace VoteMaster.Controllers
                 {
                     var newUser = new AppUser { Username = username, Role = "Admin", Weight = 1, PasswordHash = "" };
                     existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
+                    // Set CreatedByAdminId to their own ID after creation
+                    existing.CreatedByAdminId = existing.Id;
+                    await _users.UpdateAsync(existing);
                     _logger.LogInformation("Auto-registered new Admin via Google: {Username}", username);
                 }
 

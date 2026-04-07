@@ -34,6 +34,12 @@ namespace VoteMaster.Services
         public Task<List<AppUser>> GetAllAsync() =>
             _db.Users.OrderBy(u => u.Username).ToListAsync();
 
+        public Task<List<AppUser>> GetAllForAdminAsync(int adminId) =>
+            _db.Users
+               .Where(u => u.CreatedByAdminId == adminId)
+               .OrderBy(u => u.Username)
+               .ToListAsync();
+
         public async Task<AppUser> CreateAsync(AppUser user, string password)
         {
             user.PasswordHash = _passwordHasher.HashPassword(user, password);

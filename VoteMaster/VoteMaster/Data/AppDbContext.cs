@@ -21,6 +21,10 @@ namespace VoteMaster.Data
             modelBuilder.Entity<AppUser>(e =>
             {
                 e.HasIndex(u => u.Username).IsUnique();
+                e.HasOne(u => u.CreatedByAdmin)
+                 .WithMany()
+                 .HasForeignKey(u => u.CreatedByAdminId)
+                 .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<Vote>(e =>

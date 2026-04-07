@@ -209,20 +209,44 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Admin user will be created.");
         }
 
-        // Seed normal users
+        // Save admin first so we have its Id for linking voters
+        if (saveRequired)
+        {
+            db.SaveChanges();
+            saveRequired = false;
+        }
+
+        // Set admin's own CreatedByAdminId to itself (self-owned)
+        if (adminUser.CreatedByAdminId == null)
+        {
+            adminUser.CreatedByAdminId = adminUser.Id;
+            db.Users.Update(adminUser);
+            saveRequired = true;
+        }
+
+        // Seed normal users — linked to the seeded admin
         var seedUsers = config.GetSection("Users").Get<List<UserSeedModel>>() ?? new List<UserSeedModel>();
         foreach (var u in seedUsers)
         {
-            if (!db.Users.Any(x => x.Username == u.Username))
+            var existing = db.Users.FirstOrDefault(x => x.Username == u.Username);
+            if (existing == null)
             {
                 var newUser = new AppUser
                 {
                     Username = u.Username,
                     Role = u.Role,
-                    Weight = u.Weight
+                    Weight = u.Weight,
+                    CreatedByAdminId = adminUser.Id
                 };
                 newUser.PasswordHash = passwordHasher.HashPassword(newUser, u.Password);
                 db.Users.Add(newUser);
+                saveRequired = true;
+            }
+            else if (existing.CreatedByAdminId == null)
+            {
+                // Backfill existing seeded users to belong to the seeded admin
+                existing.CreatedByAdminId = adminUser.Id;
+                db.Users.Update(existing);
                 saveRequired = true;
             }
         }
