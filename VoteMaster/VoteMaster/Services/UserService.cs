@@ -28,6 +28,9 @@ namespace VoteMaster.Services
         public Task<AppUser?> GetByUsernameAsync(string username) =>
             _db.Users.FirstOrDefaultAsync(u => u.Username == username);
 
+        public Task<AppUser?> GetByEmailAsync(string email) =>
+            _db.Users.FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
         public Task<AppUser?> GetByIdAsync(int id) =>
             _db.Users.FirstOrDefaultAsync(u => u.Id == id);
 

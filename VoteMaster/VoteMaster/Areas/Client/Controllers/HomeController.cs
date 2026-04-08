@@ -12,35 +12,44 @@ namespace VoteMaster.Areas.Client.Controllers
         private readonly IPollService _polls;
         public HomeController(IPollService polls) { _polls = polls; }
 
-        public async Task<IActionResult> Index() => View(await _polls.GetActivePollsAsync());
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 12)
+        {
+            var all = (await _polls.GetActivePollsAsync()).ToList();
+            var totalPages = (int)Math.Ceiling(all.Count / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
-        public async Task<IActionResult> PastPolls()
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = all.Count;
+
+            return View(all.Skip((page - 1) * pageSize).Take(pageSize));
+        }
+
+        public async Task<IActionResult> PastPolls(int page = 1, int pageSize = 10)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            
-            // Get all polls with their options and votes loaded
             var allPolls = await _polls.GetAllPollsAsync();
-            
-            // Get all polls where user has voted
+
             var userVotedPolls = new List<(VoteMaster.Models.Poll poll, int voteCount)>();
-            
             foreach (var poll in allPolls)
             {
                 var voteCount = await _polls.GetUserVoteCountAsync(poll.Id, userId);
                 if (voteCount > 0)
-                {
                     userVotedPolls.Add((poll, voteCount));
-                }
             }
-            
-            // Sort by end time descending (most recent first)
+
             userVotedPolls = userVotedPolls.OrderByDescending(p => p.poll.EndTime).ToList();
-            
-            // Debug: Log the count
-            ViewBag.TotalPolls = allPolls.Count;
-            ViewBag.UserVotedCount = userVotedPolls.Count;
-            
-            return View(userVotedPolls);
+
+            var totalPages = (int)Math.Ceiling(userVotedPolls.Count / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = userVotedPolls.Count;
+
+            return View(userVotedPolls.Skip((page - 1) * pageSize).Take(pageSize).ToList());
         }
     }
 }

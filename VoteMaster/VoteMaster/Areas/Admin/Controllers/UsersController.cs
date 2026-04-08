@@ -24,10 +24,10 @@ namespace VoteMaster.Areas.Admin.Controllers
         public IActionResult Create() => View(new AppUser { Role = "Voter", Weight = 1 });
 
         [HttpPost]
-        public async Task<IActionResult> Create(string username, string password, string role, int weight)
+        public async Task<IActionResult> Create(string username, string password, string role, int weight, string? email)
         {
             await _users.CreateAsync(
-                new AppUser { Username = username, Role = role, Weight = weight, CreatedByAdminId = CurrentAdminId },
+                new AppUser { Username = username, Email = email, Role = role, Weight = weight, CreatedByAdminId = CurrentAdminId },
                 password);
             return RedirectToAction(nameof(Index));
         }

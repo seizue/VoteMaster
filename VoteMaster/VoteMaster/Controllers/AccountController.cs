@@ -49,7 +49,7 @@ namespace VoteMaster.Controllers
         [HttpPost]
         [EnableRateLimiting("login")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
+        public async Task<IActionResult> Login(string username, string password, string? returnUrl = null, string? intent = null)
         {
             var ipAddress = GetClientIpAddress();
             var attemptKey = $"attempts_{ipAddress}_{username}";
@@ -113,6 +113,20 @@ namespace VoteMaster.Controllers
             // Successful login - clear attempts
             _cache.Remove(attemptKey);
             _cache.Remove(lockoutKey);
+
+            // Enforce tab intent — a Voter cannot sign in via the Admin tab and vice versa
+            if (intent == "admin" && user.Role != "Admin")
+            {
+                ViewBag.Error = "Access denied. This login is for admins only.";
+                ViewBag.Intent = "admin";
+                return View(model: returnUrl);
+            }
+            if (intent == "voter" && user.Role != "Voter")
+            {
+                ViewBag.Error = "Access denied. Use the Admin tab to sign in.";
+                ViewBag.Intent = "voter";
+                return View(model: returnUrl);
+            }
             
             _logger.LogInformation($"Successful login for user: {username} from IP: {ipAddress}");
 
@@ -163,7 +177,7 @@ namespace VoteMaster.Controllers
 
         // ── Google OAuth ──
         [HttpGet]
-        public IActionResult GoogleLogin(string? returnUrl = null)
+        public IActionResult GoogleLogin(string? returnUrl = null, string? intent = null)
         {
             var clientId = _config["Authentication:Google:ClientId"];
 
@@ -173,14 +187,13 @@ namespace VoteMaster.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            // After Google auth completes, middleware redirects to RedirectUri
-            var redirectUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl });
+            var redirectUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl, intent });
             var properties  = new AuthenticationProperties { RedirectUri = redirectUrl };
             return Challenge(properties, "Google");
         }
 
         [HttpGet]
-        public async Task<IActionResult> GoogleCallback(string? returnUrl = null, string? remoteError = null)
+        public async Task<IActionResult> GoogleCallback(string? returnUrl = null, string? remoteError = null, string? intent = null)
         {
             try
             {
@@ -203,28 +216,50 @@ namespace VoteMaster.Controllers
                     return RedirectToAction(nameof(Login));
                 }
 
-                var email    = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
-                var name     = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? "";
-                var username = (string.IsNullOrWhiteSpace(name) ? email.Split('@')[0] : name)
-                                   .Replace(" ", "").ToLowerInvariant();
+                var email = result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+                var name  = result.Principal.FindFirstValue(ClaimTypes.Name)  ?? "";
 
-                _logger.LogInformation("Google callback: email={Email} username={Username}", email, username);
+                _logger.LogInformation("Google callback: email={Email} name={Name}", email, name);
 
-                if (string.IsNullOrWhiteSpace(username))
+                // Email is the only trusted identity from Google — never match by username
+                if (string.IsNullOrWhiteSpace(email))
                 {
-                    TempData["Error"] = "Could not retrieve your Google profile. Please try again.";
+                    TempData["Error"] = "Could not retrieve your Google email. Please try again.";
                     return RedirectToAction(nameof(Login));
                 }
 
-                var existing = await _users.GetByUsernameAsync(username);
+                // Look up solely by email to prevent account hijacking via name collision
+                var existing = await _users.GetByEmailAsync(email);
+
                 if (existing is null)
                 {
-                    var newUser = new AppUser { Username = username, Role = "Admin", Weight = 1, PasswordHash = "" };
+                    // Derive a username from display name or email prefix, deduplicate if taken
+                    var baseUsername = (string.IsNullOrWhiteSpace(name) ? email.Split('@')[0] : name)
+                                          .Replace(" ", "").ToLowerInvariant();
+                    var username = baseUsername;
+                    var suffix = 1;
+                    while (await _users.GetByUsernameAsync(username) != null)
+                        username = $"{baseUsername}{suffix++}";
+
+                    var assignedRole = (intent == "admin") ? "Admin" : "Voter";
+                    var newUser = new AppUser
+                    {
+                        Username     = username,
+                        Email        = email,
+                        Role         = assignedRole,
+                        Weight       = 1,
+                        PasswordHash = ""
+                    };
                     existing = await _users.CreateAsync(newUser, Guid.NewGuid().ToString());
-                    // Set CreatedByAdminId to their own ID after creation
                     existing.CreatedByAdminId = existing.Id;
                     await _users.UpdateAsync(existing);
-                    _logger.LogInformation("Auto-registered new Admin via Google: {Username}", username);
+                    _logger.LogInformation("Auto-registered new {Role} via Google: {Username} ({Email})", assignedRole, username, email);
+                }
+                else if (string.IsNullOrWhiteSpace(existing.Email))
+                {
+                    // Should never happen since we matched by email, but guard anyway
+                    existing.Email = email;
+                    await _users.UpdateAsync(existing);
                 }
 
                 var claims = new List<Claim>

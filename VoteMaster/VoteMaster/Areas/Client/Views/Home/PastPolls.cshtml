@@ -1,78 +1,169 @@
 @model IEnumerable<(VoteMaster.Models.Poll poll, int voteCount)>
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var items      = Model.ToList();
+    int page       = ViewBag.Page;
+    int totalPages = ViewBag.TotalPages;
+    int pageSize   = ViewBag.PageSize;
+    int totalCount = ViewBag.TotalCount;
 }
 
-<div class="polls-header mb-4">
+<style>
+    .past-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .past-header h3 {
+        font-weight: 700;
+        color: var(--vm-text-primary);
+        margin: 0;
+    }
+    .past-card {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        transition: box-shadow 0.2s;
+    }
+    .past-card:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.1); }
+    .past-card-info { flex: 1; min-width: 0; }
+    .past-card-title {
+        font-weight: 700;
+        color: var(--vm-text-primary);
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .past-card-meta {
+        font-size: 0.8125rem;
+        color: var(--vm-text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .past-card-actions { flex-shrink: 0; }
+
+    @@media (max-width: 576px) {
+        .past-header { flex-direction: column; align-items: stretch; }
+        .past-card { flex-direction: column; align-items: stretch; }
+        .past-card-actions .btn { width: 100%; }
+    }
+</style>
+
+<div class="past-header">
     <div>
-        <h3 class="mb-1">Past Polls</h3>
-        <p class="text-muted mb-0">View polls you've participated in (Logged in as: @User.Identity?.Name)</p>
+        <h3><i class="bi bi-clock-history me-2"></i>Past Polls</h3>
+        <p class="text-muted small mb-0">Polls you've participated in</p>
     </div>
     <a href="/Client/Home" class="btn btn-dark">
         <i class="bi bi-arrow-left me-2"></i>Back to Open Polls
     </a>
 </div>
 
-@if (!Model.Any()) {
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>You haven't voted in any polls yet.
-        @if (ViewBag.TotalPolls != null)
-        {
-            <br /><small class="text-muted">Debug: Total polls in system: @ViewBag.TotalPolls, Polls you voted in: @ViewBag.UserVotedCount</small>
-        }
+@if (!items.Any())
+{
+    <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+        <p class="text-muted">You haven't voted in any polls yet.</p>
+        <a href="/Client/Home" class="btn btn-primary">View Open Polls</a>
     </div>
 }
 else
 {
-    <div class="polls-grid">
-    @foreach (var item in Model) {
-        var p = item.poll;
+    @foreach (var item in items)
+    {
+        var p         = item.poll;
         var voteCount = item.voteCount;
-        var now = DateTime.UtcNow;
-        var isActive = p.StartTime <= now && p.EndTime >= now;
-        var isUpcoming = p.StartTime > now;
-        var isEnded = p.EndTime < now;
-        
-        <div class="poll-card-item">
-            <div class="poll-card-content">
-                <div class="poll-card-header">
-                    <h5 class="poll-card-title">@p.Title</h5>
-                    <p class="poll-card-description">@p.Description</p>
+        var now       = DateTime.UtcNow;
+        var isEnded   = p.EndTime < now;
+        var isActive  = p.StartTime <= now && p.EndTime >= now;
+
+        <div class="past-card">
+            <div class="past-card-info">
+                <div class="past-card-title">@p.Title</div>
+                <div class="past-card-meta">
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        @voteCount vote@(voteCount != 1 ? "s" : "") cast
+                    </span>
+                    @if (isEnded)
+                    {
+                        <span><i class="bi bi-calendar-x me-1"></i>Ended @p.EndTime.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                    }
+                    else if (isActive)
+                    {
+                        <span class="badge bg-success"><i class="bi bi-clock-fill me-1"></i>Still Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-info"><i class="bi bi-calendar-event me-1"></i>Upcoming</span>
+                    }
                 </div>
-                <div class="poll-card-footer">
-                    <div class="poll-card-meta">
-                        <span class="badge bg-secondary">
-                            <i class="bi bi-check-circle-fill me-1"></i>
-                            You voted (@voteCount vote@(voteCount > 1 ? "s" : ""))
-                        </span>
-                        @if (isEnded)
-                        {
-                            <span class="text-muted">
-                                <i class="bi bi-calendar-x"></i>
-                                Ended @p.EndTime.ToLocalTime().ToString("MMM dd, yyyy")
-                            </span>
-                        }
-                        else if (isActive)
-                        {
-                            <span class="badge bg-success">
-                                <i class="bi bi-clock-fill"></i>
-                                Active
-                            </span>
-                        }
-                        else if (isUpcoming)
-                        {
-                            <span class="badge bg-info">
-                                <i class="bi bi-calendar-event"></i>
-                                Upcoming
-                            </span>
-                        }
-                    </div>
-                    <a class="btn btn-outline-primary" href="/Client/Vote/@p.Id">
-                        <i class="bi bi-bar-chart me-2"></i>View @(isEnded ? "Results" : "Poll")
-                    </a>
-                </div>
+            </div>
+            <div class="past-card-actions">
+                <a class="btn btn-outline-primary btn-sm" href="/Client/Vote/@p.Id">
+                    <i class="bi bi-bar-chart me-1"></i>@(isEnded ? "Results" : "View Poll")
+                </a>
             </div>
         </div>
     }
-    </div>
+
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Past polls pagination" class="mt-4">
+            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
+                <p class="text-muted small mb-0">
+                    Showing @((page - 1) * pageSize + 1)–@(Math.Min(page * pageSize, totalCount)) of @totalCount polls
+                </p>
+                <ul class="pagination pagination-sm mb-0 flex-wrap justify-content-center">
+                    <li class="page-item @(page == 1 ? "disabled" : "")">
+                        <a class="page-link" href="?page=@(page - 1)&pageSize=@pageSize" aria-label="Previous">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        if (i == 1 || i == totalPages || (i >= page - 2 && i <= page + 2))
+                        {
+                            <li class="page-item @(i == page ? "active" : "")">
+                                <a class="page-link" href="?page=@i&pageSize=@pageSize">@i</a>
+                            </li>
+                        }
+                        else if (i == page - 3 || i == page + 3)
+                        {
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        }
+                    }
+                    <li class="page-item @(page == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="?page=@(page + 1)&pageSize=@pageSize" aria-label="Next">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0 d-none d-sm-inline">Per page:</label>
+                    <select class="form-select form-select-sm" style="width:auto"
+                            onchange="window.location='?page=1&pageSize='+this.value">
+                        @foreach (var s in new[] { 5, 10, 25 })
+                        {
+                            <option value="@s" @(pageSize == s ? "selected" : "")>@s</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </nav>
+    }
 }
