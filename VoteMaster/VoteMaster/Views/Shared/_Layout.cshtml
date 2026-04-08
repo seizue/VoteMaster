@@ -1,5 +1,6 @@
 @{
     var user = Context.User.Identity;
+    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
 }
 <!DOCTYPE html>
 <html>
@@ -13,31 +14,42 @@
     <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-light">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <span class="brand-icon rounded-circle d-inline-flex align-items-center justify-content-center me-2"><i class="bi bi-check2-square fs-5"></i></span>
                 <span class="fs-5 fw-semibold" style="color: var(--vm-text-primary);">VoteMaster</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
                     @if (!(user?.IsAuthenticated ?? false))
                     {
-                        <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i>Home</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath == "/" ? "active" : "")" href="/">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/#features">Features</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/account/login") ? "active" : "")" href="/Account/Login">Get Started</a></li>
+                    }
+                    else if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/admin/dashboard") ? "active" : "")" href="/Admin/Dashboard">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/admin/polls") ? "active" : "")" href="/Admin/Polls">Polls</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/admin/users") ? "active" : "")" href="/Admin/Users">Users</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/admin/analytics") ? "active" : "")" href="/Admin/Analytics">Analytics</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/admin/templates") ? "active" : "")" href="/Admin/Templates">Templates</a></li>
                     }
                     else
                     {
-                        <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i>Home</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath == "/client/home" || currentPath == "/client/home/index" || currentPath == "/client" ? "active" : "")" href="/Client/Home">Home</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.Contains("/client/home/pastpolls") ? "active" : "")" href="/Client/Home/PastPolls">Past Polls</a></li>
                     }
                 </ul>
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center gap-2">
                     @if (user?.IsAuthenticated ?? false)
                     {
-                        <div class="me-3 small" style="color: var(--vm-text-secondary);">Signed in as <strong style="color: var(--vm-text-primary);">@Context.User.Identity?.Name</strong></div>
-                        <a class="btn btn-sm me-2" href="/Account/Logout" style="background: var(--vm-bg); color: var(--vm-text-primary);"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                        <div class="small d-none d-lg-block" style="color: var(--vm-text-secondary);">Signed in as <strong style="color: var(--vm-text-primary);">@Context.User.Identity?.Name</strong></div>
+                        <a class="btn btn-sm" href="/Account/Logout" style="background: var(--vm-bg); color: var(--vm-text-primary); border: 1px solid var(--vm-border);"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
                     }
                     else
                     {
@@ -48,7 +60,7 @@
         </div>
     </nav>
 
-    <main class="container my-5">
+    <main class="container navbar-offset my-5">
         @RenderBody()
     </main>
 
