@@ -27,8 +27,8 @@
                 <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
                     @if (!(user?.IsAuthenticated ?? false))
                     {
-                        <li class="nav-item"><a class="nav-link @(currentPath == "/" ? "active" : "")" href="/">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/#features">Features</a></li>
+                        <li class="nav-item"><a class="nav-link" id="nav-home" href="/">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" id="nav-features" href="/#features">Features</a></li>
                         <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/account/login") ? "active" : "")" href="/Account/Login">Get Started</a></li>
                     }
                     else if (User.IsInRole("Admin"))
@@ -146,6 +146,47 @@
         setTimeout(dismissLoader, 2000);
     </script>
     
+    <script>
+        // Highlight correct nav link for landing page hash sections (only on the home page)
+        (function () {
+            var navHome = document.getElementById('nav-home');
+            var navFeatures = document.getElementById('nav-features');
+            if (!navHome || !navFeatures) return;
+
+            var isHomePage = window.location.pathname === '/';
+            if (!isHomePage) return; // Don't touch active state on other pages
+
+            function updateLandingNav() {
+                var hash = window.location.hash;
+                if (hash === '#features') {
+                    navFeatures.classList.add('active');
+                    navHome.classList.remove('active');
+                } else {
+                    navHome.classList.add('active');
+                    navFeatures.classList.remove('active');
+                }
+            }
+
+            updateLandingNav();
+            window.addEventListener('hashchange', updateLandingNav);
+
+            // Also update when scrolling past the features section
+            if (document.getElementById('features')) {
+                window.addEventListener('scroll', function () {
+                    var featuresEl = document.getElementById('features');
+                    var rect = featuresEl.getBoundingClientRect();
+                    if (rect.top <= 80) {
+                        navFeatures.classList.add('active');
+                        navHome.classList.remove('active');
+                    } else {
+                        navHome.classList.add('active');
+                        navFeatures.classList.remove('active');
+                    }
+                }, { passive: true });
+            }
+        })();
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
     
     <script>
