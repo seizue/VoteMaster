@@ -3,31 +3,503 @@
     ViewData["Title"] = "VoteMaster - Modern Voting Platform";
 }
 
-<!-- Hero Section -->
-<section class="hero-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 mb-5 mb-lg-0">
-                <h1 class="hero-title">
-                    Voting Made <br/>
-                    <span style="color: var(--vm-accent);">Simple & Secure</span>
-                </h1>
-                <p class="hero-subtitle">
-                    VoteMaster is a modern, intuitive weighted voting system designed for creating and managing polls—perfect for organizations, teams, and communities.
-                </p>
-                <div class="d-flex gap-3 flex-wrap">
-                    <a href="/Account/Login" class="btn btn-primary btn-hero">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Get Started
-                    </a>
-                    <a href="#features" class="btn btn-hero" style="background: var(--vm-bg); color: var(--vm-text-primary);">
-                        <i class="bi bi-info-circle me-2"></i>Learn More
-                    </a>
-                </div>
-            </div>
+<style>
+    /* ── Landing-page-only overrides ── */
+    body { padding-top: 0 !important; }
+    main.container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+
+    /* Hero */
+    .lp-hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0f172a 0%, #134e4a 50%, #0f172a 100%);
+    }
+    .lp-hero-bg {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .lp-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.35;
+        animation: orbFloat 8s ease-in-out infinite;
+    }
+    .lp-orb-1 { width: 600px; height: 600px; background: #14b8a6; top: -150px; right: -100px; animation-delay: 0s; }
+    .lp-orb-2 { width: 400px; height: 400px; background: #0d9488; bottom: -100px; left: -80px; animation-delay: 3s; }
+    .lp-orb-3 { width: 300px; height: 300px; background: #5eead4; top: 40%; left: 40%; animation-delay: 5s; }
+    @@keyframes orbFloat {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* Grid overlay */
+    .lp-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(20,184,166,0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(20,184,166,0.06) 1px, transparent 1px);
+        background-size: 60px 60px;
+    }
+
+    .lp-hero-inner {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        padding: 8rem 1.5rem 6rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .lp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(20,184,166,0.15);
+        border: 1px solid rgba(20,184,166,0.3);
+        color: #5eead4;
+        padding: 0.4rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 1.75rem;
+        backdrop-filter: blur(8px);
+    }
+    .lp-badge-dot {
+        width: 6px; height: 6px;
+        background: #14b8a6;
+        border-radius: 50%;
+        animation: blink 1.5s ease-in-out infinite;
+    }
+    @@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .lp-hero-title {
+        font-size: clamp(2.75rem, 6vw, 5rem);
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin-bottom: 1.5rem;
+    }
+    .lp-hero-title .accent {
+        background: linear-gradient(90deg, #14b8a6, #5eead4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .lp-hero-sub {
+        font-size: 1.2rem;
+        color: #cbd5e1;
+        max-width: 560px;
+        line-height: 1.7;
+        margin-bottom: 2.5rem;
+    }
+
+    .lp-hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 4rem; }
+
+    .lp-btn-primary {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: linear-gradient(135deg, #14b8a6, #0d9488);
+        color: white; font-weight: 700; font-size: 1rem;
+        padding: 0.875rem 2rem; border-radius: 0.875rem;
+        text-decoration: none; border: none;
+        box-shadow: 0 4px 20px rgba(20,184,166,0.4);
+        transition: all 0.25s ease;
+    }
+    .lp-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(20,184,166,0.5);
+        color: white; text-decoration: none;
+    }
+
+    .lp-btn-ghost {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #e2e8f0; font-weight: 600; font-size: 1rem;
+        padding: 0.875rem 2rem; border-radius: 0.875rem;
+        text-decoration: none;
+        backdrop-filter: blur(8px);
+        transition: all 0.25s ease;
+    }
+    .lp-btn-ghost:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(20,184,166,0.4);
+        color: #5eead4; text-decoration: none;
+        transform: translateY(-2px);
+    }
+
+    /* Stats row */
+    .lp-stats {
+        display: flex; gap: 2rem; flex-wrap: wrap;
+        padding: 1.5rem 0 0;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .lp-stat-item { text-align: left; }
+    .lp-stat-num {
+        font-size: 1.875rem; font-weight: 800; color: #ffffff;
+        line-height: 1;
+    }
+    .lp-stat-num span { color: #14b8a6; }
+    .lp-stat-label { font-size: 0.8125rem; color: #94a3b8; font-weight: 500; margin-top: 0.375rem; letter-spacing: 0.01em; }
+
+    /* Hero visual */
+    .lp-hero-visual {
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .lp-mockup {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+        width: 100%;
+        max-width: 420px;
+    }
+    .lp-mockup-header {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .lp-mockup-icon {
+        width: 40px; height: 40px; border-radius: 0.75rem;
+        background: linear-gradient(135deg, #14b8a6, #0d9488);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 1.125rem;
+    }
+    .lp-mockup-title { color: #f1f5f9; font-weight: 700; font-size: 0.9375rem; }
+    .lp-mockup-sub { color: #64748b; font-size: 0.75rem; }
+    .lp-poll-option {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 0.875rem;
+        padding: 0.875rem 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .lp-poll-option.active {
+        background: rgba(20,184,166,0.12);
+        border-color: rgba(20,184,166,0.4);
+    }
+    .lp-poll-option-row {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .lp-poll-option-name { color: #e2e8f0; font-size: 0.875rem; font-weight: 600; }
+    .lp-poll-option-pct { color: #14b8a6; font-size: 0.875rem; font-weight: 700; }
+    .lp-bar-bg { background: rgba(255,255,255,0.08); border-radius: 4px; height: 6px; overflow: hidden; }
+    .lp-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #14b8a6, #5eead4); transition: width 1s ease; }
+    .lp-live-badge {
+        display: inline-flex; align-items: center; gap: 0.375rem;
+        background: rgba(20,184,166,0.15); border: 1px solid rgba(20,184,166,0.3);
+        color: #5eead4; font-size: 0.6875rem; font-weight: 700;
+        padding: 0.25rem 0.625rem; border-radius: 2rem;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        margin-top: 1rem;
+    }
+    .lp-live-dot { width: 5px; height: 5px; background: #14b8a6; border-radius: 50%; animation: blink 1.2s infinite; }
+
+    /* Section wrapper */
+    .lp-section { padding: 6rem 1.5rem; }
+    .lp-container { max-width: 1200px; margin: 0 auto; }
+
+    .lp-section-label {
+        display: inline-block;
+        color: #14b8a6; font-size: 0.8125rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        margin-bottom: 0.75rem;
+    }
+    .lp-section-title {
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 800; color: var(--vm-text-primary);
+        line-height: 1.2; letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+    }
+    .lp-section-sub {
+        font-size: 1.125rem; color: var(--vm-text-secondary);
+        max-width: 560px; line-height: 1.7;
+    }
+
+    /* Features — dark section */
+    .lp-features-bg {
+        background: #0b1120;
+        position: relative;
+        overflow: hidden;
+    }
+    .lp-features-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(20,184,166,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(20,184,166,0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
+        pointer-events: none;
+    }
+    .lp-features-bg .lp-section-label { color: #5eead4; }
+    .lp-features-bg .lp-section-title { color: #f1f5f9; }
+    .lp-features-bg .lp-section-sub   { color: #94a3b8; }
+
+    .lp-features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.25rem;
+        margin-top: 3.5rem;
+    }
+
+    .lp-feat-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 1.25rem;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+    }
+    /* glow blob behind each card */
+    .lp-feat-card::after {
+        content: '';
+        position: absolute;
+        width: 160px; height: 160px;
+        border-radius: 50%;
+        filter: blur(50px);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        pointer-events: none;
+        bottom: -40px; right: -40px;
+    }
+    .lp-feat-card.teal-glow::after  { background: #14b8a6; }
+    .lp-feat-card.mint-glow::after  { background: #10b981; }
+    .lp-feat-card.blue-glow::after  { background: #3b82f6; }
+    .lp-feat-card.purple-glow::after{ background: #a855f7; }
+    .lp-feat-card.yellow-glow::after{ background: #f59e0b; }
+    .lp-feat-card.pink-glow::after  { background: #ec4899; }
+
+    .lp-feat-card:hover {
+        border-color: rgba(255,255,255,0.14);
+        transform: translateY(-6px);
+        box-shadow: 0 20px 48px rgba(0,0,0,0.4);
+    }
+    .lp-feat-card:hover::after { opacity: 0.12; }
+
+    /* top accent line */
+    .lp-feat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .lp-feat-card.teal-glow::before  { background: linear-gradient(90deg, #14b8a6, #5eead4); }
+    .lp-feat-card.mint-glow::before  { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+    .lp-feat-card.blue-glow::before  { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+    .lp-feat-card.purple-glow::before{ background: linear-gradient(90deg, #a855f7, #d8b4fe); }
+    .lp-feat-card.yellow-glow::before{ background: linear-gradient(90deg, #f59e0b, #fde68a); }
+    .lp-feat-card.pink-glow::before  { background: linear-gradient(90deg, #ec4899, #fbcfe8); }
+    .lp-feat-card:hover::before { opacity: 1; }
+
+    .lp-feat-icon {
+        width: 52px; height: 52px; border-radius: 0.875rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.375rem; margin-bottom: 1.25rem;
+        position: relative; z-index: 1;
+    }
+    .lp-feat-icon.teal  { background: rgba(20,184,166,0.15);  color: #5eead4; }
+    .lp-feat-icon.mint  { background: rgba(16,185,129,0.15);  color: #6ee7b7; }
+    .lp-feat-icon.blue  { background: rgba(59,130,246,0.15);  color: #93c5fd; }
+    .lp-feat-icon.purple{ background: rgba(168,85,247,0.15);  color: #d8b4fe; }
+    .lp-feat-icon.yellow{ background: rgba(245,158,11,0.15);  color: #fde68a; }
+    .lp-feat-icon.pink  { background: rgba(236,72,153,0.15);  color: #fbcfe8; }
+
+    .lp-feat-title {
+        font-size: 1.0625rem; font-weight: 700;
+        color: #f1f5f9;
+        margin-bottom: 0.625rem;
+        position: relative; z-index: 1;
+    }
+    .lp-feat-desc {
+        color: #94a3b8; line-height: 1.7; font-size: 0.9375rem;
+        position: relative; z-index: 1;
+    }
+
+    /* How it works — dark */
+    .lp-how-bg {
+        background: #0f172a;
+        position: relative;
+        padding-bottom: 7rem;
+    }
+    .lp-how-bg .lp-section-label { color: #5eead4; }
+    .lp-how-bg .lp-section-title { color: #f1f5f9; }
+    .lp-how-bg .lp-section-sub   { color: #94a3b8; }
+
+    .lp-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-top: 3.5rem;
+        padding-top: 1rem;
+        position: relative;
+    }
+    /* connector line removed */
+    .lp-steps::before { display: none; }
+    .lp-step {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 1.25rem;
+        padding: 2.25rem 1.75rem 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .lp-step:hover {
+        border-color: rgba(20,184,166,0.3);
+        transform: translateY(-4px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+    }
+    .lp-step-num {
+        width: 56px; height: 56px; border-radius: 50%;
+        background: linear-gradient(135deg, #14b8a6, #0d9488);
+        color: white; font-size: 1.25rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1.25rem;
+        box-shadow: 0 4px 20px rgba(20,184,166,0.4);
+        position: relative; z-index: 1;
+    }
+    .lp-step-title { font-size: 1.0625rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.625rem; }
+    .lp-step-desc  { color: #94a3b8; font-size: 0.9375rem; line-height: 1.65; }
+
+    /* CTA */
+    .lp-cta {
+        background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%);
+        border-radius: 2rem;
+        padding: 5rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .lp-cta-orb {
+        position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.25; pointer-events: none;
+    }
+    .lp-cta-orb-1 { width: 400px; height: 400px; background: #14b8a6; top: -100px; right: -80px; }
+    .lp-cta-orb-2 { width: 300px; height: 300px; background: #0d9488; bottom: -80px; left: -60px; }
+    .lp-cta-inner { position: relative; z-index: 1; }
+    .lp-cta-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; color: white; margin-bottom: 1rem; letter-spacing: -0.02em; }
+    .lp-cta-sub { font-size: 1.125rem; color: #94a3b8; max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7; }
+
+    /* Footer divider */
+    .lp-footer-spacer { height: 2rem; }
+
+    @@media (max-width: 991px) {
+        .lp-hero-inner { padding: 7rem 1.25rem 4rem; }
+        .lp-hero-visual { margin-top: 3rem; }
+        .lp-steps::before { display: none; }
+    }
+    @@media (max-width: 768px) {
+        .lp-section { padding: 4rem 1.25rem; }
+        .lp-stats { gap: 1.5rem; }
+        .lp-stat-num { font-size: 1.5rem; }
+        .lp-features-grid { grid-template-columns: 1fr; }
+        .lp-cta { padding: 3.5rem 1.25rem; border-radius: 1.25rem; }
+        .lp-steps::before { display: none; }
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ HERO -->
+<section class="lp-hero">
+    <div class="lp-hero-bg">
+        <div class="lp-grid"></div>
+        <div class="lp-orb lp-orb-1"></div>
+        <div class="lp-orb lp-orb-2"></div>
+        <div class="lp-orb lp-orb-3"></div>
+    </div>
+
+    <div class="lp-hero-inner">
+        <div class="row align-items-center g-5">
             <div class="col-lg-6">
-                <div class="text-center">
-                    <div style="font-size: 15rem; color: var(--vm-accent); opacity: 0.3;">
-                        <i class="bi bi-check2-square"></i>
+                <div class="lp-badge">
+                    <span class="lp-badge-dot"></span>
+                    Now with real-time results
+                </div>
+                <h1 class="lp-hero-title">
+                    Voting Made<br>
+                    <span class="accent">Simple &amp; Secure</span>
+                </h1>
+                <p class="lp-hero-sub">
+                    VoteMaster is a modern weighted voting platform built for organizations, teams, and communities — with live results and powerful admin tools.
+                </p>
+                <div class="lp-hero-actions">
+                    <a href="/Account/Login" class="lp-btn-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Get Started
+                    </a>
+                    <a href="#features" class="lp-btn-ghost">
+                        <i class="bi bi-play-circle"></i> See Features
+                    </a>
+                </div>
+                <div class="lp-stats">
+                    <div class="lp-stat-item">
+                        <div class="lp-stat-num">100<span>%</span></div>
+                        <div class="lp-stat-label">Secure &amp; Authenticated</div>
+                    </div>
+                    <div class="lp-stat-item">
+                        <div class="lp-stat-num">Real<span>-</span>time</div>
+                        <div class="lp-stat-label">Live Vote Updates</div>
+                    </div>
+                    <div class="lp-stat-item">
+                        <div class="lp-stat-num">Any<span> </span>Device</div>
+                        <div class="lp-stat-label">Fully Responsive</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 lp-hero-visual">
+                <div class="lp-mockup">
+                    <div class="lp-mockup-header">
+                        <div class="lp-mockup-icon"><i class="bi bi-check2-square"></i></div>
+                        <div>
+                            <div class="lp-mockup-title">Q3 Team Survey</div>
+                            <div class="lp-mockup-sub">12 votes cast · Ends in 2h</div>
+                        </div>
+                    </div>
+
+                    <div class="lp-poll-option active">
+                        <div class="lp-poll-option-row">
+                            <span class="lp-poll-option-name">Option A — Remote Work</span>
+                            <span class="lp-poll-option-pct">58%</span>
+                        </div>
+                        <div class="lp-bar-bg"><div class="lp-bar-fill" style="width:58%"></div></div>
+                    </div>
+                    <div class="lp-poll-option">
+                        <div class="lp-poll-option-row">
+                            <span class="lp-poll-option-name">Option B — Hybrid</span>
+                            <span class="lp-poll-option-pct">29%</span>
+                        </div>
+                        <div class="lp-bar-bg"><div class="lp-bar-fill" style="width:29%"></div></div>
+                    </div>
+                    <div class="lp-poll-option">
+                        <div class="lp-poll-option-row">
+                            <span class="lp-poll-option-name">Option C — In-Office</span>
+                            <span class="lp-poll-option-pct">13%</span>
+                        </div>
+                        <div class="lp-bar-bg"><div class="lp-bar-fill" style="width:13%"></div></div>
+                    </div>
+
+                    <div class="lp-live-badge">
+                        <span class="lp-live-dot"></span> Live Results
                     </div>
                 </div>
             </div>
@@ -35,107 +507,110 @@
     </div>
 </section>
 
-<!-- Features Section -->
-<section id="features" class="py-5">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="mb-3" style="font-size: 2.5rem; font-weight: 700; color: var(--vm-text-primary);">
-                Why Choose VoteMaster?
-            </h2>
-            <p style="font-size: 1.125rem; color: var(--vm-text-secondary); max-width: 600px; margin: 0 auto;">
-                Everything you need to run fair, transparent, and efficient voting processes
-            </p>
+<!-- ═══════════════════════════════════════════════════════ FEATURES -->
+<section id="features" class="lp-section lp-features-bg">
+    <div class="lp-container">
+        <div class="text-center">
+            <span class="lp-section-label">Features</span>
+            <h2 class="lp-section-title">Why Choose VoteMaster?</h2>
+            <p class="lp-section-sub mx-auto">Everything you need to run fair, transparent, and efficient voting processes.</p>
         </div>
-        
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon teal">
-                        <i class="bi bi-lightning-charge-fill"></i>
-                    </div>
-                    <h3 class="feature-title">Fast & Easy</h3>
-                    <p class="feature-description">
-                        Create polls in seconds with our intuitive interface. No technical knowledge required.
-                    </p>
-                </div>
+
+        <div class="lp-features-grid">
+            <div class="lp-feat-card teal-glow">
+                <div class="lp-feat-icon teal"><i class="bi bi-lightning-charge-fill"></i></div>
+                <div class="lp-feat-title">Fast &amp; Easy Setup</div>
+                <p class="lp-feat-desc">Create polls in seconds with an intuitive interface. No technical knowledge required — just fill in the details and go live.</p>
             </div>
-            
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon mint">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                    <h3 class="feature-title">Secure Voting</h3>
-                    <p class="feature-description">
-                        Built-in authentication and vote tracking ensure every vote counts and is legitimate.
-                    </p>
-                </div>
+            <div class="lp-feat-card mint-glow">
+                <div class="lp-feat-icon mint"><i class="bi bi-shield-check"></i></div>
+                <div class="lp-feat-title">Secure Voting</div>
+                <p class="lp-feat-desc">Built-in authentication and vote tracking ensure every vote is legitimate and counted exactly once.</p>
             </div>
-            
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon blue">
-                        <i class="bi bi-graph-up"></i>
-                    </div>
-                    <h3 class="feature-title">Real-time Results</h3>
-                    <p class="feature-description">
-                        Watch results update live as votes come in with our real-time dashboard.
-                    </p>
-                </div>
+            <div class="lp-feat-card blue-glow">
+                <div class="lp-feat-icon blue"><i class="bi bi-graph-up-arrow"></i></div>
+                <div class="lp-feat-title">Real-time Results</div>
+                <p class="lp-feat-desc">Watch results update live as votes come in via SignalR-powered real-time dashboards — no refresh needed.</p>
             </div>
-            
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon purple">
-                        <i class="bi bi-phone"></i>
-                    </div>
-                    <h3 class="feature-title">Mobile Friendly</h3>
-                    <p class="feature-description">
-                        Fully responsive design works perfectly on any device - desktop, tablet, or mobile.
-                    </p>
-                </div>
+            <div class="lp-feat-card purple-glow">
+                <div class="lp-feat-icon purple"><i class="bi bi-phone"></i></div>
+                <div class="lp-feat-title">Mobile Friendly</div>
+                <p class="lp-feat-desc">Fully responsive design works perfectly on any device — desktop, tablet, or mobile — without compromise.</p>
             </div>
-            
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon yellow">
-                        <i class="bi bi-sliders"></i>
-                    </div>
-                    <h3 class="feature-title">Flexible Options</h3>
-                    <p class="feature-description">
-                        Configure voting limits, time periods, and multiple choice options to fit your needs.
-                    </p>
-                </div>
+            <div class="lp-feat-card yellow-glow">
+                <div class="lp-feat-icon yellow"><i class="bi bi-sliders"></i></div>
+                <div class="lp-feat-title">Flexible Options</div>
+                <p class="lp-feat-desc">Configure voting limits, time windows, and multiple-choice options to fit exactly what your poll needs.</p>
             </div>
-            
-            <div class="col-md-6 col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon pink">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                    <h3 class="feature-title">User Management</h3>
-                    <p class="feature-description">
-                        Easily manage voters and administrators with role-based access control.
-                    </p>
-                </div>
+            <div class="lp-feat-card pink-glow">
+                <div class="lp-feat-icon pink"><i class="bi bi-people-fill"></i></div>
+                <div class="lp-feat-title">User Management</div>
+                <p class="lp-feat-desc">Manage voters and admins with role-based access control. Share polls with specific users or open them to all.</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- CTA Section -->
-<section class="cta-section">
-    <div class="container">
-        <div class="cta-card">
-            <h2 class="mb-4" style="font-size: 2.5rem; font-weight: 700; color: var(--vm-text-primary);">
-                Ready to Get Started?
-            </h2>
-            <p class="mb-4" style="font-size: 1.125rem; color: var(--vm-text-secondary); max-width: 600px; margin: 0 auto 2rem;">
-                Join VoteMaster today and experience the future of digital voting
-            </p>
-            <a href="/Account/Login" class="btn btn-primary btn-hero">
-                <i class="bi bi-rocket-takeoff me-2"></i>Start Voting Now
-            </a>
+<!-- ═══════════════════════════════════════════════════════ HOW IT WORKS -->
+<section class="lp-section lp-how-bg">
+    <div class="lp-container">
+        <div class="text-center">
+            <span class="lp-section-label">How It Works</span>
+            <h2 class="lp-section-title">Up and running in minutes</h2>
+            <p class="lp-section-sub mx-auto">Three simple steps to your first poll.</p>
+        </div>
+
+        <div class="lp-steps">
+            <div class="lp-step">
+                <div class="lp-step-num">1</div>
+                <div class="lp-step-title">Create an Account</div>
+                <p class="lp-step-desc">Sign up and get instant access to the admin dashboard where you manage everything.</p>
+            </div>
+            <div class="lp-step">
+                <div class="lp-step-num">2</div>
+                <div class="lp-step-title">Build Your Poll</div>
+                <p class="lp-step-desc">Add your question, options, voting limits, and schedule — then publish with one click.</p>
+            </div>
+            <div class="lp-step">
+                <div class="lp-step-num">3</div>
+                <div class="lp-step-title">Watch Results Live</div>
+                <p class="lp-step-desc">Share the link with voters and watch results roll in on your real-time dashboard.</p>
+            </div>
         </div>
     </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════ CTA -->
+<section id="get-started" class="lp-section" style="padding-top: 4rem; padding-bottom: 4rem;">
+    <div class="lp-container">
+        <div class="lp-cta">
+            <div class="lp-cta-orb lp-cta-orb-1"></div>
+            <div class="lp-cta-orb lp-cta-orb-2"></div>
+            <div class="lp-cta-inner">
+                <h2 class="lp-cta-title">Ready to Start Voting?</h2>
+                <p class="lp-cta-sub">Join VoteMaster today and experience the future of digital voting — secure, live, and effortless.</p>
+                <a href="/Account/Login" class="lp-btn-primary" style="font-size: 1.0625rem; padding: 1rem 2.5rem;">
+                    <i class="bi bi-rocket-takeoff"></i> Start Now — It's Free
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="lp-footer-spacer"></div>
+
+@section Scripts {
+<script>
+    // Animate bars on scroll into view
+    (function () {
+        var bars = document.querySelectorAll('.lp-bar-fill');
+        bars.forEach(function (b) {
+            var target = b.style.width;
+            b.style.width = '0';
+            setTimeout(function () { b.style.width = target; }, 400);
+        });
+
+        dismissLoader();
+    })();
+</script>
+}

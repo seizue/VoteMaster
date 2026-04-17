@@ -29,7 +29,7 @@
                     {
                         <li class="nav-item"><a class="nav-link" id="nav-home" href="/">Home</a></li>
                         <li class="nav-item"><a class="nav-link" id="nav-features" href="/#features">Features</a></li>
-                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/account/login") ? "active" : "")" href="/Account/Login">Get Started</a></li>
+                        <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/account/login") ? "active" : "")" href="/#get-started">Get Started</a></li>
                     }
                     else if (User.IsInRole("Admin"))
                     {
@@ -154,36 +154,45 @@
             if (!navHome || !navFeatures) return;
 
             var isHomePage = window.location.pathname === '/';
-            if (!isHomePage) return; // Don't touch active state on other pages
+            if (!isHomePage) return;
 
-            function updateLandingNav() {
-                var hash = window.location.hash;
-                if (hash === '#features') {
-                    navFeatures.classList.add('active');
-                    navHome.classList.remove('active');
-                } else {
-                    navHome.classList.add('active');
-                    navFeatures.classList.remove('active');
-                }
+            var navGetStarted = document.querySelector('a[href="/#get-started"]');
+
+            // Sections in top-to-bottom DOM order
+            var sections = [
+                { id: 'features',    nav: navFeatures },
+                { id: 'get-started', nav: navGetStarted },
+            ];
+
+            function setActive(nav) {
+                navHome.classList.remove('active');
+                navFeatures.classList.remove('active');
+                if (navGetStarted) navGetStarted.classList.remove('active');
+                if (nav) nav.classList.add('active');
+                else navHome.classList.add('active');
             }
 
-            updateLandingNav();
-            window.addEventListener('hashchange', updateLandingNav);
-
-            // Also update when scrolling past the features section
-            if (document.getElementById('features')) {
-                window.addEventListener('scroll', function () {
-                    var featuresEl = document.getElementById('features');
-                    var rect = featuresEl.getBoundingClientRect();
-                    if (rect.top <= 80) {
-                        navFeatures.classList.add('active');
-                        navHome.classList.remove('active');
-                    } else {
-                        navHome.classList.add('active');
-                        navFeatures.classList.remove('active');
+            function updateFromScroll() {
+                // Walk sections bottom-to-top; first one whose top is at/above threshold wins
+                var matched = null;
+                for (var i = sections.length - 1; i >= 0; i--) {
+                    var el = document.getElementById(sections[i].id);
+                    if (el && el.getBoundingClientRect().top <= 120) {
+                        matched = sections[i].nav;
+                        break;
                     }
-                }, { passive: true });
+                }
+                setActive(matched);
             }
+
+            // Run on scroll
+            window.addEventListener('scroll', updateFromScroll, { passive: true });
+
+            // Run on hash change (browser back/forward or direct link)
+            window.addEventListener('hashchange', updateFromScroll);
+
+            // Initial state
+            updateFromScroll();
         })();
     </script>
 
