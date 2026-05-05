@@ -78,20 +78,147 @@
         </div>
     </div>
 
-    <footer class="mt-auto py-4">
-        <div class="container text-center text-muted small">
-            <div>© @DateTime.UtcNow.Year VoteMaster — Simple modern voting</div>
-            <div class="mt-2 d-flex justify-content-center align-items-center gap-3 flex-wrap">
-                <a href="https://github.com/seizue/VoteMaster" target="_blank" rel="noopener noreferrer" class="text-muted" title="View on GitHub">
-                    <i class="bi bi-github fs-5"></i>
-                </a>
-                <a href="/Privacy" class="text-muted text-decoration-none d-flex align-items-center gap-1">
-                    <i class="bi bi-shield-lock"></i> Privacy Policy
-                </a>
-                <a href="/Cookies" class="text-muted text-decoration-none d-flex align-items-center gap-1">
-                    <i class="bi bi-cookie"></i> Cookie Consent
-                </a>
-            </div>
+    <footer class="site-footer">
+        <!-- Decorative top accent bar -->
+        <div class="footer-accent-bar"></div>
+
+        <div class="container">
+
+            @if (user?.IsAuthenticated ?? false)
+            {
+                <!-- ── Authenticated footer: two-column layout ── -->
+                <div class="footer-auth">
+                    <div class="footer-auth-top">
+                        <p class="footer-auth-tagline">Simple, modern voting for teams and communities. Create polls, collect votes, and see results in real time.</p>
+                        <div class="footer-auth-right">
+                            <div class="footer-auth-actions">
+                                <div class="footer-stats">
+                                    <div class="footer-stat">
+                                        <i class="bi bi-bar-chart-fill"></i>
+                                        <span>Real-time results</span>
+                                    </div>
+                                    <div class="footer-stat-divider"></div>
+                                    <div class="footer-stat">
+                                        <i class="bi bi-shield-check"></i>
+                                        <span>Secure voting</span>
+                                    </div>
+                                </div>
+                                <a href="https://github.com/seizure/VoteMaster" target="_blank" rel="noopener noreferrer" class="footer-github">
+                                    <i class="bi bi-github"></i>
+                                    <span>View on GitHub</span>
+                                    <i class="bi bi-arrow-up-right footer-github-arrow"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer-auth-bottom">
+                        <span>© @DateTime.UtcNow.Year VoteMaster. All rights reserved.</span>
+                        <div class="footer-auth-bottom-right">
+                            <a href="/Privacy" class="footer-auth-legal"><i class="bi bi-shield-lock"></i> Privacy</a>
+                            <span class="footer-auth-sep"></span>
+                            <a href="/Cookies" class="footer-auth-legal"><i class="bi bi-cookie"></i> Cookies</a>
+                            <span class="footer-auth-sep"></span>
+                            <span class="footer-auth-status">
+                                <span class="footer-status-dot"></span>
+                                All systems operational
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- ── Guest footer: 3-column grid ── -->
+                <div class="footer-grid">
+
+                    <!-- Brand column -->
+                    <div class="footer-brand-col">
+                        <a href="/" class="footer-brand">
+                            <span class="footer-brand-icon"><i class="bi bi-check2-square"></i></span>
+                            <span class="footer-brand-name">VoteMaster</span>
+                        </a>
+                        <p class="footer-tagline">
+                            Simple, modern voting for teams and communities. Create polls, collect votes, and see results in real time.
+                        </p>
+                        <div class="footer-stats">
+                            <div class="footer-stat">
+                                <i class="bi bi-bar-chart-fill"></i>
+                                <span>Real-time results</span>
+                            </div>
+                            <div class="footer-stat-divider"></div>
+                            <div class="footer-stat">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Secure voting</span>
+                            </div>
+                        </div>
+                        <a href="https://github.com/seizure/VoteMaster" target="_blank" rel="noopener noreferrer" class="footer-github">
+                            <i class="bi bi-github"></i>
+                            <span>View on GitHub</span>
+                            <i class="bi bi-arrow-up-right footer-github-arrow"></i>
+                        </a>
+                    </div>
+
+                    <!-- Product column -->
+                    <div class="footer-links-col">
+                        <h6 class="footer-col-heading">
+                            <span class="footer-col-heading-dot"></span>
+                            Product
+                        </h6>
+                        <ul class="footer-links">
+                            <li>
+                                <a href="/#features">
+                                    <span class="footer-link-icon"><i class="bi bi-stars"></i></span>
+                                    <span>Features</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/#get-started">
+                                    <span class="footer-link-icon"><i class="bi bi-rocket-takeoff"></i></span>
+                                    <span>Get Started</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Legal column -->
+                    <div class="footer-links-col">
+                        <h6 class="footer-col-heading">
+                            <span class="footer-col-heading-dot"></span>
+                            Legal
+                        </h6>
+                        <ul class="footer-links">
+                            <li>
+                                <a href="/Privacy">
+                                    <span class="footer-link-icon"><i class="bi bi-shield-lock"></i></span>
+                                    <span>Privacy Policy</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/Cookies">
+                                    <span class="footer-link-icon"><i class="bi bi-cookie"></i></span>
+                                    <span>Cookie Policy</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div><!-- /footer-grid -->
+
+                <!-- Bottom bar -->
+                <div class="footer-bottom">
+                    <div class="footer-bottom-left">
+                        <span class="footer-bottom-logo"><i class="bi bi-check2-square"></i></span>
+                        <span>© @DateTime.UtcNow.Year VoteMaster. All rights reserved.</span>
+                    </div>
+                    <div class="footer-bottom-right">
+                        <span class="footer-bottom-status">
+                            <span class="footer-status-dot"></span>
+                            All systems operational
+                        </span>
+                    </div>
+                </div>
+            }
+
         </div>
     </footer>
 
