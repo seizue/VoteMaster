@@ -191,6 +191,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    .ticket-field-value.usercode {
+        color: #ff8c00;
+        font-weight: 700;
+    }
 
     /* Code strip at very bottom */
     .ticket-code-strip {
@@ -300,14 +304,17 @@
                             <div class="ticket-fields">
                                 <div class="ticket-field-row" id="top-row-@voter.Username">
                                     <span class="ticket-field-label">Username:</span>
-                                    <div class="ticket-field-value">@voter.Username</div>
+                                    <div class="ticket-field-value usercode">@voter.Username</div>
                                     <span class="ticket-field-label" style="margin-left:16px;">Pass:</span>
                                     <div class="ticket-field-line"></div>
                                 </div>
-                                <div class="ticket-field-row">
-                                    <span class="ticket-field-label">Signature:</span>
-                                    <div class="ticket-field-line" style="flex:1;"></div>
-                                </div>
+                                @if (Model.IncludeSignature)
+                                {
+                                    <div class="ticket-field-row">
+                                        <span class="ticket-field-label">Signature:</span>
+                                        <div class="ticket-field-line" style="flex:1;"></div>
+                                    </div>
+                                }
                             </div>
 
                             @* Code strip *@

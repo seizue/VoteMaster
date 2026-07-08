@@ -45,7 +45,7 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string name, int pollId, IFormFile? headerImage)
+        public async Task<IActionResult> Create(string name, int pollId, bool includeSignature, IFormFile? headerImage)
         {
             if (string.IsNullOrWhiteSpace(name) || pollId == 0)
             {
@@ -78,7 +78,8 @@ namespace VoteMaster.Areas.Admin.Controllers
             {
                 Name = name,
                 PollId = pollId,
-                HeaderImagePath = imagePath
+                HeaderImagePath = imagePath,
+                IncludeSignature = includeSignature
             };
 
             _db.TicketTemplates.Add(template);
@@ -98,7 +99,7 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, string name, int pollId, IFormFile? headerImage)
+        public async Task<IActionResult> Edit(int id, string name, int pollId, bool includeSignature, IFormFile? headerImage)
         {
             var template = await _db.TicketTemplates.FindAsync(id);
             if (template is null) return NotFound();
@@ -112,6 +113,7 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             template.Name = name;
             template.PollId = pollId;
+            template.IncludeSignature = includeSignature;
 
             if (headerImage is { Length: > 0 })
             {

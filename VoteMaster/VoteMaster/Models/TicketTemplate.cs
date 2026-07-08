@@ -12,6 +12,9 @@ namespace VoteMaster.Models
         // Path to uploaded header image (relative to wwwroot)
         public string? HeaderImagePath { get; set; }
 
+        // Whether to include signature field on the ticket
+        public bool IncludeSignature { get; set; } = true;
+
         // The poll this ticket is linked to
         public int PollId { get; set; }
         public Poll? Poll { get; set; }
