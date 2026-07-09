@@ -274,46 +274,43 @@
             // Collect results data from the table
             const rows = document.querySelectorAll('#resultsTable tbody tr');
             const exportData = [];
-            
-            rows.forEach(row => {
+            const totalVotes = @totalVotes;
+
+            rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
-                const rank = cells[0].textContent.trim().replace('#', '');
+                const rankText = cells[0].textContent.trim();
                 const candidate = cells[1].textContent.trim();
-                const votes = cells[2].textContent.trim().replace(/,/g, '');
-                
-                // Calculate percentage
-                const totalVotes = @totalVotes;
-                const voteCount = parseInt(votes);
-                const percentage = totalVotes > 0 ? ((voteCount * 100.0) / totalVotes).toFixed(1) : '0.0';
-                
+                const votes = parseInt(cells[2].textContent.trim().replace(/[^0-9]/g, '')) || 0;
+                const distribution = totalVotes > 0 ? ((votes * 100.0) / totalVotes).toFixed(1) + '%' : '0.0%';
+
                 exportData.push({
-                    'Rank': rank,
+                    'Rank': rankText,
                     'Candidate': candidate,
-                    'Votes': voteCount,
-                    'Percentage': percentage + '%'
+                    'Votes': votes,
+                    'Distribution': distribution
                 });
             });
-            
+
             // Add total row
             exportData.push({
                 'Rank': '',
                 'Candidate': 'TOTAL',
-                'Votes': @totalVotes,
-                'Percentage': '100.0%'
+                'Votes': totalVotes,
+                'Distribution': '100.0%'
             });
-            
+
             // Create workbook and worksheet
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(exportData);
-            
+
             // Set column widths
             ws['!cols'] = [
-                { wch: 8 },  // Rank
+                { wch: 10 }, // Rank
                 { wch: 40 }, // Candidate
-                { wch: 12 }, // Votes
-                { wch: 12 }  // Percentage
+                { wch: 14 }, // Votes
+                { wch: 14 }  // Distribution
             ];
-            
+
             // Add worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, 'Results');
             

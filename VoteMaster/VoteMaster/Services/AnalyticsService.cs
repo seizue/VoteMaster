@@ -190,21 +190,25 @@ namespace VoteMaster.Services
             csv.NextRecord();
 
             // Write option results
+            csv.WriteField("Rank");
             csv.WriteField("Option");
             csv.WriteField("Vote Count");
             csv.WriteField("Weighted Vote Count");
-            csv.WriteField("Percentage");
-            csv.WriteField("Weighted Percentage");
+            csv.WriteField("Distribution %");
+            csv.WriteField("Weighted Distribution %");
             csv.NextRecord();
 
-            foreach (var option in analytics.OptionAnalytics)
+            int rank = 1;
+            foreach (var option in analytics.OptionAnalytics.OrderByDescending(o => o.WeightedVoteCount))
             {
+                csv.WriteField(rank == 1 ? "🥇 1" : rank == 2 ? "🥈 2" : rank == 3 ? "🥉 3" : $"#{rank}");
                 csv.WriteField(option.OptionText);
                 csv.WriteField(option.VoteCount);
                 csv.WriteField(option.WeightedVoteCount);
                 csv.WriteField($"{option.Percentage:F2}%");
                 csv.WriteField($"{option.WeightedPercentage:F2}%");
                 csv.NextRecord();
+                rank++;
             }
 
             csv.NextRecord();
@@ -270,19 +274,19 @@ namespace VoteMaster.Services
             document.Add(new Paragraph(" "));
 
             // Results Table
-            var resultsTable = new PdfPTable(5)
+            var resultsTable = new PdfPTable(6)
             {
                 WidthPercentage = 100,
                 SpacingBefore = 10,
                 SpacingAfter = 10
             };
-            resultsTable.SetWidths(new float[] { 3, 1.5f, 1.5f, 1.5f, 1.5f });
+            resultsTable.SetWidths(new float[] { 1f, 3f, 1.5f, 1.5f, 1.5f, 1.5f });
 
             // Table headers
             var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.White);
             var headerCells = new[]
             {
-                "Option", "Votes", "Weighted", "Percentage", "Weighted %"
+                "Rank", "Option", "Votes", "Weighted", "Distribution %", "Weighted %"
             };
 
             foreach (var header in headerCells)
@@ -297,8 +301,11 @@ namespace VoteMaster.Services
             }
 
             // Table data
-            foreach (var option in analytics.OptionAnalytics)
+            int pdfRank = 1;
+            foreach (var option in analytics.OptionAnalytics.OrderByDescending(o => o.WeightedVoteCount))
             {
+                var rankLabel = pdfRank switch { 1 => "#1", 2 => "#2", 3 => "#3", _ => $"#{pdfRank}" };
+                resultsTable.AddCell(new PdfPCell(new Phrase(rankLabel, normalFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 5 });
                 resultsTable.AddCell(new PdfPCell(new Phrase(option.OptionText, normalFont)) { Padding = 5 });
                 resultsTable.AddCell(new PdfPCell(new Phrase(option.VoteCount.ToString(), normalFont)) 
                 { 
@@ -308,18 +315,19 @@ namespace VoteMaster.Services
                 resultsTable.AddCell(new PdfPCell(new Phrase(option.WeightedVoteCount.ToString(), normalFont)) 
                 { 
                     HorizontalAlignment = Element.ALIGN_CENTER, 
-                    Padding = 5 
+                    Padding = 5
                 });
-                resultsTable.AddCell(new PdfPCell(new Phrase($"{option.Percentage:F2}%", normalFont)) 
-                { 
-                    HorizontalAlignment = Element.ALIGN_CENTER, 
-                    Padding = 5 
+                resultsTable.AddCell(new PdfPCell(new Phrase($"{option.Percentage:F1}%", normalFont))
+                {
+                    HorizontalAlignment = Element.ALIGN_CENTER,
+                    Padding = 5
                 });
-                resultsTable.AddCell(new PdfPCell(new Phrase($"{option.WeightedPercentage:F2}%", normalFont)) 
-                { 
-                    HorizontalAlignment = Element.ALIGN_CENTER, 
-                    Padding = 5 
+                resultsTable.AddCell(new PdfPCell(new Phrase($"{option.WeightedPercentage:F1}%", normalFont))
+                {
+                    HorizontalAlignment = Element.ALIGN_CENTER,
+                    Padding = 5
                 });
+                pdfRank++;
             }
 
             document.Add(resultsTable);
