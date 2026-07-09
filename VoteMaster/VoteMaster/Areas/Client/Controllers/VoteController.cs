@@ -74,6 +74,13 @@ namespace VoteMaster.Areas.Client.Controllers
             ViewBag.IsAuthenticated = true;
             ViewBag.AllowUsercodeEntry = poll.AllowUsercodeEntry;
 
+            // Pass weighted total when results are visible
+            if (showResults)
+            {
+                var weighted = await _polls.GetWeightedResultsAsync(pollId);
+                ViewBag.WeightedTotal = weighted.Values.Sum();
+            }
+
             return View(poll);
         }
 

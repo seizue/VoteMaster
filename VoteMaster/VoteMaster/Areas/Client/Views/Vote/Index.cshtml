@@ -9,6 +9,7 @@
     string pollStatus = (string?)ViewBag.PollStatus ?? "Active";
     bool isAuthenticated = (bool?)ViewBag.IsAuthenticated ?? false;
     bool allowUsercodeEntry = (bool?)ViewBag.AllowUsercodeEntry ?? false;
+    int weightedTotal = (int?)ViewBag.WeightedTotal ?? 0;
     var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
     var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
@@ -211,7 +212,13 @@
             
             <div class="results-summary">
                 <i class="bi bi-people-fill me-2"></i>
-                <strong>Total Votes:</strong> @totalVotes
+                <strong>Total Votes:</strong> @totalVotes.ToString("N0")
+                @if (weightedTotal > 0 && weightedTotal != totalVotes)
+                {
+                    <span class="text-muted ms-2" style="font-size:0.85rem;">
+                        (weighted: <span style="color:#f97316;font-weight:700;">@weightedTotal.ToString("N0")</span>)
+                    </span>
+                }
             </div>
         </div>
     }

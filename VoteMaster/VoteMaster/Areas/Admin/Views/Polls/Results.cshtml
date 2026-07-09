@@ -52,11 +52,13 @@
                             </span>
                         </td>
                         <td class="align-middle d-none d-md-table-cell">
-                            <div class="progress" style="height: 24px; border-radius: 0.5rem; background: #e0f2fe;">
-                                <div class="progress-bar" role="progressbar" 
-                                     style="width: @percentage.ToString("F1")%; background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);"
-                                     aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
-                                    <span class="fw-semibold" style="font-size: 0.8125rem; color: white;">@percentage.ToString("F1")%</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span style="min-width:42px;font-size:0.8rem;font-weight:700;color:#f97316;">@percentage.ToString("F1")%</span>
+                                <div class="progress flex-grow-1" style="height:14px;border-radius:0.5rem;background:#e0f2fe;">
+                                    <div class="progress-bar" role="progressbar"
+                                         style="width:@percentage.ToString("F1")%;background:linear-gradient(135deg,#14b8a6 0%,#06b6d4 100%);"
+                                         aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -139,9 +141,6 @@
 
 <style>
     .progress-bar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
         transition: width 0.6s ease;
     }
     
