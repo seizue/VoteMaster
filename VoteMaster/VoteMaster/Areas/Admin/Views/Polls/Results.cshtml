@@ -286,7 +286,7 @@
                 exportData.push({
                     'Rank': rankText,
                     'Candidate': candidate,
-                    'Votes': votes,
+                    'Votes': votes.toLocaleString(),
                     'Distribution': distribution
                 });
             });
@@ -295,7 +295,7 @@
             exportData.push({
                 'Rank': '',
                 'Candidate': 'TOTAL',
-                'Votes': totalVotes,
+                'Votes': totalVotes.toLocaleString(),
                 'Distribution': '100.0%'
             });
 

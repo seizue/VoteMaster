@@ -109,11 +109,11 @@
     <div class="summary-cards">
         <div class="summary-card">
             <h6>Total Voters</h6>
-            <h2>@Model.TotalVoters</h2>
+            <h2>@Model.TotalVoters.ToString("N0")</h2>
         </div>
         <div class="summary-card success">
             <h6>Voted</h6>
-            <h2>@Model.VotedCount</h2>
+            <h2>@Model.VotedCount.ToString("N0")</h2>
         </div>
         <div class="summary-card info">
             <h6>Participation Rate</h6>
@@ -121,7 +121,7 @@
         </div>
         <div class="summary-card primary">
             <h6>Total Votes Cast</h6>
-            <h2>@Model.TotalVotesCast</h2>
+            <h2>@Model.TotalVotesCast.ToString("N0")</h2>
         </div>
     </div>
 
@@ -164,7 +164,7 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <strong style="color: var(--vm-text-primary);">@option.OptionText</strong>
-                                <span class="badge bg-primary">@option.WeightedVoteCount</span>
+                                <span class="badge bg-primary">@option.WeightedVoteCount.ToString("N0")</span>
                             </div>
                             <div class="progress mb-1" style="height: 25px; border-radius: 0.5rem;">
                                 <div class="progress-bar bg-success" 
@@ -177,7 +177,7 @@
                                 </div>
                             </div>
                             <small style="color: var(--vm-text-secondary);">
-                                @option.VoteCount votes | @option.WeightedVoteCount weighted
+                                @option.VoteCount.ToString("N0") votes | @option.WeightedVoteCount.ToString("N0") weighted
                             </small>
                         </div>
                     }
@@ -203,15 +203,15 @@
                                     </div>
                                     <div class="col-6">
                                         <small style="color: var(--vm-text-secondary);">Voted</small>
-                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.VotedCount/@demo.VoterCount</div>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.VotedCount.ToString("N0")/@demo.VoterCount.ToString("N0")</div>
                                     </div>
                                     <div class="col-6">
                                         <small style="color: var(--vm-text-secondary);">Total Weight</small>
-                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.TotalWeight</div>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.TotalWeight.ToString("N0")</div>
                                     </div>
                                     <div class="col-6">
                                         <small style="color: var(--vm-text-secondary);">Weight Used</small>
-                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.WeightUsed</div>
+                                        <div class="fw-bold" style="color: var(--vm-text-primary);">@demo.WeightUsed.ToString("N0")</div>
                                     </div>
                                 </div>
                                 <hr style="border-color: var(--vm-border);" />
@@ -267,14 +267,16 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            callback: value => value.toLocaleString()
                         }
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString()
+                        }
                     }
                 }
             }
@@ -317,14 +319,16 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1
+                                callback: value => value.toLocaleString()
                             }
                         }
                     },
                     plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString()
+                            }
                         }
                     }
                 }

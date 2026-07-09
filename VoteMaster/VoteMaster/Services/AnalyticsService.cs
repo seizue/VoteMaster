@@ -169,11 +169,11 @@ namespace VoteMaster.Services
             csv.NextRecord();
 
             csv.WriteField("Total Voters");
-            csv.WriteField(analytics.TotalVoters);
+            csv.WriteField(analytics.TotalVoters.ToString("N0"));
             csv.NextRecord();
 
             csv.WriteField("Voted Count");
-            csv.WriteField(analytics.VotedCount);
+            csv.WriteField(analytics.VotedCount.ToString("N0"));
             csv.NextRecord();
 
             csv.WriteField("Participation Rate");
@@ -181,11 +181,11 @@ namespace VoteMaster.Services
             csv.NextRecord();
 
             csv.WriteField("Total Votes Cast");
-            csv.WriteField(analytics.TotalVotesCast);
+            csv.WriteField(analytics.TotalVotesCast.ToString("N0"));
             csv.NextRecord();
 
             csv.WriteField("Total Weighted Votes");
-            csv.WriteField(analytics.TotalWeightedVotes);
+            csv.WriteField(analytics.TotalWeightedVotes.ToString("N0"));
             csv.NextRecord();
             csv.NextRecord();
 
@@ -203,8 +203,8 @@ namespace VoteMaster.Services
             {
                 csv.WriteField(rank == 1 ? "🥇 1" : rank == 2 ? "🥈 2" : rank == 3 ? "🥉 3" : $"#{rank}");
                 csv.WriteField(option.OptionText);
-                csv.WriteField(option.VoteCount);
-                csv.WriteField(option.WeightedVoteCount);
+                csv.WriteField(option.VoteCount.ToString("N0"));
+                csv.WriteField(option.WeightedVoteCount.ToString("N0"));
                 csv.WriteField($"{option.Percentage:F2}%");
                 csv.WriteField($"{option.WeightedPercentage:F2}%");
                 csv.NextRecord();
@@ -229,11 +229,11 @@ namespace VoteMaster.Services
                 foreach (var demo in analytics.DemographicBreakdown)
                 {
                     csv.WriteField(demo.Role);
-                    csv.WriteField(demo.VoterCount);
-                    csv.WriteField(demo.VotedCount);
+                    csv.WriteField(demo.VoterCount.ToString("N0"));
+                    csv.WriteField(demo.VotedCount.ToString("N0"));
                     csv.WriteField($"{demo.ParticipationRate:F2}%");
-                    csv.WriteField(demo.TotalWeight);
-                    csv.WriteField(demo.WeightUsed);
+                    csv.WriteField(demo.TotalWeight.ToString("N0"));
+                    csv.WriteField(demo.WeightUsed.ToString("N0"));
                     csv.NextRecord();
                 }
             }
@@ -266,11 +266,11 @@ namespace VoteMaster.Services
 
             document.Add(new Paragraph($"Start Time: {analytics.StartTime:yyyy-MM-dd HH:mm:ss}", normalFont));
             document.Add(new Paragraph($"End Time: {analytics.EndTime:yyyy-MM-dd HH:mm:ss}", normalFont));
-            document.Add(new Paragraph($"Total Voters: {analytics.TotalVoters}", normalFont));
-            document.Add(new Paragraph($"Voted Count: {analytics.VotedCount}", normalFont));
+            document.Add(new Paragraph($"Total Voters: {analytics.TotalVoters:N0}", normalFont));
+            document.Add(new Paragraph($"Voted Count: {analytics.VotedCount:N0}", normalFont));
             document.Add(new Paragraph($"Participation Rate: {analytics.ParticipationRate:F2}%", normalFont));
-            document.Add(new Paragraph($"Total Votes Cast: {analytics.TotalVotesCast}", normalFont));
-            document.Add(new Paragraph($"Total Weighted Votes: {analytics.TotalWeightedVotes}", normalFont));
+            document.Add(new Paragraph($"Total Votes Cast: {analytics.TotalVotesCast:N0}", normalFont));
+            document.Add(new Paragraph($"Total Weighted Votes: {analytics.TotalWeightedVotes:N0}", normalFont));
             document.Add(new Paragraph(" "));
 
             // Results Table
@@ -307,12 +307,12 @@ namespace VoteMaster.Services
                 var rankLabel = pdfRank switch { 1 => "#1", 2 => "#2", 3 => "#3", _ => $"#{pdfRank}" };
                 resultsTable.AddCell(new PdfPCell(new Phrase(rankLabel, normalFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 5 });
                 resultsTable.AddCell(new PdfPCell(new Phrase(option.OptionText, normalFont)) { Padding = 5 });
-                resultsTable.AddCell(new PdfPCell(new Phrase(option.VoteCount.ToString(), normalFont)) 
+                resultsTable.AddCell(new PdfPCell(new Phrase(option.VoteCount.ToString("N0"), normalFont)) 
                 { 
                     HorizontalAlignment = Element.ALIGN_CENTER, 
                     Padding = 5 
                 });
-                resultsTable.AddCell(new PdfPCell(new Phrase(option.WeightedVoteCount.ToString(), normalFont)) 
+                resultsTable.AddCell(new PdfPCell(new Phrase(option.WeightedVoteCount.ToString("N0"), normalFont)) 
                 { 
                     HorizontalAlignment = Element.ALIGN_CENTER, 
                     Padding = 5
@@ -355,12 +355,12 @@ namespace VoteMaster.Services
                 foreach (var demo in analytics.DemographicBreakdown)
                 {
                     demoTable.AddCell(new PdfPCell(new Phrase(demo.Role, normalFont)) { Padding = 5 });
-                    demoTable.AddCell(new PdfPCell(new Phrase(demo.VoterCount.ToString(), normalFont)) 
+                    demoTable.AddCell(new PdfPCell(new Phrase(demo.VoterCount.ToString("N0"), normalFont)) 
                     { 
                         HorizontalAlignment = Element.ALIGN_CENTER, 
                         Padding = 5 
                     });
-                    demoTable.AddCell(new PdfPCell(new Phrase(demo.VotedCount.ToString(), normalFont)) 
+                    demoTable.AddCell(new PdfPCell(new Phrase(demo.VotedCount.ToString("N0"), normalFont)) 
                     { 
                         HorizontalAlignment = Element.ALIGN_CENTER, 
                         Padding = 5 
@@ -370,12 +370,12 @@ namespace VoteMaster.Services
                         HorizontalAlignment = Element.ALIGN_CENTER, 
                         Padding = 5 
                     });
-                    demoTable.AddCell(new PdfPCell(new Phrase(demo.TotalWeight.ToString(), normalFont)) 
+                    demoTable.AddCell(new PdfPCell(new Phrase(demo.TotalWeight.ToString("N0"), normalFont)) 
                     { 
                         HorizontalAlignment = Element.ALIGN_CENTER, 
                         Padding = 5 
                     });
-                    demoTable.AddCell(new PdfPCell(new Phrase(demo.WeightUsed.ToString(), normalFont)) 
+                    demoTable.AddCell(new PdfPCell(new Phrase(demo.WeightUsed.ToString("N0"), normalFont)) 
                     { 
                         HorizontalAlignment = Element.ALIGN_CENTER, 
                         Padding = 5 
