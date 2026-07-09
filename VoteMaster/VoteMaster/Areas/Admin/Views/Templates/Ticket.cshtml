@@ -45,11 +45,11 @@
         height: 1123px;
         background: white;
         box-shadow: 0 4px 24px rgba(15,23,42,0.15);
-        padding: 8px;
+        padding: 6px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
         overflow: hidden;
     }
 
@@ -57,7 +57,7 @@
         display: flex;
         flex-direction: row;
         gap: 6px;
-        height: 362px;
+        height: 367px;
         flex-shrink: 0;
         overflow: hidden;
     }
@@ -192,7 +192,7 @@
         text-overflow: ellipsis;
     }
     .ticket-field-value.usercode {
-        color: #ff8c00;
+        color: #e11d48;
         font-weight: 700;
     }
 
@@ -218,11 +218,56 @@
     }
 
     @@media print {
-        .ticket-actions, nav, footer, .toast-container { display: none !important; }
-        body { background: white !important; margin: 0; padding: 0; }
-        .a4-scaler { transform: none !important; width: 794px; margin: 0; }
-        .a4-page { box-shadow: none; margin: 0; page-break-after: always; break-after: page; }
-        .ticket-row { break-inside: avoid; }
+        /* Set A4 page size */
+        @@page { size: A4 portrait; margin: 0; }
+
+        /* Hide everything except the ticket pages */
+        .ticket-actions, .page-nav,
+        nav, header, footer,
+        .navbar, .toast-container,
+        .container > *:not(.a4-scaler) { display: none !important; }
+
+        /* Reset layout container */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            width: 210mm !important;
+        }
+        .container, .container-fluid, .container-lg, .container-xl {
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+
+        /* Show ALL pages */
+        .a4-scaler {
+            display: block !important;
+            transform: none !important;
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+        }
+
+        /* Each page breaks cleanly */
+        .a4-page {
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 4mm !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            overflow: hidden !important;
+        }
+
+        /* Fixed row height in mm so 3 rows fit exactly */
+        .ticket-row {
+            height: calc((297mm - 8mm - 10px) / 3) !important;
+            break-inside: avoid !important;
+        }
     }
 </style>
 
@@ -305,8 +350,6 @@
                                 <div class="ticket-field-row" id="top-row-@voter.Username">
                                     <span class="ticket-field-label">Username:</span>
                                     <div class="ticket-field-value usercode">@voter.Username</div>
-                                    <span class="ticket-field-label" style="margin-left:16px;">Pass:</span>
-                                    <div class="ticket-field-line"></div>
                                 </div>
                                 @if (Model.IncludeSignature)
                                 {
