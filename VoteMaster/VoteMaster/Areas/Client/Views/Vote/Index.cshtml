@@ -8,9 +8,123 @@
     bool showResults = (bool?)ViewBag.ShowResults ?? false;
     string pollStatus = (string?)ViewBag.PollStatus ?? "Active";
     bool isAuthenticated = (bool?)ViewBag.IsAuthenticated ?? false;
+    bool allowUsercodeEntry = (bool?)ViewBag.AllowUsercodeEntry ?? false;
     var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
     var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
+
+<style>
+    /* ── Kiosk split layout ── */
+    /* Default (mobile-first): stack vertically */
+    .kiosk-layout { width: 100%; }
+
+    .kiosk-panel {
+        margin-bottom: 1.5rem;
+    }
+
+    /* Desktop (≥ 768px): side-by-side */
+    @@media (min-width: 768px) {
+        .kiosk-split {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        .kiosk-panel {
+            position: sticky;
+            top: 80px; /* below navbar */
+            margin-bottom: 0;
+        }
+    }
+
+    /* ── Kiosk entry card ── */
+    .kiosk-entry-card {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 4px 24px rgba(15,23,42,0.10);
+        padding: 2rem 1.75rem 1.5rem;
+        text-align: center;
+    }
+    .kiosk-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.6rem;
+        color: white;
+    }
+    .kiosk-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.3rem;
+    }
+    .kiosk-subtitle {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 1.25rem;
+    }
+    .kiosk-input {
+        display: block;
+        width: 100%;
+        font-size: 1.2rem;
+        font-weight: 600;
+        padding: 0.85rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        outline: none;
+        color: #0f172a;
+        text-align: center;
+        letter-spacing: 0.05em;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        margin-bottom: 0.75rem;
+        background: #f8fafc;
+    }
+    .kiosk-input:focus {
+        border-color: #6366f1;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .kiosk-btn {
+        display: block;
+        width: 100%;
+        padding: 0.875rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        cursor: pointer;
+        transition: opacity 0.15s, transform 0.1s;
+    }
+    .kiosk-btn:hover  { opacity: 0.9; }
+    .kiosk-btn:active { transform: scale(0.98); }
+    .kiosk-hint {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    /* Mobile: full-width, larger tap targets */
+    @@media (max-width: 575px) {
+        .kiosk-entry-card {
+            border-radius: 1rem;
+            padding: 1.5rem 1.25rem 1.25rem;
+            box-shadow: none;
+            border: 1px solid #e2e8f0;
+        }
+        .kiosk-title  { font-size: 1.2rem; }
+        .kiosk-input  { font-size: 1.1rem; padding: 1rem; }
+        .kiosk-btn    { font-size: 1rem; padding: 1rem; }
+        .kiosk-icon   { width: 52px; height: 52px; font-size: 1.4rem; }
+    }
+</style>
 
 <div class="vote-page">
     <!-- Back to Home and Share Buttons -->
@@ -103,6 +217,47 @@
     }
     else
     {
+        @* Desktop: side-by-side layout. Mobile: stacked. *@
+        <div class="kiosk-layout @(!isAuthenticated && allowUsercodeEntry ? "kiosk-split" : "")">
+
+        @* LEFT / TOP — kiosk entry panel (only when unauthenticated + kiosk enabled) *@
+        @if (!isAuthenticated && allowUsercodeEntry)
+        {
+            <div class="kiosk-panel">
+                <div class="kiosk-entry-card">
+                    <div class="kiosk-icon">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h4 class="kiosk-title">Enter Your Username</h4>
+                    <p class="kiosk-subtitle">Type the username printed on your ballot ticket</p>
+
+                    @if (TempData["KioskError"] != null)
+                    {
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["KioskError"]
+                        </div>
+                    }
+
+                    <form method="post" action="@Url.Action("KioskEntry", "Vote", new { area = "Client" })">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="pollId" value="@Model.Id" />
+                        <input type="text" name="username" class="kiosk-input"
+                               placeholder="Your username" autofocus required
+                               autocomplete="off" spellcheck="false" />
+                        <button type="submit" class="kiosk-btn">
+                            Continue <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </form>
+
+                    <p class="kiosk-hint">
+                        <i class="bi bi-ticket-perforated me-1"></i>Your username is on your ballot ticket
+                    </p>
+                </div>
+            </div>
+        }
+
+        @* RIGHT / BOTTOM — voting form *@
+        <div class="kiosk-options-panel">
         <!-- Voting Form -->
         <form method="post" action="@Url.Action("Cast", "Vote", new { area = "Client" })" id="voteForm">
             <input type="hidden" name="pollId" value="@Model.Id" />
@@ -142,16 +297,20 @@
         <div class="vote-submit-container">
             @if (!isAuthenticated)
             {
-                <div class="alert alert-info text-center">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Sign in required to vote</strong>
-                    <p class="mb-0 mt-2">You need to sign in to participate in this poll.</p>
-                </div>
-                <div class="vote-buttons">
-                    <a href="/Account/Login?returnUrl=@Uri.EscapeDataString(Context.Request.Path)" class="btn btn-primary btn-lg" style="background: #14b8a6 !important; box-shadow: 0 2px 8px rgba(20,184,166,0.25) !important;">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Vote
-                    </a>
-                </div>
+                @if (!allowUsercodeEntry)
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Sign in required to vote</strong>
+                        <p class="mb-0 mt-2">You need to sign in to participate in this poll.</p>
+                    </div>
+                    <div class="vote-buttons">
+                        <a href="/Account/Login?returnUrl=@Uri.EscapeDataString(Context.Request.Path)" class="btn btn-primary btn-lg" style="background: #14b8a6 !important; box-shadow: 0 2px 8px rgba(20,184,166,0.25) !important;">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Vote
+                        </a>
+                    </div>
+                }
+                @* kiosk mode: entry form already shown above — options grid is read-only until signed in *@
             }
             else
             {
@@ -170,8 +329,9 @@
             }
         </div>
     </form>
+        </div>@* end kiosk-options-panel *@
+        </div>@* end kiosk-layout *@
     }
-    
     @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
     {
         <form method="post" action="@Url.Action("Reset", "Vote", new { area = "Client" })" id="resetForm" style="display: none;">

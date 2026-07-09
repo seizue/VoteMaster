@@ -19,6 +19,9 @@ namespace VoteMaster.Models
         public bool EnableLiveVoteCount { get; set; } = false;
         public bool EnablePollNotifications { get; set; } = false;
 
+        // Kiosk mode — voters can enter using only their username (no password required)
+        public bool AllowUsercodeEntry { get; set; } = false;
+
         // Ownership — nullable so existing polls without an owner still work
         public int? OwnerId { get; set; }
         public AppUser? Owner { get; set; }

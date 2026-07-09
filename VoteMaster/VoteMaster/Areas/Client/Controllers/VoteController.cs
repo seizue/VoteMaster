@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,11 +16,13 @@ namespace VoteMaster.Areas.Client.Controllers
     {
         private readonly IPollService _polls;
         private readonly IHubContext<ResultsHub> _hubContext;
+        private readonly IUserService _userService;
         
-        public VoteController(IPollService polls, IHubContext<ResultsHub> hubContext) 
+        public VoteController(IPollService polls, IHubContext<ResultsHub> hubContext, IUserService userService) 
         { 
             _polls = polls;
             _hubContext = hubContext;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -40,6 +44,7 @@ namespace VoteMaster.Areas.Client.Controllers
                 ViewBag.ShowResults = false;
                 ViewBag.PollStatus = _polls.GetPollStatus(poll);
                 ViewBag.IsAuthenticated = false;
+                ViewBag.AllowUsercodeEntry = poll.AllowUsercodeEntry;
 
                 return View(poll);
             }
@@ -67,8 +72,65 @@ namespace VoteMaster.Areas.Client.Controllers
             ViewBag.ShowResults = showResults;
             ViewBag.PollStatus = pollStatus;
             ViewBag.IsAuthenticated = true;
+            ViewBag.AllowUsercodeEntry = poll.AllowUsercodeEntry;
 
             return View(poll);
+        }
+
+        // Kiosk entry — sign in by username only (no password) for polls that allow it
+        [HttpPost]
+        [Route("Client/Vote/KioskEntry")]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KioskEntry(int pollId, string username)
+        {
+            var poll = await _polls.GetPollAsync(pollId);
+            if (poll is null) return NotFound();
+
+            // Guard: poll must have kiosk mode enabled
+            if (!poll.AllowUsercodeEntry)
+            {
+                TempData["Error"] = "Usercode-only entry is not enabled for this poll.";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                TempData["KioskError"] = "Please enter your username.";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+
+            var user = await _userService.GetByUsernameAsync(username.Trim());
+            if (user is null || user.Role == "Admin")
+            {
+                TempData["KioskError"] = "Username not recognised. Please check and try again.";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+
+            // Sign in the voter without password — session cookie, short-lived
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("LoginTime", DateTime.UtcNow.ToString("o")),
+                new Claim("KioskEntry", "true")
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
+                new AuthenticationProperties
+                {
+                    IsPersistent = false,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(4),
+                    AllowRefresh = true
+                });
+
+            return RedirectToAction(nameof(Index), new { pollId });
         }
 
         [HttpPost]

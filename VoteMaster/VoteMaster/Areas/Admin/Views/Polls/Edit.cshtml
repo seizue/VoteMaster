@@ -87,6 +87,13 @@
                 </label>
             </div>
             
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="allowUsercodeEntry" name="allowUsercodeEntry" value="true" @((ViewBag.AllowUsercodeEntry ?? poll?.AllowUsercodeEntry ?? false) ? "checked" : "") />
+                <label class="form-check-label" for="allowUsercodeEntry">
+                    Allow usercode-only entry <span class="text-muted fw-normal">(voters enter only their username — no password needed)</span>
+                </label>
+            </div>
+            
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="alert alert-danger">

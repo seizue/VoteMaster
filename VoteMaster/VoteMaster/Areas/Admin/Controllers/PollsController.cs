@@ -54,7 +54,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string optionsCsv,
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
-            bool enableLiveVoteCount = false, bool enablePollNotifications = false)
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false)
         {
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
@@ -117,6 +117,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             poll.EndTime = endTime;
             poll.EnableLiveVoteCount = enableLiveVoteCount;
             poll.EnablePollNotifications = enablePollNotifications;
+            poll.AllowUsercodeEntry = allowUsercodeEntry;
 
             // Update options - clear and recreate
             poll.Options.Clear();
@@ -132,7 +133,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
-            bool enableLiveVoteCount = false, bool enablePollNotifications = false)
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false)
         {
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -195,6 +196,7 @@ namespace VoteMaster.Areas.Admin.Controllers
                 EndTime = endTime,
                 EnableLiveVoteCount = enableLiveVoteCount,
                 EnablePollNotifications = enablePollNotifications,
+                AllowUsercodeEntry = allowUsercodeEntry,
                 OwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0")
             };
             await _polls.CreatePollAsync(poll, options);
