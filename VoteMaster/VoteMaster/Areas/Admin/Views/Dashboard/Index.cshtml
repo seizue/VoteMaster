@@ -74,72 +74,102 @@
     }
     .table-actions {
         display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+        gap: 0.35rem;
+        flex-wrap: nowrap;
         align-items: center;
     }
     .table-actions .btn {
         white-space: nowrap;
         font-size: 0.8125rem;
-        padding: 0.375rem 0.875rem;
-        flex: 0 1 auto;
+        padding: 0.3rem 0.65rem;
+        flex: 0 0 auto;
     }
     .table-actions form {
         display: inline-flex;
         margin: 0;
+        flex: 0 0 auto;
     }
     .table-actions form .btn {
-        padding: 0.375rem 0.875rem;
+        padding: 0.3rem 0.65rem;
         font-size: 0.8125rem;
     }
+    .ta-end {
+        background: #f97316;
+        color: white;
+        border: none;
+    }
+    .ta-end:hover { background: #ea6c0a; color: white; }
     
     /* Mobile card view */
     .poll-card {
         display: none;
-        border: 1px solid var(--vm-border);
-        border-radius: 1rem;
         background: white;
-        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid var(--vm-border);
         margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
-        transition: all 0.2s ease;
+        padding: 1.25rem;
+        box-shadow: 0 1px 4px rgba(15,23,42,0.07);
+        transition: box-shadow 0.2s;
     }
-    .poll-card:hover {
-        box-shadow: 0 4px 12px rgba(15,23,42,0.08);
-        transform: translateY(-2px);
-    }
-    .poll-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 1rem;
-        gap: 1rem;
-    }
+    .poll-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.10); }
     .poll-card-title {
         font-weight: 700;
-        font-size: 1.125rem;
+        font-size: 1.1rem;
         color: var(--vm-text-primary);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
     .poll-card-meta {
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         color: var(--vm-text-secondary);
-        margin-bottom: 1rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.35rem;
+        margin: 0.5rem 0 1rem;
     }
+    /* 2-column grid matching the original */
     .poll-card-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+        margin-top: 0.75rem;
     }
+    .poll-card-actions.open { display: grid; }
+    .poll-card-actions .btn,
+    .poll-card-actions form {
+        margin: 0;
+    }
+    .poll-card-actions form { display: contents; }
+    .poll-card-actions form .btn { width: 100%; }
+    /* Full-width items span both columns */
+    .poll-card-actions .btn-full,
+    .poll-card-actions form.full { grid-column: 1 / -1; }
+    .poll-card-actions form.full .btn { width: 100%; }
+    /* Card action buttons — large and rounded like the screenshot */
     .poll-card-actions .btn {
-        flex: 1 1 calc(50% - 0.25rem);
-        min-width: 100px;
-        font-size: 0.875rem;
-        padding: 0.625rem 1rem;
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 0.65rem;
     }
+    /* Actions toggle button */
+    .pc-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        width: 100%;
+        margin-top: 0.75rem;
+        padding: 0.45rem 1rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--vm-text-secondary);
+        background: #f1f5f9;
+        border: 1px solid var(--vm-border);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .pc-toggle:hover { background: #e2e8f0; }
     
     @@media (max-width: 768px) {
         .dashboard-header {
@@ -283,31 +313,43 @@ else
                     </td>
                     <td>
                         <div class="table-actions">
-                            <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
+                            <a class="btn btn-sm btn-primary" href="/Admin/Polls/Results/@p.Id" title="Results">
                                 <i class="bi bi-bar-chart me-1"></i>Results
                             </a>
-                            <a class="btn btn-secondary btn-sm" href="/Admin/Analytics/PollDetails/@p.Id">
+                            <a class="btn btn-sm btn-secondary" href="/Admin/Analytics/PollDetails/@p.Id" title="Analytics">
                                 <i class="bi bi-graph-up me-1"></i>Analytics
                             </a>
-                            <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
+                            <a class="btn btn-sm btn-info" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter Status">
                                 <i class="bi bi-people me-1"></i>Status
                             </a>
-                            <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id">
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </a>
+                            @if (status != "Archived")
+                            {
+                                <a class="btn btn-sm btn-warning" href="/Admin/Polls/Edit/@p.Id" title="Edit">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                            }
+                            @if (status == "Active")
+                            {
+                                <form method="post" action="/Admin/Polls/End/@p.Id" onsubmit="return confirm('End this poll now? Voting will close immediately.');" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm ta-end" title="End Poll">
+                                        <i class="bi bi-stop-circle me-1"></i>End
+                                    </button>
+                                </form>
+                            }
                             @if (status == "Upcoming" || status == "Active")
                             {
                                 <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');" class="d-inline">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="bi bi-trash me-1"></i>Delete
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
                             }
                             @if (status == "Archived")
                             {
-                                <button type="button" class="btn btn-danger btn-sm" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
-                                    <i class="bi bi-trash me-1"></i>Delete
+                                <button type="button" class="btn btn-sm btn-danger" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')" title="Delete">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             }
                         </div>
@@ -331,41 +373,52 @@ else
         };
         
         <div class="poll-card" data-poll-id="@p.Id" data-start-date="@p.StartTime.ToString("yyyy-MM-dd")" data-end-date="@p.EndTime.ToString("yyyy-MM-dd")" style="display:none;">
-            <div class="poll-card-header">
-                <div class="flex-grow-1">
-                    <div class="poll-card-title">@p.Title</div>
-                    <span class="@statusBadgeClass">@status</span>
-                </div>
-            </div>
+            <div class="poll-card-title">@p.Title</div>
+            <span class="@statusBadgeClass">@status</span>
             <div class="poll-card-meta">
-                <i class="bi bi-calendar-event me-1"></i>
-                @p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt") - @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")
+                <i class="bi bi-calendar-event"></i>
+                @p.StartTime.ToLocalTime().ToString("MMM dd, h:mm tt") &ndash; @p.EndTime.ToLocalTime().ToString("MMM dd, h:mm tt")
             </div>
+            <button class="pc-toggle" onclick="toggleCardActions(this)">
+                Actions
+            </button>
             <div class="poll-card-actions">
-                <a class="btn btn-primary btn-sm" href="/Admin/Polls/Results/@p.Id">
+                <a class="btn btn-primary" href="/Admin/Polls/Results/@p.Id">
                     <i class="bi bi-bar-chart me-1"></i>Results
                 </a>
-                <a class="btn btn-secondary btn-sm" href="/Admin/Analytics/PollDetails/@p.Id">
+                <a class="btn btn-secondary" href="/Admin/Analytics/PollDetails/@p.Id">
                     <i class="bi bi-graph-up me-1"></i>Analytics
                 </a>
-                <a class="btn btn-info btn-sm" href="/Admin/Polls/VoterStatus/@p.Id">
+                <a class="btn btn-info" href="/Admin/Polls/VoterStatus/@p.Id">
                     <i class="bi bi-people me-1"></i>Status
                 </a>
-                <a class="btn btn-warning btn-sm" href="/Admin/Polls/Edit/@p.Id">
-                    <i class="bi bi-pencil me-1"></i>Edit
-                </a>
+                @if (status != "Archived")
+                {
+                    <a class="btn btn-warning" href="/Admin/Polls/Edit/@p.Id">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </a>
+                }
+                @if (status == "Active")
+                {
+                    <form method="post" action="/Admin/Polls/End/@p.Id" onsubmit="return confirm('End this poll now? Voting will close immediately.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn ta-end">
+                            <i class="bi bi-stop-circle me-1"></i>End Poll
+                        </button>
+                    </form>
+                }
                 @if (status == "Upcoming" || status == "Active")
                 {
-                    <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');" style="flex: 1 1 calc(50% - 0.25rem); min-width: 100px;">
+                    <form class="full" method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger btn-sm w-100">
+                        <button type="submit" class="btn btn-danger">
                             <i class="bi bi-trash me-1"></i>Delete
                         </button>
                     </form>
                 }
                 @if (status == "Archived")
                 {
-                    <button type="button" class="btn btn-danger btn-sm" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')" style="flex: 1 1 calc(50% - 0.25rem); min-width: 100px;">
+                    <button type="button" class="btn btn-danger btn-full" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
                         <i class="bi bi-trash me-1"></i>Delete
                     </button>
                 }
@@ -638,6 +691,12 @@ function clearFilters() {
     currentPage = 1;
     updatePagination();
     displayPage(1);
+}
+
+function toggleCardActions(btn) {
+    const panel = btn.closest('.poll-card').querySelector('.poll-card-actions');
+    const isOpen = panel.classList.toggle('open');
+    btn.textContent = isOpen ? 'Close' : 'Actions';
 }
 
 function showArchiveDeleteModal(pollId, pollTitle) {

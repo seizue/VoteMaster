@@ -220,7 +220,23 @@ namespace VoteMaster.Areas.Admin.Controllers
             return View(voterStatus);
         }
 
-       [HttpPost]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> End(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            // Only end polls that are currently active
+            if (_polls.GetPollStatus(poll) != "Active")
+                return RedirectToAction(nameof(Index));
+
+            poll.EndTime = DateTime.UtcNow;
+            await _polls.UpdatePollAsync(poll);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
