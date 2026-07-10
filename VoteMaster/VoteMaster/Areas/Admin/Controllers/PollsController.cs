@@ -206,6 +206,8 @@ namespace VoteMaster.Areas.Admin.Controllers
         public async Task<IActionResult> Results(int id)
         {
             ViewBag.PollId = id;
+            var poll = await _polls.GetPollAsync(id);
+            ViewBag.PollTitle = poll?.Title ?? "Poll Results";
             var res = await _polls.GetWeightedResultsAsync(id);
             return View(res);
         }
