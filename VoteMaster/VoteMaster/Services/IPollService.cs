@@ -43,6 +43,11 @@ namespace VoteMaster.Services
         Task MarkPresentAsync(int pollId, IEnumerable<int> userIds, int markedByAdminId);
         Task MarkAbsentAsync(int pollId, IEnumerable<int> userIds);
         Task<bool> IsUserPresentAsync(int pollId, int userId);
+        /// <summary>
+        /// Returns the sum of Weight for all voters marked present for this poll.
+        /// Only meaningful when Poll.RequireAttendance is true.
+        /// </summary>
+        Task<int> GetPresentWeightTotalAsync(int pollId);
 
         // Sharing
         Task SharePollAsync(int pollId, int withUserId);

@@ -213,6 +213,20 @@ namespace VoteMaster.Areas.Admin.Controllers
             var poll = await _polls.GetPollAsync(id);
             ViewBag.PollTitle = poll?.Title ?? "Poll Results";
             var res = await _polls.GetWeightedResultsAsync(id);
+
+            // For attendance-enabled polls, show the total weight of present voters
+            // so admins can see "X of Y total weighted votes cast"
+            if (poll?.RequireAttendance == true)
+            {
+                ViewBag.RequireAttendance = true;
+                ViewBag.PresentWeightTotal = await _polls.GetPresentWeightTotalAsync(id);
+                ViewBag.PresentCount = (await _polls.GetPresentUserIdsAsync(id)).Count;
+            }
+            else
+            {
+                ViewBag.RequireAttendance = false;
+            }
+
             return View(res);
         }
 
@@ -330,9 +344,15 @@ namespace VoteMaster.Areas.Admin.Controllers
             var voterStatus  = await _polls.GetVoterVotingStatusAsync(id);
             var votedIds     = voterStatus.Where(v => v.HasVoted).Select(v => v.UserId).ToHashSet();
 
-            ViewBag.Poll       = poll;
-            ViewBag.PresentIds = presentIds;
-            ViewBag.VotedIds   = votedIds;
+            // Weight totals for present and absent voters (computed from already-loaded list)
+            var presentWeight = managedVoters.Where(u => presentIds.Contains(u.Id)).Sum(u => u.Weight);
+            var absentWeight  = managedVoters.Where(u => !presentIds.Contains(u.Id)).Sum(u => u.Weight);
+
+            ViewBag.Poll          = poll;
+            ViewBag.PresentIds    = presentIds;
+            ViewBag.VotedIds      = votedIds;
+            ViewBag.PresentWeight = presentWeight;
+            ViewBag.AbsentWeight  = absentWeight;
             return View(managedVoters);
         }
 

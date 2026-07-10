@@ -8,6 +8,9 @@
     var votedIds   = (ViewBag.VotedIds   as HashSet<int>) ?? new HashSet<int>();
     int total      = Model?.Count ?? 0;
     int presCount  = presentIds.Count(id => Model?.Any(u => u.Id == id) == true);
+    int presentWeight = (int)(ViewBag.PresentWeight ?? 0);
+    int absentWeight  = (int)(ViewBag.AbsentWeight  ?? 0);
+    int totalWeight   = presentWeight + absentWeight;
 }
 
 <style>
@@ -15,7 +18,7 @@
     .att-header h3 { font-weight: 700; color: #0f172a; }
 
     .att-stats {
-        display: grid; grid-template-columns: repeat(3, 1fr);
+        display: grid; grid-template-columns: repeat(5, 1fr);
         gap: 0.75rem; margin-bottom: 1.25rem;
     }
     .att-stat {
@@ -72,6 +75,7 @@
     .att-voter-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
 
     @@media (max-width: 640px) {
+        .att-stats      { grid-template-columns: repeat(2, 1fr); }
         .att-table-wrap { display: none; }
         .att-cards      { display: block; }
     }
@@ -123,6 +127,18 @@
     <div class="att-stat">
         <div class="att-stat-value text-danger">@(total - presCount)</div>
         <div class="att-stat-label">Absent</div>
+    </div>
+    <div class="att-stat">
+        <div class="att-stat-value" style="color:#f97316;">@presentWeight.ToString("N0")</div>
+        <div class="att-stat-label">
+            <i class="bi bi-clipboard-check me-1" style="color:#f97316;"></i>Present Weight
+        </div>
+    </div>
+    <div class="att-stat">
+        <div class="att-stat-value text-secondary">@absentWeight.ToString("N0")</div>
+        <div class="att-stat-label">
+            <i class="bi bi-dash-circle me-1"></i>Absent Weight
+        </div>
     </div>
 </div>
 

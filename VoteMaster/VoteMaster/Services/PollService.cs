@@ -430,6 +430,12 @@ namespace VoteMaster.Services
         public async Task<bool> IsUserPresentAsync(int pollId, int userId) =>
             await _db.PollAttendances.AnyAsync(a => a.PollId == pollId && a.UserId == userId);
 
+        public async Task<int> GetPresentWeightTotalAsync(int pollId) =>
+            await _db.PollAttendances
+                .Where(a => a.PollId == pollId)
+                .Join(_db.Users, a => a.UserId, u => u.Id, (a, u) => u.Weight)
+                .SumAsync();
+
         public async Task MarkPresentAsync(int pollId, IEnumerable<int> userIds, int markedByAdminId)
         {
             var idList  = userIds.Distinct().ToList();
