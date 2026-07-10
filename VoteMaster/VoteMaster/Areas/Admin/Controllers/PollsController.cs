@@ -238,6 +238,49 @@ namespace VoteMaster.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reactivate(int id, string newEndDateTime)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            if (!DateTime.TryParse(newEndDateTime, out var parsedEnd) || parsedEnd <= DateTime.Now)
+            {
+                TempData["Error"] = "Please provide a valid future end date/time to reactivate the poll.";
+                return RedirectToAction(nameof(VoterStatus), new { id });
+            }
+
+            await _polls.ReactivatePollAsync(id, parsedEnd);
+            TempData["Success"] = $"Poll reactivated. New end time: {parsedEnd:g}.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetVotes(int id, string scope, int[]? selectedUserIds)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            if (scope == "all")
+            {
+                await _polls.ResetAllVotesAsync(id);
+                TempData["ResetSuccess"] = "All votes for this poll have been reset.";
+            }
+            else if (scope == "selected" && selectedUserIds != null && selectedUserIds.Length > 0)
+            {
+                await _polls.ResetSelectedVotesAsync(id, selectedUserIds);
+                TempData["ResetSuccess"] = $"Votes reset for {selectedUserIds.Length} voter(s).";
+            }
+            else
+            {
+                TempData["ResetError"] = "No voters selected. Please check at least one voter to reset.";
+            }
+
+            return RedirectToAction(nameof(VoterStatus), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             await _polls.DeletePollAsync(id);

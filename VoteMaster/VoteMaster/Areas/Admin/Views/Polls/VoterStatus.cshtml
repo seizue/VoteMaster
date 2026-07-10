@@ -1,7 +1,13 @@
 @model List<VoteMaster.Services.VoterStatusDto>
+@using VoteMaster.Models
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
-    var poll     = ViewBag.Poll as VoteMaster.Models.Poll;
+    var poll      = ViewBag.Poll as Poll;
+    var pollId    = poll?.Id ?? 0;
+    var pollStatus = poll is null ? "Unknown" : (
+        poll.StartTime > DateTime.UtcNow ? "Upcoming" :
+        poll.EndTime   < DateTime.UtcNow ? "Archived" : "Active");
+
     var voted    = Model?.Count(v => v.HasVoted) ?? 0;
     var notVoted = Model?.Count(v => !v.HasVoted) ?? 0;
     var total    = Model?.Count ?? 0;
@@ -11,44 +17,61 @@
 }
 
 <style>
-    .vs-header { margin-bottom: 1.5rem; }
+    .vs-header { margin-bottom: 1.25rem; }
     .vs-header h3 { font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
 
-    /* Stats bar */
     .vs-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem; margin-bottom: 1.25rem;
     }
     .vs-stat {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 0.875rem 1rem;
-        text-align: center;
+        background: white; border: 1px solid #e2e8f0;
+        border-radius: 0.75rem; padding: 0.875rem 1rem; text-align: center;
     }
     .vs-stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
     .vs-stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
 
-    /* Desktop table */
-    .vs-table-wrap { display: block; }
-    .vs-cards-wrap  { display: none; }
+    /* ── Action toolbar ── */
+    .vs-toolbar {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem;
+        margin-bottom: 1.25rem;
+        padding: 0.875rem 1rem;
+        background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem;
+    }
+    .vs-toolbar .section-label {
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: #94a3b8; margin-right: 0.25rem;
+    }
+    .vs-toolbar .divider {
+        width: 1px; height: 24px; background: #e2e8f0; margin: 0 0.25rem;
+    }
 
-    /* Voter card for mobile */
+    /* ── Reactivate inline form ── */
+    .reactivate-group {
+        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .reactivate-group input[type=datetime-local] {
+        padding: 0.3rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;
+        font-size: 0.85rem; color: #0f172a;
+    }
+
+    /* ── Table ── */
+    .vs-table-wrap { display: block; }
+    .vs-cards-wrap { display: none; }
+
+    .vs-select-all-bar {
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        padding: 0.6rem 1rem; background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0; font-size: 0.875rem;
+    }
+
     .voter-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.875rem;
+        background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem;
+        padding: 1rem; margin-bottom: 0.75rem;
+        display: flex; align-items: center; gap: 0.875rem;
     }
     .voter-card-avatar {
-        width: 40px; height: 40px;
-        border-radius: 50%;
+        width: 40px; height: 40px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         font-weight: 700; font-size: 1rem; flex-shrink: 0;
     }
@@ -57,31 +80,92 @@
     .voter-card-meta { font-size: 0.8125rem; color: #64748b; margin-top: 0.125rem; }
 
     @@media (max-width: 640px) {
-        .vs-stats { grid-template-columns: repeat(2, 1fr); }
+        .vs-stats      { grid-template-columns: repeat(2, 1fr); }
         .vs-table-wrap { display: none; }
-        .vs-cards-wrap  { display: block; }
+        .vs-cards-wrap { display: block; }
     }
 </style>
 
 <div class="vs-header">
-    <h3><i class="bi bi-people-fill me-2"></i>Voter Status</h3>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+        <h3 class="mb-0"><i class="bi bi-people-fill me-2"></i>Voter Status</h3>
+        <span class="badge @(pollStatus == "Active" ? "bg-success" : pollStatus == "Archived" ? "bg-secondary" : "bg-info")" style="font-size:0.85rem;padding:0.45rem 0.9rem;">
+            @pollStatus
+        </span>
+    </div>
     <p class="text-muted small mb-0">@poll?.Title</p>
 </div>
 
-@if (TempData["ProxySuccess"] != null)
+@* ── Feedback alerts ── *@
+@foreach (var key in new[] { "ProxySuccess", "Success", "ResetSuccess" })
 {
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="bi bi-check-circle-fill me-2"></i>@TempData["ProxySuccess"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    if (TempData[key] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData[key]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 }
-@if (TempData["ProxySkipped"] != null)
+@foreach (var key in new[] { "ProxySkipped", "ResetError", "Error" })
 {
-    <div class="alert alert-warning alert-dismissible fade show">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ProxySkipped"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    if (TempData[key] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData[key]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 }
+
+@* ── Action toolbar ── *@
+<div class="vs-toolbar">
+
+    @* Reactivate (shown when poll is Archived or Upcoming; hidden when Active) *@
+    @if (pollStatus != "Active")
+    {
+        <span class="section-label"><i class="bi bi-play-circle me-1"></i>Reactivate</span>
+        <form method="post" action="@Url.Action("Reactivate", "Polls", new { area = "Admin", id = pollId })"
+              class="reactivate-group" id="reactivateForm">
+            @Html.AntiForgeryToken()
+            <input type="datetime-local" name="newEndDateTime" id="newEndDateTime" required
+                   min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                   value="@DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm")" />
+            <button type="button" class="btn btn-sm btn-success"
+                    onclick="confirmReactivate()">
+                <i class="bi bi-play-circle me-1"></i>Reactivate Poll
+            </button>
+        </form>
+        <div class="divider"></div>
+    }
+
+    @* Reset votes *@
+    <span class="section-label"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Votes</span>
+
+    @* Reset All *@
+    <form method="post" action="@Url.Action("ResetVotes", "Polls", new { area = "Admin", id = pollId })"
+          id="resetAllForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="scope" value="all" />
+        <button type="button" class="btn btn-sm btn-outline-danger"
+                onclick="confirmResetAll()">
+            <i class="bi bi-trash me-1"></i>Reset All Votes
+        </button>
+    </form>
+
+    @* Reset Selected *@
+    <form method="post" action="@Url.Action("ResetVotes", "Polls", new { area = "Admin", id = pollId })"
+          id="resetSelectedForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="scope" value="selected" />
+        @* selected user ids injected by JS before submit *@
+        <span id="selectedIdsContainer"></span>
+        <button type="button" class="btn btn-sm btn-outline-warning"
+                onclick="submitResetSelected()">
+            <i class="bi bi-person-dash me-1"></i>Reset Selected (<span id="selectedCount">0</span>)
+        </button>
+    </form>
+</div>
 
 @if (Model == null || Model.Count == 0)
 {
@@ -91,7 +175,6 @@
 }
 else
 {
-    <!-- Stats -->
     <div class="vs-stats">
         <div class="vs-stat">
             <div class="vs-stat-value text-primary">@total</div>
@@ -111,13 +194,21 @@ else
         </div>
     </div>
 
-    <!-- Desktop table -->
+    @* ── Desktop table ── *@
     <div class="vs-table-wrap card">
+        <div class="vs-select-all-bar">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" />
+                <label class="form-check-label fw-semibold" for="selectAll">Select all voted</label>
+            </div>
+            <span class="text-muted small" id="selectionHint">Check voters to enable "Reset Selected"</span>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table mb-0">
                     <thead>
                         <tr>
+                            <th style="width:40px;"></th>
                             <th>Username</th>
                             <th>Status</th>
                             <th>Votes Cast</th>
@@ -128,6 +219,14 @@ else
                         @foreach (var voter in sorted)
                         {
                             <tr>
+                                <td class="align-middle">
+                                    @if (voter.HasVoted)
+                                    {
+                                        <input type="checkbox" class="form-check-input voter-checkbox"
+                                               value="@voter.UserId"
+                                               onchange="updateSelectedCount()" />
+                                    }
+                                </td>
                                 <td class="align-middle fw-semibold">@voter.Username</td>
                                 <td class="align-middle">
                                     @if (voter.HasVoted)
@@ -136,7 +235,7 @@ else
                                     }
                                     else
                                     {
-                                        <span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Not Voted</span>
+                                        <span class="text-secondary fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Not Voted</span>
                                     }
                                 </td>
                                 <td class="align-middle">
@@ -160,7 +259,7 @@ else
         </div>
     </div>
 
-    <!-- Mobile cards -->
+    @* ── Mobile cards ── *@
     <div class="vs-cards-wrap">
         @foreach (var voter in sorted)
         {
@@ -168,16 +267,17 @@ else
             var dotColor = voter.HasVoted ? "#22c55e" : "#f97316";
             var initials = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
             <div class="voter-card">
-                <div class="voter-card-avatar" style="background:@bgColor;color:@dotColor;">
-                    @initials
-                </div>
+                <div class="voter-card-avatar" style="background:@bgColor;color:@dotColor;">@initials</div>
                 <div class="voter-card-info">
                     <div class="voter-card-name">@voter.Username</div>
                     <div class="voter-card-meta">@voter.VoteCount vote(s) cast</div>
                 </div>
                 @if (voter.HasVoted)
                 {
-                    <span class="badge bg-success px-3 py-2"><i class="bi bi-check-lg me-1"></i>Voted</span>
+                    <input type="checkbox" class="form-check-input voter-checkbox"
+                           value="@voter.UserId" onchange="updateSelectedCount()"
+                           style="width:20px;height:20px;" />
+                    <span class="badge bg-success px-3 py-2 ms-1"><i class="bi bi-check-lg me-1"></i>Voted</span>
                 }
                 else
                 {
@@ -188,8 +288,172 @@ else
     </div>
 }
 
-<div class="mt-3">
+<div class="mt-3 d-flex gap-2 flex-wrap">
     <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })" class="btn btn-dark">
         <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
     </a>
+    @if (pollStatus == "Active")
+    {
+        <a href="@Url.Action("ProxyVote", "Polls", new { area = "Admin", id = pollId })"
+           class="btn" style="background:#8b5cf6;color:white;">
+            <i class="bi bi-person-check me-2"></i>Proxy Vote
+        </a>
+    }
+    <a href="@Url.Action("Results", "Polls", new { area = "Admin", id = pollId })"
+       class="btn btn-outline-primary">
+        <i class="bi bi-bar-chart me-2"></i>Results
+    </a>
 </div>
+
+@* ── Reactivate confirmation modal ── *@
+<div class="modal fade" id="reactivateModal" tabindex="-1" aria-labelledby="reactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reactivateModalLabel">
+                    <i class="bi bi-play-circle-fill text-success me-2"></i>Reactivate Poll
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to reactivate <strong>@poll?.Title</strong>.</p>
+                <p class="mb-1 text-muted small">New end time: <strong id="reactivateEndPreview"></strong></p>
+                <p class="text-warning small mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Existing votes are kept. Voters who already voted will not be able to vote again unless you reset their votes first.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="document.getElementById('reactivateForm').submit()">
+                    <i class="bi bi-play-circle me-1"></i>Confirm Reactivate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Reset All confirmation modal ── *@
+<div class="modal fade" id="resetAllModal" tabindex="-1" aria-labelledby="resetAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetAllModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Reset All Votes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will permanently delete <strong>all @voted vote(s)</strong> cast for <strong>@poll?.Title</strong>.</p>
+                <p class="text-danger mb-0"><strong>This cannot be undone.</strong> All voters will be able to vote again.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('resetAllForm').submit()">
+                    <i class="bi bi-trash me-1"></i>Yes, Reset All Votes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Reset Selected confirmation modal ── *@
+<div class="modal fade" id="resetSelectedModal" tabindex="-1" aria-labelledby="resetSelectedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetSelectedModalLabel">
+                    <i class="bi bi-person-dash-fill text-warning me-2"></i>Reset Selected Voters
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Reset votes for <strong><span id="resetSelectedPreviewCount">0</span> selected voter(s)</strong>?</p>
+                <p class="text-warning mb-1 small" id="resetSelectedPreviewNames"></p>
+                <p class="text-danger mb-0 small"><strong>This cannot be undone.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="doResetSelected()">
+                    <i class="bi bi-person-dash me-1"></i>Confirm Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    // ── Selection helpers ───────────────────────────────────────────────────
+    function getChecked() {
+        return Array.from(document.querySelectorAll('.voter-checkbox:checked'));
+    }
+
+    window.updateSelectedCount = function () {
+        var count = getChecked().length;
+        document.getElementById('selectedCount').textContent = count;
+    };
+
+    window.toggleSelectAll = function (master) {
+        document.querySelectorAll('.voter-checkbox').forEach(function (c) {
+            c.checked = master.checked;
+        });
+        updateSelectedCount();
+    };
+
+    // ── Reactivate ──────────────────────────────────────────────────────────
+    window.confirmReactivate = function () {
+        var input = document.getElementById('newEndDateTime');
+        if (!input || !input.value) {
+            alert('Please pick a new end date/time first.');
+            return;
+        }
+        var d = new Date(input.value);
+        document.getElementById('reactivateEndPreview').textContent = d.toLocaleString();
+        new bootstrap.Modal(document.getElementById('reactivateModal')).show();
+    };
+
+    // ── Reset All ───────────────────────────────────────────────────────────
+    window.confirmResetAll = function () {
+        new bootstrap.Modal(document.getElementById('resetAllModal')).show();
+    };
+
+    // ── Reset Selected ──────────────────────────────────────────────────────
+    window.submitResetSelected = function () {
+        var checked = getChecked();
+        if (checked.length === 0) {
+            alert('Please select at least one voter to reset.');
+            return;
+        }
+
+        // Preview names from table rows
+        var names = checked.map(function (c) {
+            var row = c.closest('tr') || c.closest('.voter-card');
+            if (!row) return 'User ' + c.value;
+            var nameEl = row.querySelector('td:nth-child(2), .voter-card-name');
+            return nameEl ? nameEl.textContent.trim() : 'User ' + c.value;
+        });
+
+        document.getElementById('resetSelectedPreviewCount').textContent = checked.length;
+        document.getElementById('resetSelectedPreviewNames').textContent = names.join(', ');
+        new bootstrap.Modal(document.getElementById('resetSelectedModal')).show();
+    };
+
+    window.doResetSelected = function () {
+        var checked = getChecked();
+        var container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = '';
+        checked.forEach(function (c) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'selectedUserIds';
+            inp.value = c.value;
+            container.appendChild(inp);
+        });
+        bootstrap.Modal.getInstance(document.getElementById('resetSelectedModal')).hide();
+        document.getElementById('resetSelectedForm').submit();
+    };
+})();
+</script>
+}

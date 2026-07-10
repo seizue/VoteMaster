@@ -286,6 +286,9 @@ else
                     }
                     @if (status == "Archived")
                     {
+                        <a class="btn btn-sm btn-success" href="/Admin/Polls/VoterStatus/@poll.Id" title="Reactivate">
+                            <i class="bi bi-play-circle me-1"></i>Reactivate
+                        </a>
                         <button type="button" class="btn btn-sm btn-danger" onclick="showArchiveDeleteModal(@poll.Id, '@poll.Title')"><i class="bi bi-trash"></i></button>
                     }
                 </div>
@@ -356,6 +359,9 @@ else
                 }
                 @if (status == "Archived")
                 {
+                    <a class="btn btn-success" href="/Admin/Polls/VoterStatus/@poll.Id">
+                        <i class="bi bi-play-circle me-1"></i>Reactivate
+                    </a>
                     <button type="button" class="btn btn-danger btn-full" onclick="showArchiveDeleteModal(@poll.Id, '@poll.Title')">
                         <i class="bi bi-trash me-1"></i>Delete
                     </button>

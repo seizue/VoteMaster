@@ -31,6 +31,13 @@ namespace VoteMaster.Services
         /// </summary>
         Task<ProxyVoteResult> ProxyCastVotesAsync(int pollId, Dictionary<int, List<int>> userOptionMap);
 
+        // Poll lifecycle — reactivate an archived/ended poll
+        Task ReactivatePollAsync(int pollId, DateTime newEndTime);
+
+        // Admin vote reset
+        Task ResetAllVotesAsync(int pollId);
+        Task ResetSelectedVotesAsync(int pollId, IEnumerable<int> userIds);
+
         // Sharing
         Task SharePollAsync(int pollId, int withUserId);
         Task UnsharePollAsync(int pollId, int withUserId);

@@ -257,6 +257,49 @@ namespace VoteMaster.Services
                 .Select(s => s.SharedWithUser)
                 .ToListAsync();
 
+        public async Task ReactivatePollAsync(int pollId, DateTime newEndTime)
+        {
+            var poll = await _db.Polls.FindAsync(pollId)
+                ?? throw new InvalidOperationException("Poll not found");
+
+            var now = DateTime.UtcNow;
+            // If start time is also in the past, reset it to now so the poll is immediately active
+            if (poll.StartTime > now) poll.StartTime = now;
+            poll.EndTime = newEndTime.ToUniversalTime();
+
+            _db.Polls.Update(poll);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task ResetAllVotesAsync(int pollId)
+        {
+            var votes = await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.Option.PollId == pollId)
+                .ToListAsync();
+
+            if (votes.Any())
+            {
+                _db.Votes.RemoveRange(votes);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task ResetSelectedVotesAsync(int pollId, IEnumerable<int> userIds)
+        {
+            var idSet = userIds.ToHashSet();
+            var votes = await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.Option.PollId == pollId && idSet.Contains(v.UserId))
+                .ToListAsync();
+
+            if (votes.Any())
+            {
+                _db.Votes.RemoveRange(votes);
+                await _db.SaveChangesAsync();
+            }
+        }
+
         public async Task<ProxyVoteResult> ProxyCastVotesAsync(int pollId, Dictionary<int, List<int>> userOptionMap)
         {
             var poll = await _db.Polls
