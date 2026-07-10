@@ -54,7 +54,8 @@ namespace VoteMaster.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string optionsCsv,
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
-            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false)
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
+            bool requireAttendance = false)
         {
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
@@ -118,6 +119,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             poll.EnableLiveVoteCount = enableLiveVoteCount;
             poll.EnablePollNotifications = enablePollNotifications;
             poll.AllowUsercodeEntry = allowUsercodeEntry;
+            poll.RequireAttendance = requireAttendance;
 
             // Update options - clear and recreate
             poll.Options.Clear();
@@ -133,7 +135,8 @@ namespace VoteMaster.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
-            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false)
+            bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
+            bool requireAttendance = false)
         {
             var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -197,6 +200,7 @@ namespace VoteMaster.Areas.Admin.Controllers
                 EnableLiveVoteCount = enableLiveVoteCount,
                 EnablePollNotifications = enablePollNotifications,
                 AllowUsercodeEntry = allowUsercodeEntry,
+                RequireAttendance = requireAttendance,
                 OwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0")
             };
             await _polls.CreatePollAsync(poll, options);
@@ -219,6 +223,7 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             var voterStatus = await _polls.GetVoterVotingStatusAsync(id);
             ViewBag.Poll = poll;
+            ViewBag.RequireAttendance = poll.RequireAttendance;
             return View(voterStatus);
         }
 
@@ -303,6 +308,77 @@ namespace VoteMaster.Areas.Admin.Controllers
         {
             await _polls.UnsharePollAsync(pollId, withUserId);
             return RedirectToAction(nameof(Edit), new { id = pollId });
+        }
+
+        // ── Attendance ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Shows the attendance management page for a poll — lists all voters
+        /// with their present/absent status and lets admin mark them in bulk.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Attendance(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            var adminId      = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            var managedVoters = (await _users.GetAllForAdminAsync(adminId))
+                                    .Where(u => u.Role == "Voter").ToList();
+
+            var presentIds   = await _polls.GetPresentUserIdsAsync(id);
+            var voterStatus  = await _polls.GetVoterVotingStatusAsync(id);
+            var votedIds     = voterStatus.Where(v => v.HasVoted).Select(v => v.UserId).ToHashSet();
+
+            ViewBag.Poll       = poll;
+            ViewBag.PresentIds = presentIds;
+            ViewBag.VotedIds   = votedIds;
+            return View(managedVoters);
+        }
+
+        /// <summary>Mark selected voters as present (or absent).</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAttendance(int id, string action, int[]? selectedUserIds)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            if (selectedUserIds == null || selectedUserIds.Length == 0)
+            {
+                TempData["AttendanceError"] = "No voters selected.";
+                return RedirectToAction(nameof(Attendance), new { id });
+            }
+
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+
+            if (action == "present")
+            {
+                await _polls.MarkPresentAsync(id, selectedUserIds, adminId);
+                TempData["AttendanceSuccess"] = $"{selectedUserIds.Length} voter(s) marked as present.";
+            }
+            else if (action == "absent")
+            {
+                await _polls.MarkAbsentAsync(id, selectedUserIds);
+                TempData["AttendanceSuccess"] = $"{selectedUserIds.Length} voter(s) marked as absent.";
+            }
+
+            return RedirectToAction(nameof(Attendance), new { id });
+        }
+
+        /// <summary>Mark a single voter present or absent — used by the quick-toggle button.</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleAttendance(int id, int userId, bool present)
+        {
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+
+            if (present)
+                await _polls.MarkPresentAsync(id, new[] { userId }, adminId);
+            else
+                await _polls.MarkAbsentAsync(id, new[] { userId });
+
+            return RedirectToAction(nameof(Attendance), new { id });
         }
 
         // ── Proxy Voting ──────────────────────────────────────────────────────────

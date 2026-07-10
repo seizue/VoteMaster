@@ -10,6 +10,8 @@
     bool isAuthenticated = (bool?)ViewBag.IsAuthenticated ?? false;
     bool allowUsercodeEntry = (bool?)ViewBag.AllowUsercodeEntry ?? false;
     int weightedTotal = (int?)ViewBag.WeightedTotal ?? 0;
+    bool requireAttendance = (bool?)ViewBag.RequireAttendance ?? false;
+    bool isPresent = (bool?)ViewBag.IsPresent ?? true;
     var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
     var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
@@ -163,6 +165,21 @@
         <div class="alert alert-secondary">
             <i class="bi bi-check-circle-fill me-2"></i>
             <strong>Voting Complete!</strong> You have already cast @voteCount vote(s) for this poll.
+        </div>
+    }
+
+    @* Attendance gate — shown to authenticated voters who are not yet marked present *@
+    @if (isAuthenticated && requireAttendance && !isPresent && !hasVoted && pollStatus == "Active")
+    {
+        <div class="alert alert-warning d-flex align-items-start gap-3">
+            <i class="bi bi-shield-lock-fill fs-4 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>Attendance Required</strong>
+                <p class="mb-0 mt-1">
+                    You have not been marked as present for this poll.
+                    Please check in with the administrator to be registered before you can vote.
+                </p>
+            </div>
         </div>
     }
 
@@ -323,8 +340,9 @@
             {
                 <div class="vote-hint" id="voteHint"></div>
                 <div class="vote-buttons">
-                    <button type="submit" class="btn btn-primary btn-lg" id="submitButton" @(hasVoted && voteCount >= maxVotes ? "disabled" : "")>
-                        <i class="bi bi-check2-circle me-2"></i>@(hasVoted && voteCount >= maxVotes ? "Voting Complete" : "Submit Your Votes")
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitButton"
+                            @((hasVoted && voteCount >= maxVotes) || (requireAttendance && !isPresent) ? "disabled" : "")>
+                        <i class="bi bi-check2-circle me-2"></i>@(hasVoted && voteCount >= maxVotes ? "Voting Complete" : requireAttendance && !isPresent ? "Not Marked Present" : "Submit Your Votes")
                     </button>
                     @if (hasVoted && voteCount >= maxVotes && pollStatus != "Archived")
                     {

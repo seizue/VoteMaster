@@ -7,9 +7,11 @@
     var pollStatus = poll is null ? "Unknown" : (
         poll.StartTime > DateTime.UtcNow ? "Upcoming" :
         poll.EndTime   < DateTime.UtcNow ? "Archived" : "Active");
+    bool requireAttendance = (bool)(ViewBag.RequireAttendance ?? false);
 
     var voted    = Model?.Count(v => v.HasVoted) ?? 0;
     var notVoted = Model?.Count(v => !v.HasVoted) ?? 0;
+    var present  = Model?.Count(v => v.IsPresent) ?? 0;
     var total    = Model?.Count ?? 0;
     var rate     = total > 0 ? voted * 100 / total : 0;
     var sorted   = Model?.OrderByDescending(v => v.HasVoted).ThenBy(v => v.Username).ToList()
@@ -121,6 +123,16 @@
 @* ── Action toolbar ── *@
 <div class="vs-toolbar">
 
+    @* Attendance shortcut — only shown when poll has RequireAttendance *@
+    @if (requireAttendance)
+    {
+        <span class="section-label"><i class="bi bi-clipboard-check me-1"></i>Attendance</span>
+        <a href="@Url.Action("Attendance", "Polls", new { area = "Admin", id = pollId })"
+           class="btn btn-sm btn-primary">
+            <i class="bi bi-clipboard-check me-1"></i>Manage Attendance
+        </a>
+        <div class="divider"></div>
+    }
     @* Reactivate (shown when poll is Archived or Upcoming; hidden when Active) *@
     @if (pollStatus != "Active")
     {
@@ -192,6 +204,13 @@ else
             <div class="vs-stat-value text-info">@rate%</div>
             <div class="vs-stat-label">Rate</div>
         </div>
+        @if (requireAttendance)
+        {
+            <div class="vs-stat">
+                <div class="vs-stat-value text-warning">@present</div>
+                <div class="vs-stat-label">Present</div>
+            </div>
+        }
     </div>
 
     @* ── Desktop table ── *@
@@ -210,9 +229,12 @@ else
                         <tr>
                             <th style="width:40px;"></th>
                             <th>Username</th>
-                            <th>Status</th>
+                            @if (requireAttendance)
+                            {
+                                <th>Attendance</th>
+                            }
+                            <th>Vote Status</th>
                             <th>Votes Cast</th>
-                            <th>Badge</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,6 +250,23 @@ else
                                     }
                                 </td>
                                 <td class="align-middle fw-semibold">@voter.Username</td>
+                                @if (requireAttendance)
+                                {
+                                    <td class="align-middle">
+                                        @if (voter.IsPresent)
+                                        {
+                                            <span class="badge bg-success px-2 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Present
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-secondary border px-2 py-1">
+                                                <i class="bi bi-dash-circle me-1"></i>Absent
+                                            </span>
+                                        }
+                                    </td>
+                                }
                                 <td class="align-middle">
                                     @if (voter.HasVoted)
                                     {
@@ -240,16 +279,6 @@ else
                                 </td>
                                 <td class="align-middle">
                                     <span class="badge bg-light text-dark px-3 py-2">@voter.VoteCount</span>
-                                </td>
-                                <td class="align-middle">
-                                    @if (voter.HasVoted)
-                                    {
-                                        <span class="badge bg-success px-3 py-2"><i class="bi bi-check-lg me-1"></i>Completed</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning px-3 py-2"><i class="bi bi-clock me-1"></i>Pending</span>
-                                    }
                                 </td>
                             </tr>
                         }
@@ -270,7 +299,20 @@ else
                 <div class="voter-card-avatar" style="background:@bgColor;color:@dotColor;">@initials</div>
                 <div class="voter-card-info">
                     <div class="voter-card-name">@voter.Username</div>
-                    <div class="voter-card-meta">@voter.VoteCount vote(s) cast</div>
+                    <div class="voter-card-meta">
+                        @voter.VoteCount vote(s) cast
+                        @if (requireAttendance)
+                        {
+                            if (voter.IsPresent)
+                            {
+                                <text>&nbsp;·&nbsp;<span class="text-success fw-semibold">Present</span></text>
+                            }
+                            else
+                            {
+                                <text>&nbsp;·&nbsp;<span class="text-secondary">Absent</span></text>
+                            }
+                        }
+                    </div>
                 </div>
                 @if (voter.HasVoted)
                 {
@@ -297,6 +339,13 @@ else
         <a href="@Url.Action("ProxyVote", "Polls", new { area = "Admin", id = pollId })"
            class="btn" style="background:#8b5cf6;color:white;">
             <i class="bi bi-person-check me-2"></i>Proxy Vote
+        </a>
+    }
+    @if (requireAttendance)
+    {
+        <a href="@Url.Action("Attendance", "Polls", new { area = "Admin", id = pollId })"
+           class="btn btn-primary">
+            <i class="bi bi-clipboard-check me-2"></i>Attendance
         </a>
     }
     <a href="@Url.Action("Results", "Polls", new { area = "Admin", id = pollId })"

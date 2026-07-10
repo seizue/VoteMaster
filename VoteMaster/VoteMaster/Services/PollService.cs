@@ -111,6 +111,15 @@ namespace VoteMaster.Services
 
             var pollId = option.PollId;
 
+            // Attendance guard — if the poll requires it, the voter must be marked present
+            if (option.Poll.RequireAttendance)
+            {
+                var isPresent = await _db.PollAttendances
+                    .AnyAsync(a => a.PollId == pollId && a.UserId == userId);
+                if (!isPresent)
+                    throw new InvalidOperationException("You are not marked as present for this poll. Please contact the administrator.");
+            }
+
             // Count how many votes the user has already cast in this poll
             var existingVotes = await _db.Votes
                 .Include(v => v.Option)
@@ -181,13 +190,19 @@ namespace VoteMaster.Services
                 .GroupBy(v => v.UserId)
                 .ToDictionaryAsync(g => g.Key, g => g.Count());
 
-            // Create DTO with voting status
+            // Get attendance for this poll
+            var presentIds = await _db.PollAttendances
+                .Where(a => a.PollId == pollId)
+                .Select(a => a.UserId)
+                .ToHashSetAsync();
+
             return allVoters.Select(voter => new VoterStatusDto
             {
-                UserId = voter.Id,
-                Username = voter.Username,
-                HasVoted = pollVotes.ContainsKey(voter.Id),
-                VoteCount = pollVotes.ContainsKey(voter.Id) ? pollVotes[voter.Id] : 0
+                UserId    = voter.Id,
+                Username  = voter.Username,
+                HasVoted  = pollVotes.ContainsKey(voter.Id),
+                VoteCount = pollVotes.ContainsKey(voter.Id) ? pollVotes[voter.Id] : 0,
+                IsPresent = presentIds.Contains(voter.Id)
             }).ToList();
         }
 
@@ -323,8 +338,19 @@ namespace VoteMaster.Services
                 .Where(u => userIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => u.Username);
 
+            // If attendance required, pre-load who is already present
+            HashSet<int>? presentIds = null;
+            if (poll.RequireAttendance)
+            {
+                presentIds = await _db.PollAttendances
+                    .Where(a => a.PollId == pollId)
+                    .Select(a => a.UserId)
+                    .ToHashSetAsync();
+            }
+
             var result = new ProxyVoteResult();
             var newVotes = new List<Vote>();
+            var newAttendances = new List<PollAttendance>();
 
             foreach (var (userId, optionIds) in userOptionMap)
             {
@@ -351,6 +377,18 @@ namespace VoteMaster.Services
                     continue;
                 }
 
+                // Auto-mark present when admin casts proxy vote
+                if (poll.RequireAttendance && presentIds != null && !presentIds.Contains(userId))
+                {
+                    newAttendances.Add(new PollAttendance
+                    {
+                        PollId   = pollId,
+                        UserId   = userId,
+                        MarkedAt = DateTime.UtcNow
+                    });
+                    presentIds.Add(userId);
+                }
+
                 foreach (var optionId in validOptions)
                 {
                     if (!existingPairs.Contains((userId, optionId)))
@@ -358,8 +396,8 @@ namespace VoteMaster.Services
                         newVotes.Add(new Vote
                         {
                             OptionId = optionId,
-                            UserId = userId,
-                            VotedAt = DateTime.UtcNow
+                            UserId   = userId,
+                            VotedAt  = DateTime.UtcNow
                         });
                         existingPairs.Add((userId, optionId));
                     }
@@ -368,13 +406,64 @@ namespace VoteMaster.Services
                 result.Processed++;
             }
 
+            if (newAttendances.Count > 0)
+                _db.PollAttendances.AddRange(newAttendances);
+
             if (newVotes.Count > 0)
-            {
                 _db.Votes.AddRange(newVotes);
+
+            if (newAttendances.Count > 0 || newVotes.Count > 0)
                 await _db.SaveChangesAsync();
-            }
 
             return result;
+        }
+
+        // ── Attendance ────────────────────────────────────────────────────────────
+
+        public async Task<HashSet<int>> GetPresentUserIdsAsync(int pollId) =>
+            (await _db.PollAttendances
+                .Where(a => a.PollId == pollId)
+                .Select(a => a.UserId)
+                .ToListAsync())
+            .ToHashSet();
+
+        public async Task<bool> IsUserPresentAsync(int pollId, int userId) =>
+            await _db.PollAttendances.AnyAsync(a => a.PollId == pollId && a.UserId == userId);
+
+        public async Task MarkPresentAsync(int pollId, IEnumerable<int> userIds, int markedByAdminId)
+        {
+            var idList  = userIds.Distinct().ToList();
+            var already = await _db.PollAttendances
+                .Where(a => a.PollId == pollId && idList.Contains(a.UserId))
+                .Select(a => a.UserId)
+                .ToHashSetAsync();
+
+            var toAdd = idList
+                .Where(uid => !already.Contains(uid))
+                .Select(uid => new PollAttendance
+                {
+                    PollId         = pollId,
+                    UserId         = uid,
+                    MarkedAt       = DateTime.UtcNow,
+                    MarkedByAdminId = markedByAdminId
+                });
+
+            _db.PollAttendances.AddRange(toAdd);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task MarkAbsentAsync(int pollId, IEnumerable<int> userIds)
+        {
+            var idSet = userIds.ToHashSet();
+            var rows  = await _db.PollAttendances
+                .Where(a => a.PollId == pollId && idSet.Contains(a.UserId))
+                .ToListAsync();
+
+            if (rows.Any())
+            {
+                _db.PollAttendances.RemoveRange(rows);
+                await _db.SaveChangesAsync();
+            }
         }
     }
 }

@@ -38,6 +38,12 @@ namespace VoteMaster.Services
         Task ResetAllVotesAsync(int pollId);
         Task ResetSelectedVotesAsync(int pollId, IEnumerable<int> userIds);
 
+        // Attendance — mark voters present/absent for a poll
+        Task<HashSet<int>> GetPresentUserIdsAsync(int pollId);
+        Task MarkPresentAsync(int pollId, IEnumerable<int> userIds, int markedByAdminId);
+        Task MarkAbsentAsync(int pollId, IEnumerable<int> userIds);
+        Task<bool> IsUserPresentAsync(int pollId, int userId);
+
         // Sharing
         Task SharePollAsync(int pollId, int withUserId);
         Task UnsharePollAsync(int pollId, int withUserId);
@@ -50,6 +56,7 @@ namespace VoteMaster.Services
         public string Username { get; set; } = string.Empty;
         public bool HasVoted { get; set; }
         public int VoteCount { get; set; }
+        public bool IsPresent { get; set; }   // attendance
     }
 
     public class PollViewDto

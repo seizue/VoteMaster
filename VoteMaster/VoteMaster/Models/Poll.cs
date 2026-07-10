@@ -22,6 +22,10 @@ namespace VoteMaster.Models
         // Kiosk mode — voters can enter using only their username (no password required)
         public bool AllowUsercodeEntry { get; set; } = false;
 
+        // Attendance mode — voters must be marked present before they can vote
+        public bool RequireAttendance { get; set; } = false;
+        public ICollection<PollAttendance> Attendances { get; set; } = new List<PollAttendance>();
+
         // Ownership — nullable so existing polls without an owner still work
         public int? OwnerId { get; set; }
         public AppUser? Owner { get; set; }

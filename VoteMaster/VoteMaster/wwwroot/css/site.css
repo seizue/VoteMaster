@@ -274,6 +274,52 @@ body{
   font-size: 0.75rem;
 }
 
+/* Actions dropdown — full-width, aligned buttons on desktop */
+.dropdown-menu > li {
+  list-style: none;
+}
+
+.actions-dropdown-menu {
+  padding: 0.5rem;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.actions-dropdown-menu hr {
+  margin: 0.25rem 0 !important;
+  border: 0 !important;
+  border-top: 1px solid #cbd5e1 !important;
+  opacity: 1 !important;
+  height: 0 !important;
+}
+
+.actions-dropdown-menu .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.actions-dropdown-menu form {
+  margin: 0;
+  width: 100%;
+}
+
+.actions-dropdown-menu form .btn {
+  width: 100%;
+}
+
+.actions-dropdown-menu .btn i.bi {
+  width: 1.125rem;
+  flex-shrink: 0;
+  text-align: center;
+}
+
 /* Status Badges in Tables */
 .table .badge{
   padding: 0.375rem 0.875rem;

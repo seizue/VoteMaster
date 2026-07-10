@@ -93,6 +93,13 @@
                     Allow usercode-only entry <span class="text-muted fw-normal">(voters enter only their username — no password needed)</span>
                 </label>
             </div>
+
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="requireAttendance" name="requireAttendance" value="true" @((ViewBag.RequireAttendance ?? poll?.RequireAttendance ?? false) ? "checked" : "") />
+                <label class="form-check-label" for="requireAttendance">
+                    Require attendance <span class="text-muted fw-normal">(voters must be marked present by admin before they can vote)</span>
+                </label>
+            </div>
             
             @if (!ViewData.ModelState.IsValid)
             {

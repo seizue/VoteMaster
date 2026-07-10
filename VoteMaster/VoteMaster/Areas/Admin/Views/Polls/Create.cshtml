@@ -87,6 +87,13 @@
             Allow usercode-only entry <span class="text-muted fw-normal">(voters enter only their username to vote — no password needed)</span>
         </label>
     </div>
+
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="requireAttendance" name="requireAttendance" value="true" />
+        <label class="form-check-label" for="requireAttendance">
+            Require attendance <span class="text-muted fw-normal">(voters must be marked present by admin before they can vote)</span>
+        </label>
+    </div>
     
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Create Poll</button>

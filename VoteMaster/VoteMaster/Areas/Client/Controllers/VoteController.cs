@@ -65,6 +65,11 @@ namespace VoteMaster.Areas.Client.Controllers
             var pollStatus = _polls.GetPollStatus(poll);
             var showResults = pollStatus == "Archived" || (hasVoted && poll.AllowPublicResults);
 
+            // Attendance check
+            bool isPresent = true; // default: no restriction
+            if (poll.RequireAttendance)
+                isPresent = await _polls.IsUserPresentAsync(pollId, userId);
+
             ViewBag.HasVoted = hasVoted;
             ViewBag.VoteCount = voteCount;
             ViewBag.MaxVotes = poll.MaxVotesPerVoter;
@@ -73,6 +78,8 @@ namespace VoteMaster.Areas.Client.Controllers
             ViewBag.PollStatus = pollStatus;
             ViewBag.IsAuthenticated = true;
             ViewBag.AllowUsercodeEntry = poll.AllowUsercodeEntry;
+            ViewBag.RequireAttendance = poll.RequireAttendance;
+            ViewBag.IsPresent = isPresent;
 
             // Pass weighted total when results are visible
             if (showResults)

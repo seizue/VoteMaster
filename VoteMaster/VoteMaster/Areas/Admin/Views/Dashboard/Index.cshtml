@@ -67,15 +67,20 @@
     }
     .table-responsive {
         border-radius: 1rem;
-        overflow: hidden;
+        overflow: visible;
         box-shadow: 0 1px 3px rgba(15,23,42,0.08);
         background: white;
         margin-bottom: 2rem;
     }
+    /* Dropdown panel of colored action buttons — see site.css .actions-dropdown-menu */
     .table-actions {
         display: flex;
         gap: 0.35rem;
         flex-wrap: nowrap;
+        align-items: center;
+    }
+    .table-actions .dropdown {
+        display: inline-flex;
         align-items: center;
     }
     .table-actions .btn {
@@ -222,6 +227,34 @@
             padding: 0.5rem 0.625rem;
         }
     }
+    
+    .actions-dropdown-menu {
+        display: flex;
+        flex-direction: column;
+        padding: 0.35rem;
+        gap: 0.25rem;
+    }
+    .actions-dropdown-menu .btn {
+        width: 100%;
+        text-align: left;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.4rem;
+    }
+    .actions-dropdown-menu form {
+        display: contents;
+    }
+    .actions-dropdown-menu form .btn {
+        width: 100%;
+        text-align: left;
+    }
+    .actions-dropdown-menu hr {
+        margin: 0.15rem 0 !important;
+        border: 0 !important;
+        border-top: 1px solid #e2e8f0 !important;
+        opacity: 1 !important;
+        height: 0 !important;
+    }
 </style>
 
 <div class="dashboard-header">
@@ -287,7 +320,7 @@ else
                     <th style="width: 35%;">Poll Title</th>
                     <th style="width: 12%;">Status</th>
                     <th style="width: 25%;" class="d-none d-lg-table-cell">Time Period</th>
-                    <th style="width: 28%;">Actions</th>
+                    <th style="width: 18%;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -313,52 +346,87 @@ else
                     </td>
                     <td>
                         <div class="table-actions">
+                            @* Always-visible primary actions *@
                             <a class="btn btn-sm btn-primary" href="/Admin/Polls/Results/@p.Id" title="Results">
                                 <i class="bi bi-bar-chart me-1"></i>Results
-                            </a>
-                            <a class="btn btn-sm btn-secondary" href="/Admin/Analytics/PollDetails/@p.Id" title="Analytics">
-                                <i class="bi bi-graph-up me-1"></i>Analytics
                             </a>
                             <a class="btn btn-sm btn-info" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter Status">
                                 <i class="bi bi-people me-1"></i>Status
                             </a>
-                            @if (status != "Archived")
-                            {
-                                <a class="btn btn-sm btn-warning" href="/Admin/Polls/Edit/@p.Id" title="Edit">
-                                    <i class="bi bi-pencil me-1"></i>Edit
-                                </a>
-                            }
-                            @if (status == "Active")
-                            {
-                                <a class="btn btn-sm" href="/Admin/Polls/ProxyVote/@p.Id" title="Proxy Vote"
-                                   style="background:#8b5cf6;color:white;">
-                                    <i class="bi bi-person-check me-1"></i>Proxy
-                                </a>
-                                <form method="post" action="/Admin/Polls/End/@p.Id" onsubmit="return confirm('End this poll now? Voting will close immediately.');" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm ta-end" title="End Poll">
-                                        <i class="bi bi-stop-circle me-1"></i>End
-                                    </button>
-                                </form>
-                            }
-                            @if (status == "Upcoming" || status == "Active")
-                            {
-                                <form method="post" action="/Admin/Polls/Delete/@p.Id" onsubmit="return confirm('Delete this poll?');" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            }
-                            @if (status == "Archived")
-                            {
-                                <a class="btn btn-sm btn-success" href="/Admin/Polls/VoterStatus/@p.Id" title="Reactivate">
-                                    <i class="bi bi-play-circle me-1"></i>Reactivate
-                                </a>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="showArchiveDeleteModal(@p.Id, '@p.Title')" title="Delete">
-                                    <i class="bi bi-trash"></i>
+
+                            @* ⋯ overflow dropdown — uses Popper fixed strategy to escape stacking contexts *@
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="true"
+                                        data-action-dropdown
+                                        aria-expanded="false"
+                                        title="More actions">
+                                    <i class="bi bi-three-dots"></i>
                                 </button>
-                            }
+                                <ul class="dropdown-menu dropdown-menu-end p-0 border-0 shadow"
+                                    style="min-width:0;">
+                                    <li>
+                                        <div class="actions-dropdown-menu">
+                                            <a class="btn btn-sm btn-secondary" href="/Admin/Analytics/PollDetails/@p.Id">
+                                                <i class="bi bi-graph-up me-1"></i>Analytics
+                                            </a>
+                                            @if (status != "Archived")
+                                            {
+                                                <a class="btn btn-sm btn-warning" href="/Admin/Polls/Edit/@p.Id">
+                                                    <i class="bi bi-pencil me-1"></i>Edit
+                                                </a>
+                                            }
+                                            @if (status == "Active")
+                                            {
+                                                <a class="btn btn-sm" href="/Admin/Polls/ProxyVote/@p.Id"
+                                                   style="background:#8b5cf6;color:white;">
+                                                    <i class="bi bi-person-check me-1"></i>Proxy Vote
+                                                </a>
+                                                @if (p.RequireAttendance)
+                                                {
+                                                    <a class="btn btn-sm btn-primary" href="/Admin/Polls/Attendance/@p.Id">
+                                                        <i class="bi bi-clipboard-check me-1"></i>Attendance
+                                                    </a>
+                                                }
+                                                <hr />
+                                                <form method="post" action="/Admin/Polls/End/@p.Id"
+                                                      onsubmit="return confirm('End this poll now? Voting will close immediately.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm ta-end">
+                                                        <i class="bi bi-stop-circle me-1"></i>End Poll
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (status == "Archived")
+                                            {
+                                                <a class="btn btn-sm btn-success" href="/Admin/Polls/VoterStatus/@p.Id">
+                                                    <i class="bi bi-play-circle me-1"></i>Reactivate
+                                                </a>
+                                            }
+                                            <hr />
+                                            @if (status == "Upcoming" || status == "Active")
+                                            {
+                                                <form method="post" action="/Admin/Polls/Delete/@p.Id"
+                                                      onsubmit="return confirm('Delete this poll?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-danger">
+                                                        <i class="bi bi-trash me-1"></i>Delete
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (status == "Archived")
+                                            {
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
+                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                </button>
+                                            }
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -407,6 +475,12 @@ else
                 }
                 @if (status == "Active")
                 {
+                    @if (p.RequireAttendance)
+                    {
+                        <a class="btn btn-primary" href="/Admin/Polls/Attendance/@p.Id">
+                            <i class="bi bi-clipboard-check me-1"></i>Attendance
+                        </a>
+                    }
                     <a class="btn" href="/Admin/Polls/ProxyVote/@p.Id" style="background:#8b5cf6;color:white;">
                         <i class="bi bi-person-check me-1"></i>Proxy Vote
                     </a>
@@ -540,6 +614,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     filteredPolls = [...allPolls];
     applyFilters();
+
+    // Initialize action dropdowns with Popper fixed strategy
+    // This bypasses ALL parent stacking contexts (z-index, overflow, transform)
+    // and works in every browser including Edge.
+    document.querySelectorAll('[data-action-dropdown]').forEach(function(el) {
+        new bootstrap.Dropdown(el, {
+            popperConfig: {
+                strategy: 'fixed'
+            }
+        });
+    });
 });
 
 function displayPage(page) {
