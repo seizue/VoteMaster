@@ -23,6 +23,14 @@ namespace VoteMaster.Services
         Task<List<int>> GetUserVotesForPollAsync(int pollId, int userId);
         Task ResetUserVotesAsync(int pollId, int userId);
         string GetPollStatus(Poll poll);
+        // Proxy voting — admin votes on behalf of multiple users at once
+        /// <summary>
+        /// Casts votes for multiple users in bulk. Each entry maps a userId to the optionIds they voted for.
+        /// Skips users who have already voted, and skips duplicate votes silently.
+        /// Returns a summary: how many users were processed and how many were skipped.
+        /// </summary>
+        Task<ProxyVoteResult> ProxyCastVotesAsync(int pollId, Dictionary<int, List<int>> userOptionMap);
+
         // Sharing
         Task SharePollAsync(int pollId, int withUserId);
         Task UnsharePollAsync(int pollId, int withUserId);
@@ -41,5 +49,12 @@ namespace VoteMaster.Services
     {
         public Poll Poll { get; set; } = null!;
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class ProxyVoteResult
+    {
+        public int Processed { get; set; }
+        public int Skipped { get; set; }
+        public List<string> SkippedUsernames { get; set; } = new();
     }
 }

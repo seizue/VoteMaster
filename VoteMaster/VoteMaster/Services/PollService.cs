@@ -256,5 +256,82 @@ namespace VoteMaster.Services
                 .Where(s => s.PollId == pollId)
                 .Select(s => s.SharedWithUser)
                 .ToListAsync();
+
+        public async Task<ProxyVoteResult> ProxyCastVotesAsync(int pollId, Dictionary<int, List<int>> userOptionMap)
+        {
+            var poll = await _db.Polls
+                .Include(p => p.Options)
+                .FirstOrDefaultAsync(p => p.Id == pollId)
+                ?? throw new InvalidOperationException("Poll not found");
+
+            // Pre-load all existing votes for this poll in one query
+            var existingVotes = await _db.Votes
+                .Include(v => v.Option)
+                .Where(v => v.Option.PollId == pollId)
+                .Select(v => new { v.UserId, v.OptionId })
+                .ToListAsync();
+
+            var votedUserIds = existingVotes.Select(v => v.UserId).ToHashSet();
+            var existingPairs = existingVotes.Select(v => (v.UserId, v.OptionId)).ToHashSet();
+
+            // Load usernames for the skipped-users report
+            var userIds = userOptionMap.Keys.ToList();
+            var users = await _db.Users
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.Username);
+
+            var result = new ProxyVoteResult();
+            var newVotes = new List<Vote>();
+
+            foreach (var (userId, optionIds) in userOptionMap)
+            {
+                // Skip users who already voted
+                if (votedUserIds.Contains(userId))
+                {
+                    result.Skipped++;
+                    if (users.TryGetValue(userId, out var uname))
+                        result.SkippedUsernames.Add(uname);
+                    continue;
+                }
+
+                // Validate option count against poll constraints
+                var validOptions = optionIds
+                    .Distinct()
+                    .Where(oid => poll.Options.Any(o => o.Id == oid))
+                    .ToList();
+
+                if (validOptions.Count < poll.MinVotesPerVoter || validOptions.Count > poll.MaxVotesPerVoter)
+                {
+                    result.Skipped++;
+                    if (users.TryGetValue(userId, out var uname))
+                        result.SkippedUsernames.Add(uname);
+                    continue;
+                }
+
+                foreach (var optionId in validOptions)
+                {
+                    if (!existingPairs.Contains((userId, optionId)))
+                    {
+                        newVotes.Add(new Vote
+                        {
+                            OptionId = optionId,
+                            UserId = userId,
+                            VotedAt = DateTime.UtcNow
+                        });
+                        existingPairs.Add((userId, optionId));
+                    }
+                }
+
+                result.Processed++;
+            }
+
+            if (newVotes.Count > 0)
+            {
+                _db.Votes.AddRange(newVotes);
+                await _db.SaveChangesAsync();
+            }
+
+            return result;
+        }
     }
 }

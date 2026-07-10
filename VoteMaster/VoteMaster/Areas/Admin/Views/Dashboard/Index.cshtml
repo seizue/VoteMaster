@@ -330,6 +330,10 @@ else
                             }
                             @if (status == "Active")
                             {
+                                <a class="btn btn-sm" href="/Admin/Polls/ProxyVote/@p.Id" title="Proxy Vote"
+                                   style="background:#8b5cf6;color:white;">
+                                    <i class="bi bi-person-check me-1"></i>Proxy
+                                </a>
                                 <form method="post" action="/Admin/Polls/End/@p.Id" onsubmit="return confirm('End this poll now? Voting will close immediately.');" class="d-inline">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-sm ta-end" title="End Poll">
@@ -400,6 +404,9 @@ else
                 }
                 @if (status == "Active")
                 {
+                    <a class="btn" href="/Admin/Polls/ProxyVote/@p.Id" style="background:#8b5cf6;color:white;">
+                        <i class="bi bi-person-check me-1"></i>Proxy Vote
+                    </a>
                     <form method="post" action="/Admin/Polls/End/@p.Id" onsubmit="return confirm('End this poll now? Voting will close immediately.');">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn ta-end">

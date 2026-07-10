@@ -68,6 +68,21 @@
     <p class="text-muted small mb-0">@poll?.Title</p>
 </div>
 
+@if (TempData["ProxySuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["ProxySuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ProxySkipped"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ProxySkipped"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 @if (Model == null || Model.Count == 0)
 {
     <div class="card p-5 text-center text-muted">

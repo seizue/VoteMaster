@@ -259,5 +259,102 @@ namespace VoteMaster.Areas.Admin.Controllers
             await _polls.UnsharePollAsync(pollId, withUserId);
             return RedirectToAction(nameof(Edit), new { id = pollId });
         }
+
+        // ── Proxy Voting ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Shows the proxy voting form: all non-voted voters managed by this admin,
+        /// with checkboxes for each poll option.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ProxyVote(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            // Only allow proxy voting on active polls
+            if (_polls.GetPollStatus(poll) != "Active")
+            {
+                TempData["Error"] = "Proxy voting is only available for active polls.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+
+            // Voters that this admin manages
+            var managedVoters = await _users.GetAllForAdminAsync(adminId);
+            var voters = managedVoters.Where(u => u.Role == "Voter").ToList();
+
+            // Get who has already voted
+            var voterStatus = await _polls.GetVoterVotingStatusAsync(id);
+            var votedIds = voterStatus.Where(v => v.HasVoted).Select(v => v.UserId).ToHashSet();
+
+            ViewBag.Poll = poll;
+            ViewBag.VotedIds = votedIds;
+            return View(voters);
+        }
+
+        /// <summary>
+        /// Processes proxy vote submissions.
+        /// Form fields: userId_[id] (hidden, one per voter) and vote_[userId]_[optionId] (checkboxes).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProxyVote(int id, IFormCollection form)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            if (_polls.GetPollStatus(poll) != "Active")
+            {
+                TempData["Error"] = "Proxy voting is only available for active polls.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Parse the submitted form into a userId → List<optionId> map
+            var userOptionMap = new Dictionary<int, List<int>>();
+
+            // Find all voter id keys (hidden fields: userId_<id>)
+            foreach (var key in form.Keys.Where(k => k.StartsWith("userId_")))
+            {
+                if (int.TryParse(form[key], out var userId))
+                {
+                    userOptionMap[userId] = new List<int>();
+                }
+            }
+
+            // Fill in chosen options (checkboxes: vote_<userId>_<optionId>)
+            foreach (var key in form.Keys.Where(k => k.StartsWith("vote_")))
+            {
+                var parts = key.Split('_');
+                if (parts.Length == 3
+                    && int.TryParse(parts[1], out var userId)
+                    && int.TryParse(parts[2], out var optionId)
+                    && userOptionMap.ContainsKey(userId))
+                {
+                    userOptionMap[userId].Add(optionId);
+                }
+            }
+
+            // Remove voters where admin selected no options (they chose not to proxy-vote that user)
+            var toRemove = userOptionMap.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key).ToList();
+            foreach (var uid in toRemove) userOptionMap.Remove(uid);
+
+            if (userOptionMap.Count == 0)
+            {
+                TempData["Error"] = "No votes were submitted. Please select at least one option for at least one voter.";
+                return RedirectToAction(nameof(ProxyVote), new { id });
+            }
+
+            var result = await _polls.ProxyCastVotesAsync(id, userOptionMap);
+
+            TempData["ProxySuccess"] = $"Successfully cast votes for {result.Processed} voter(s).";
+            if (result.Skipped > 0)
+            {
+                TempData["ProxySkipped"] = $"{result.Skipped} voter(s) were skipped (already voted or invalid selection): {string.Join(", ", result.SkippedUsernames)}.";
+            }
+
+            return RedirectToAction(nameof(VoterStatus), new { id });
+        }
     }
 }
