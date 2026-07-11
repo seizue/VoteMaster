@@ -450,7 +450,7 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             // Voters that this admin manages
             var managedVoters = await _users.GetAllForAdminAsync(adminId);
-            var voters = managedVoters.Where(u => u.Role == "Voter").ToList();
+            var voters = managedVoters.Where(u => u.Role == "Voter" && !u.IsTestAccount).ToList();
 
             // Get who has already voted
             var voterStatus = await _polls.GetVoterVotingStatusAsync(id);

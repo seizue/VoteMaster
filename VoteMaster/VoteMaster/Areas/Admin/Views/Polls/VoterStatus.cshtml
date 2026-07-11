@@ -23,7 +23,8 @@
     .vs-header h3 { font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
 
     .vs-stats {
-        display: grid; grid-template-columns: repeat(4, 1fr);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: 0.75rem; margin-bottom: 1.25rem;
     }
     .vs-stat {
@@ -81,10 +82,58 @@
     .voter-card-name { font-weight: 700; color: #0f172a; font-size: 0.9375rem; }
     .voter-card-meta { font-size: 0.8125rem; color: #64748b; margin-top: 0.125rem; }
 
-    @@media (max-width: 640px) {
+    @@media (max-width: 480px) {
         .vs-stats      { grid-template-columns: repeat(2, 1fr); }
         .vs-table-wrap { display: none; }
         .vs-cards-wrap { display: block; }
+    }
+    @@media (min-width: 481px) and (max-width: 640px) {
+        .vs-table-wrap { display: none; }
+        .vs-cards-wrap { display: block; }
+    }
+
+    /* ── Search ── */
+    .vs-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .vs-search-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.875rem;
+        min-width: 280px;
+        max-width: 400px;
+        flex: 1;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .vs-search-box:focus-within {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .vs-search-icon { color: #94a3b8; font-size: 0.9rem; flex-shrink: 0; }
+    .vs-search-input {
+        border: none; outline: none; background: transparent;
+        font-size: 0.9rem; color: #0f172a; flex: 1; min-width: 0;
+    }
+    .vs-search-input::placeholder { color: #94a3b8; }
+    .vs-search-clear {
+        background: none; border: none; color: #94a3b8;
+        font-size: 0.75rem; cursor: pointer; padding: 0; line-height: 1;
+        flex-shrink: 0; transition: color 0.15s;
+    }
+    .vs-search-clear:hover { color: #475569; }
+    .vs-search-count {
+        font-size: 0.8rem; font-weight: 600;
+        color: #6366f1; background: #eef2ff;
+        border: 1px solid #c7d2fe; border-radius: 2rem;
+        padding: 0.25rem 0.75rem; white-space: nowrap;
     }
 </style>
 
@@ -214,6 +263,20 @@ else
     </div>
 
     @* ── Desktop table ── *@
+    <div class="vs-search-wrap">
+        <div class="vs-search-box">
+            <i class="bi bi-search vs-search-icon"></i>
+            <input type="text" id="vsSearch" class="vs-search-input"
+                   placeholder="Search by name or username…"
+                   oninput="vsApplySearch()" autocomplete="off" />
+            <button type="button" class="vs-search-clear" id="vsSearchClear"
+                    onclick="vsClearSearch()" title="Clear" style="display:none;">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <span id="vsSearchCount" class="vs-search-count" style="display:none;"></span>
+    </div>
+
     <div class="vs-table-wrap card">
         <div class="vs-select-all-bar">
             <div class="form-check mb-0">
@@ -434,6 +497,49 @@ else
 @section Scripts {
 <script>
 (function () {
+    // ── Search ─────────────────────────────────────────────────────────────
+    window.vsApplySearch = function () {
+        var term = (document.getElementById('vsSearch')?.value ?? '').toLowerCase().trim();
+
+        // Table rows (skip header)
+        var tableRows = Array.from(document.querySelectorAll('.vs-table-wrap tbody tr'));
+        var cards     = Array.from(document.querySelectorAll('.vs-cards-wrap .voter-card'));
+        var visible   = 0;
+
+        tableRows.forEach(function (row) {
+            var text = row.textContent.toLowerCase();
+            var show = !term || text.includes(term);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        cards.forEach(function (card) {
+            var text = card.textContent.toLowerCase();
+            card.style.display = (!term || text.includes(term)) ? '' : 'none';
+        });
+
+        // Clear button
+        var clearBtn = document.getElementById('vsSearchClear');
+        if (clearBtn) clearBtn.style.display = term ? 'inline-flex' : 'none';
+
+        // Count badge
+        var count = document.getElementById('vsSearchCount');
+        if (count) {
+            if (term) {
+                count.textContent = visible + ' result' + (visible !== 1 ? 's' : '');
+                count.style.display = 'inline-flex';
+            } else {
+                count.style.display = 'none';
+            }
+        }
+    };
+
+    window.vsClearSearch = function () {
+        var input = document.getElementById('vsSearch');
+        if (input) { input.value = ''; input.focus(); }
+        vsApplySearch();
+    };
+
     // ── Selection helpers ───────────────────────────────────────────────────
     function getChecked() {
         return Array.from(document.querySelectorAll('.voter-checkbox:checked'));

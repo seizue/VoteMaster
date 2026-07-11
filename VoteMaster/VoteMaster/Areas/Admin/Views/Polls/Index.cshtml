@@ -230,6 +230,7 @@
         font-size: 0.8125rem;
         padding: 0.4rem 0.75rem;
         border-radius: 0.4rem;
+        border-width: 1.5px;
     }
     .actions-dropdown-menu form {
         display: contents;
@@ -253,8 +254,8 @@
         <button class="btn" onclick="exportToExcel()" style="background: white; color: #14b8a6; border: 2px solid #14b8a6;">
             <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
         </button>
-        <a class="btn btn-dark" href="/Admin/Dashboard">
-            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        <a class="btn btn-success" href="/Admin/Polls/Create">
+            <i class="bi bi-plus-circle me-2"></i>Create New Poll
         </a>
     </div>
 </div>
@@ -364,6 +365,13 @@ else
                                     style="min-width:180px;">
                                     <li>
                                         <div class="actions-dropdown-menu">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="sharePollLink(@poll.Id)">
+                                                <i class="bi bi-link-45deg me-1"></i>Copy Link
+                                            </button>
+                                            <button class="btn btn-sm btn-success" onclick="sharePollQR(@poll.Id)">
+                                                <i class="bi bi-qr-code me-1"></i>QR Code
+                                            </button>
+                                            <hr />
                                             <a class="btn btn-sm btn-secondary" href="/Admin/Analytics/PollDetails/@poll.Id">
                                                 <i class="bi bi-graph-up me-1"></i>Analytics
                                             </a>
@@ -469,6 +477,12 @@ else
                 <a class="btn" href="/Admin/Polls/Nominees/@poll.Id" style="background:#f59e0b;color:white;">
                     <i class="bi bi-trophy-fill me-1"></i>Nominees
                 </a>
+                <button class="btn btn-outline-primary" onclick="sharePollLink(@poll.Id)">
+                    <i class="bi bi-link-45deg me-1"></i>Copy Link
+                </button>
+                <button class="btn btn-success" onclick="sharePollQR(@poll.Id)">
+                    <i class="bi bi-qr-code me-1"></i>QR Code
+                </button>
                 @if (status != "Archived")
                 {
                     <a class="btn btn-warning" href="/Admin/Polls/Edit/@poll.Id">
@@ -527,6 +541,36 @@ else
         </nav>
     </div>
 }
+
+<!-- Share / QR Modal -->
+<div class="modal fade" id="shareQrModal" tabindex="-1" aria-labelledby="shareQrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareQrModalLabel">
+                    <i class="bi bi-qr-code me-2"></i>Share Poll
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-3">Scan to access the voting page</p>
+                <div id="shareQrContainer" class="d-flex justify-content-center mb-3"></div>
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-sm" id="shareQrLinkInput" readonly>
+                    <button class="btn btn-outline-primary btn-sm" onclick="copyFromModal()" title="Copy">
+                        <i class="bi bi-clipboard" id="shareQrCopyIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="downloadShareQR()">
+                    <i class="bi bi-download me-2"></i>Download QR
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Archive Delete Modal -->
 <div class="modal fade" id="archiveDeleteModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="archiveDeleteModalTitle">
@@ -609,13 +653,15 @@ document.addEventListener('DOMContentLoaded', function() {
         'Time Period': poll.timeText
     }));
     
-    // Don't set default date range - leave filters empty initially
+    // Set default date range to current month (same as Dashboard)
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('dateTo').value   = lastDay.toISOString().split('T')[0];
+
     filteredPolls = [...allPolls];
-    
-    if (allPolls.length > 0) {
-        updatePagination();
-        displayPage(1);
-    }
+    applyFilters();
 });
 
 // Search functionality
@@ -894,4 +940,55 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ── Share: Copy Link ──────────────────────────────────────────────────────
+function sharePollLink(pollId) {
+    const url = `${location.protocol}//${location.host}/Client/Vote/${pollId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        showShareToast('Poll link copied to clipboard!');
+    }).catch(() => { prompt('Copy this link:', url); });
+}
+
+// ── Share: QR Code ────────────────────────────────────────────────────────
+function sharePollQR(pollId) {
+    const url = `${location.protocol}//${location.host}/Client/Vote/${pollId}`;
+    document.getElementById('shareQrLinkInput').value = url;
+    const container = document.getElementById('shareQrContainer');
+    container.innerHTML = '';
+    new QRCode(container, {
+        text: url, width: 220, height: 220,
+        colorDark: '#0f172a', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    document.getElementById('shareQrCopyIcon').className = 'bi bi-clipboard';
+    new bootstrap.Modal(document.getElementById('shareQrModal')).show();
+}
+
+function copyFromModal() {
+    const val = document.getElementById('shareQrLinkInput').value;
+    navigator.clipboard.writeText(val).then(() => {
+        const icon = document.getElementById('shareQrCopyIcon');
+        icon.className = 'bi bi-check2';
+        setTimeout(() => icon.className = 'bi bi-clipboard', 1800);
+    });
+}
+
+function downloadShareQR() {
+    const canvas = document.querySelector('#shareQrContainer canvas');
+    if (!canvas) return;
+    const a = document.createElement('a');
+    a.download = 'poll-qr-code.png';
+    a.href = canvas.toDataURL();
+    a.click();
+}
+
+function showShareToast(msg) {
+    const el = document.createElement('div');
+    el.className = 'alert alert-success alert-dismissible fade show';
+    el.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;z-index:99999;min-width:240px;box-shadow:0 4px 16px rgba(0,0,0,.12);';
+    el.innerHTML = `<i class="bi bi-check-circle me-2"></i>${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

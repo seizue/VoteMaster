@@ -129,6 +129,68 @@
         cursor: pointer; font-weight: 600; color: #64748b; padding: 0.5rem 0; user-select: none;
     }
 
+    /* ── Search ── */
+    .pv-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .pv-search-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.875rem;
+        min-width: 280px;
+        max-width: 400px;
+        flex: 1;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .pv-search-box:focus-within {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .pv-search-icon {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    .pv-search-input {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 0.9rem;
+        color: #0f172a;
+        flex: 1;
+        min-width: 0;
+    }
+    .pv-search-input::placeholder { color: #94a3b8; }
+    .pv-search-clear {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        transition: color 0.15s;
+    }
+    .pv-search-clear:hover { color: #475569; }
+    .pv-search-count {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6366f1;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 2rem;
+        padding: 0.25rem 0.75rem;
+        white-space: nowrap;
+    }
+
     @@media (max-width: 768px) {
         .pv-table-wrap { display: none; }
         .pv-cards      { display: block; }
@@ -156,6 +218,24 @@
     <span class="pv-badge"><i class="bi bi-check2-square"></i>Select @min–@max option(s) per voter</span>
     <span class="pv-badge"><i class="bi bi-list-ul"></i>@options.Count option(s)</span>
 </div>
+
+@if (pending.Count > 0)
+{
+    <!-- Search box -->
+    <div class="pv-search-wrap mb-3">
+        <div class="pv-search-box">
+            <i class="bi bi-search pv-search-icon"></i>
+            <input type="text" id="pvSearch" class="pv-search-input"
+                   placeholder="Search by name or username…"
+                   oninput="pvApplySearch()" autocomplete="off" />
+            <button type="button" class="pv-search-clear" id="pvSearchClear"
+                    onclick="pvClearSearch()" title="Clear" style="display:none;">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <span id="pvSearchInfo" class="pv-search-count" style="display:none;"></span>
+    </div>
+}
 
 @if (pending.Count == 0)
 {
@@ -206,15 +286,20 @@ else
                 <tbody id="pvTableBody">
                     @foreach (var voter in pending)
                     {
-                        var initials = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
+                        var initials = (voter.FullName ?? voter.Username).Length > 0 
+                            ? (voter.FullName ?? voter.Username)[0].ToString().ToUpper() : "?";
                         <tr data-user-id="@voter.Id" class="pv-hidden">
                             <td>
                                 <input type="hidden" name="userId_@voter.Id" value="@voter.Id" />
                                 <div class="voter-identity">
                                     <div class="voter-avatar">@initials</div>
                                     <div>
-                                        <div class="voter-name">@voter.Username</div>
-                                        <div class="voter-weight">weight: @voter.Weight</div>
+                                        <div class="voter-name">@(voter.FullName ?? voter.Username)</div>
+                                        <div class="voter-weight">
+                                            <span style="color:#64748b;">@voter.Username</span>
+                                            <span style="margin: 0 0.3rem; color:#cbd5e1;">·</span>
+                                            <span>@voter.Weight.ToString("N0") share@(voter.Weight != 1 ? "s" : "")</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -237,7 +322,7 @@ else
                             <td class="opt-cell">
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
                                         onclick="clearVoterRow('@voter.Id')"
-                                        title="Clear @voter.Username">
+                                        title="Clear @(voter.FullName ?? voter.Username)">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </td>
@@ -251,13 +336,18 @@ else
         <div class="pv-cards" id="pvCardsWrap">
             @foreach (var voter in pending)
             {
-                var initials = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
+                var initials = (voter.FullName ?? voter.Username).Length > 0
+                    ? (voter.FullName ?? voter.Username)[0].ToString().ToUpper() : "?";
                 <div class="pv-voter-card pv-hidden" data-user-id="@voter.Id">
                     <div class="pv-voter-card-header">
                         <div class="voter-avatar">@initials</div>
                         <div class="flex-grow-1">
-                            <div class="voter-name">@voter.Username</div>
-                            <div class="voter-weight">weight: @voter.Weight</div>
+                            <div class="voter-name">@(voter.FullName ?? voter.Username)</div>
+                            <div class="voter-weight">
+                                <span style="color:#64748b;">@voter.Username</span>
+                                <span style="margin: 0 0.3rem; color:#cbd5e1;">·</span>
+                                <span>@voter.Weight.ToString("N0") share@(voter.Weight != 1 ? "s" : "")</span>
+                            </div>
                         </div>
                         <span class="vote-counter under" id="mcounter_@voter.Id">0</span>
                     </div>
@@ -313,12 +403,15 @@ else
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table mb-0">
-                        <thead><tr><th>Username</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Status</th></tr></thead>
                         <tbody>
                             @foreach (var voter in alreadyVoted)
                             {
                                 <tr>
-                                    <td class="align-middle fw-semibold">@voter.Username</td>
+                                    <td class="align-middle">
+                                        <div class="fw-semibold">@(voter.FullName ?? voter.Username)</div>
+                                        <small class="text-muted">@voter.Username &nbsp;·&nbsp; @voter.Weight.ToString("N0") share@(voter.Weight != 1 ? "s" : "")</small>
+                                    </td>
                                     <td class="align-middle">
                                         <span class="badge bg-success px-3 py-2">
                                             <i class="bi bi-check-lg me-1"></i>Voted
@@ -352,15 +445,62 @@ else
     const tableRows = Array.from(document.querySelectorAll('#pvTableBody tr[data-user-id]'));
     const totalRows = tableRows.length;
     let   currentPage = 1;
-    const totalPages  = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+    let   filteredRows = tableRows.slice(); // starts as all rows
+    let   totalPages  = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    window.pvApplySearch = function () {
+        const term = (document.getElementById('pvSearch')?.value ?? '').toLowerCase().trim();
+        filteredRows = term
+            ? tableRows.filter(function (row) {
+                const name     = (row.querySelector('.voter-name')?.textContent ?? '').toLowerCase();
+                const username = (row.querySelector('.voter-weight span')?.textContent ?? '').toLowerCase();
+                return name.includes(term) || username.includes(term);
+            })
+            : tableRows.slice();
+
+        totalPages  = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+        currentPage = 1;
+
+        // Hide all mobile cards first
+        tableRows.forEach(function (row) {
+            var uid  = row.dataset.userId;
+            var card = document.querySelector('.pv-voter-card[data-user-id="' + uid + '"]');
+            if (card) card.classList.add('pv-hidden');
+        });
+
+        // Toggle clear button
+        var clearBtn = document.getElementById('pvSearchClear');
+        if (clearBtn) clearBtn.style.display = term ? 'inline-flex' : 'none';
+
+        // Show/hide result count badge
+        var info = document.getElementById('pvSearchInfo');
+        if (info) {
+            if (term) {
+                info.textContent = filteredRows.length + ' result' + (filteredRows.length !== 1 ? 's' : '');
+                info.style.display = 'inline-flex';
+            } else {
+                info.style.display = 'none';
+            }
+        }
+
+        applyPage();
+    };
+
+    window.pvClearSearch = function () {
+        var input = document.getElementById('pvSearch');
+        if (input) { input.value = ''; input.focus(); }
+        pvApplySearch();
+    };
 
     // ── Pagination render ─────────────────────────────────────────────────────
     function renderPagination() {
+        var pages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
         ['pvPaginationTop', 'pvPaginationBottom'].forEach(function (id) {
             var ul = document.getElementById(id);
             if (!ul) return;
             ul.innerHTML = '';
-            if (totalPages <= 1) return;
+            if (pages <= 1) return;
 
             // Prev
             var li = document.createElement('li');
@@ -371,7 +511,7 @@ else
 
             // Pages (show window of 7 around current)
             var start = Math.max(1, currentPage - 3);
-            var end   = Math.min(totalPages, start + 6);
+            var end   = Math.min(pages, start + 6);
             if (end - start < 6) start = Math.max(1, end - 6);
 
             if (start > 1) {
@@ -379,14 +519,14 @@ else
                 if (start > 2) ul.appendChild(makeDots());
             }
             for (var p = start; p <= end; p++) ul.appendChild(makeLi(p));
-            if (end < totalPages) {
-                if (end < totalPages - 1) ul.appendChild(makeDots());
-                ul.appendChild(makeLi(totalPages));
+            if (end < pages) {
+                if (end < pages - 1) ul.appendChild(makeDots());
+                ul.appendChild(makeLi(pages));
             }
 
             // Next
             var li2 = document.createElement('li');
-            li2.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+            li2.className = 'page-item' + (currentPage === pages ? ' disabled' : '');
             li2.innerHTML = '<a class="page-link" href="#" onclick="goPage(' + (currentPage + 1) + ');return false;">' +
                             '<i class="bi bi-chevron-right"></i></a>';
             ul.appendChild(li2);
@@ -411,18 +551,25 @@ else
         var start = (currentPage - 1) * PAGE_SIZE; // 0-based
         var end   = start + PAGE_SIZE;
 
-        tableRows.forEach(function (row, idx) {
-            var uid     = row.dataset.userId;
-            var visible = idx >= start && idx < end;
-            row.classList.toggle('pv-hidden', !visible);
-
+        // Hide all rows/cards first
+        tableRows.forEach(function (row) {
+            var uid  = row.dataset.userId;
+            row.classList.add('pv-hidden');
             var card = document.querySelector('.pv-voter-card[data-user-id="' + uid + '"]');
-            if (card) card.classList.toggle('pv-hidden', !visible);
+            if (card) card.classList.add('pv-hidden');
+        });
+
+        // Show only filteredRows for this page
+        filteredRows.slice(start, end).forEach(function (row) {
+            var uid  = row.dataset.userId;
+            row.classList.remove('pv-hidden');
+            var card = document.querySelector('.pv-voter-card[data-user-id="' + uid + '"]');
+            if (card) card.classList.remove('pv-hidden');
         });
 
         // Update range label
-        document.getElementById('pvRangeFrom').textContent = start + 1;
-        document.getElementById('pvRangeTo').textContent   = Math.min(end, totalRows);
+        document.getElementById('pvRangeFrom').textContent = filteredRows.length > 0 ? start + 1 : 0;
+        document.getElementById('pvRangeTo').textContent   = Math.min(end, filteredRows.length);
 
         updateOtherPagesBadge();
         renderPagination();
@@ -434,7 +581,7 @@ else
         var start = (currentPage - 1) * PAGE_SIZE;
         var end   = start + PAGE_SIZE;
         var count = 0;
-        tableRows.forEach(function (row, idx) {
+        filteredRows.forEach(function (row, idx) {
             if (idx >= start && idx < end) return; // current page — skip
             if (row.querySelectorAll('input.opt-checkbox:checked').length > 0) count++;
         });
@@ -448,7 +595,8 @@ else
 
     // Public: change page
     window.goPage = function (p) {
-        if (p < 1 || p > totalPages) return;
+        var pages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+        if (p < 1 || p > pages) return;
         currentPage = p;
         applyPage();
     };
