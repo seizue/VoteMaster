@@ -14,5 +14,7 @@ namespace VoteMaster.Services
         Task<AppUser> CreateAsync(AppUser user, string password);
         Task UpdateAsync(AppUser user);
         Task DeleteAsync(int id);
+        Task ChangePasswordAsync(int id, string newPassword);
+        Task<int> DeleteAllVotersAsync(int adminId);
     }
 }

@@ -280,15 +280,179 @@
 <div class="users-header">
     <h3>Users</h3>
     <div class="button-group">
+        <!-- Primary action -->
         <a class="btn btn-success" href="/Admin/Users/Create">
             <i class="bi bi-plus-circle me-2"></i>Add User
         </a>
-        <a class="btn btn-info" href="/Admin/Users/ExportVotersJson">
-            <i class="bi bi-download me-2"></i>Export Voters (JSON)
-        </a>
+
+        <!-- Voter Actions dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-people me-2"></i>Voter Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li>
+                    <a class="dropdown-item" href="/Admin/Users/ExportVotersTemplate">
+                        <i class="bi bi-file-earmark-arrow-down me-2 text-secondary"></i>Download Template
+                    </a>
+                </li>
+                <li>
+                    <button class="dropdown-item" type="button"
+                            onclick="togglePanel('importPanel'); this.closest('.dropdown-menu').classList.remove('show'); this.closest('.dropdown').querySelector('.dropdown-toggle').setAttribute('aria-expanded','false')">
+                        <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>Import Voters
+                    </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="/Admin/Users/ExportVotersJson">
+                        <i class="bi bi-download me-2 text-info"></i>Export Voters (JSON)
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Bulk Actions dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-sliders me-2"></i>Bulk Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li>
+                    <button class="dropdown-item" type="button"
+                            onclick="togglePanel('resetPwdPanel'); this.closest('.dropdown-menu').classList.remove('show'); this.closest('.dropdown').querySelector('.dropdown-toggle').setAttribute('aria-expanded','false')">
+                        <i class="bi bi-shield-lock me-2 text-warning"></i>Reset All Passwords
+                    </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="post" action="/Admin/Users/DeleteAllVoters"
+                          onsubmit="return confirm('This will permanently delete ALL voters you manage. This cannot be undone. Continue?')">
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="bi bi-trash3 me-2"></i>Delete All Voters
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
         <a class="btn btn-dark" href="/Admin/Dashboard">
-            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            <i class="bi bi-arrow-left me-2"></i>Back
         </a>
+    </div>
+</div>
+
+@if (TempData["ImportResult"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["ImportResult"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ImportError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ImportError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ImportWarnings"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>
+        <strong>Some rows were skipped:</strong>
+        <ul class="mb-0 mt-1">
+            @foreach (var w in TempData["ImportWarnings"]!.ToString()!.Split('|'))
+            {
+                <li>@w</li>
+            }
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Import Panel -->
+<div id="importPanel" class="d-none mb-4">
+    <div class="card border-warning">
+        <div class="card-header bg-warning text-dark fw-semibold">
+            <i class="bi bi-file-earmark-arrow-up me-2"></i>Import Voters from Excel
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                Upload an Excel file (.xlsx) with columns: <strong>Name of Shareholder</strong> and <strong>Number of Shares</strong>.
+                A username is auto-generated from the shareholder name.
+                <a href="/Admin/Users/ExportVotersTemplate" class="text-decoration-none"><i class="bi bi-download me-1"></i>Download the template</a> to get started.
+            </p>
+            <form method="post" action="/Admin/Users/ImportVoters" enctype="multipart/form-data">
+                <div class="d-flex gap-3 flex-wrap" style="align-items:flex-start;">
+                    <div>
+                        <label class="form-label fw-semibold small mb-1">Excel File</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" class="form-control" style="width:280px;" required />
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold small mb-1">Default Password</label>
+                        <div style="position:relative; width:180px;">
+                            <input type="password" id="importPwdInput" name="defaultPassword"
+                                   class="form-control pe-5" placeholder="Default: 1" value="1" />
+                            <button type="button"
+                                    onclick="toggleImportPwd()"
+                                    style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;cursor:pointer;padding:0;">
+                                <i id="importPwdIcon" class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="padding-top:1.625rem;">
+                        <button class="btn btn-warning text-dark" type="submit">
+                            <i class="bi bi-upload me-2"></i>Import
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-2"
+                                onclick="document.getElementById('importPanel').classList.add('d-none')">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text mt-1">Default password is applied to all imported voters.</div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset All Passwords Panel -->
+<div id="resetPwdPanel" class="d-none mb-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white fw-semibold">
+            <i class="bi bi-shield-lock me-2"></i>Reset All Voter Passwords
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                This will update the password for <strong>all voters</strong> you manage to the value below.
+            </p>
+            <form method="post" action="/Admin/Users/ResetAllPasswords"
+                  onsubmit="return confirm('Reset the password for ALL voters to the entered value?')">
+                <div class="d-flex gap-2 align-items-end flex-wrap">
+                    <div>
+                        <label class="form-label fw-semibold small mb-1">New Default Password</label>
+                        <div style="position:relative; max-width:220px;">
+                            <input type="password" id="resetPwdInput" name="defaultPassword"
+                                   class="form-control pe-5" placeholder="e.g. 1" required />
+                            <button type="button"
+                                    onclick="toggleResetPwd()"
+                                    style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;cursor:pointer;padding:0;">
+                                <i id="resetPwdIcon" class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-1">
+                        <button class="btn btn-danger" type="submit">
+                            <i class="bi bi-arrow-repeat me-2"></i>Reset All Passwords
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="document.getElementById('resetPwdPanel').classList.add('d-none')">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -313,6 +477,8 @@
         <select id="sortSelect" class="form-select" onchange="sortTable()">
             <option value="username-asc">Username (A-Z)</option>
             <option value="username-desc">Username (Z-A)</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
             <option value="weight-asc">Weight (Low to High)</option>
             <option value="weight-desc" selected>Weight (High to Low)</option>
             <option value="role-asc">Role (A-Z)</option>
@@ -341,7 +507,7 @@
             </div>
             <div class="summary-content">
                 <div class="summary-label">Voters</div>
-                <div class="summary-value" id="totalVoters">@Model.Count(u => u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase))</div>
+                <div class="summary-value" id="totalVoters">@Model.Count(u => u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase) && !u.IsTestAccount)</div>
             </div>
         </div>
     </div>
@@ -363,7 +529,7 @@
             </div>
             <div class="summary-content">
                 <div class="summary-label">Total Weight</div>
-                <div class="summary-value" id="totalWeight">@Model.Sum(u => u.Weight).ToString("N0")</div>
+                <div class="summary-value" id="totalWeight">@Model.Where(u => u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase) && !u.IsTestAccount).Sum(u => u.Weight).ToString("N0")</div>
             </div>
         </div>
     </div>
@@ -373,6 +539,9 @@
     <table class="table table-striped" id="usersTable">
         <thead>
             <tr>
+                <th class="sortable" onclick="sortByColumn('name')">
+                    Name<i class="bi bi-arrow-down-up"></i>
+                </th>
                 <th class="sortable" onclick="sortByColumn('username')">
                     Username<i class="bi bi-arrow-down-up"></i>
                 </th>
@@ -387,10 +556,30 @@
         </thead>
         <tbody>
         @foreach (var u in Model) {
-            <tr data-id="@u.Id" data-username="@u.Username.ToLower()" data-role="@u.Role.ToLower()" data-weight="@u.Weight" style="display:none;">
-                <td>@u.Username</td>
+            <tr data-id="@u.Id" data-name="@(u.FullName?.ToLower() ?? "")" data-username="@u.Username.ToLower()" data-role="@u.Role.ToLower()" data-weight="@(u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase) && !u.IsTestAccount ? u.Weight : 0)" data-test="@(u.IsTestAccount ? "1" : "0")" style="display:none;">
+                <td>@(string.IsNullOrEmpty(u.FullName) ? "—" : u.FullName)</td>
+                <td>
+                    @u.Username
+                    @if (u.IsTestAccount)
+                    {
+                        <span class="badge text-bg-warning ms-1" title="Test account — excluded from voting and weight">Test</span>
+                    }
+                </td>
                 <td>@u.Role</td>
-                <td>@u.Weight</td>
+                <td>
+                    @if (u.IsTestAccount)
+                    {
+                        <span class="badge text-bg-warning fw-normal">Test</span>
+                    }
+                    else if (u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <span>@u.Weight.ToString("N0")</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-secondary fw-normal">N/A</span>
+                    }
+                </td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-primary" href="/Admin/Users/Edit/@u.Id">Edit</a>
                     @if (!string.Equals(u.Username, seedAdminUsername, StringComparison.OrdinalIgnoreCase))
@@ -415,16 +604,37 @@
         var roleText  = u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "#92400e" : "#065f46";
         <div class="user-card"
              data-id="@u.Id"
+             data-name="@(u.FullName?.ToLower() ?? "")"
              data-username="@u.Username.ToLower()"
              data-role="@u.Role.ToLower()"
-             data-weight="@u.Weight">
+             data-weight="@(u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase) && !u.IsTestAccount ? u.Weight : 0)"
+             data-test="@(u.IsTestAccount ? "1" : "0")">
             <div class="user-card-top">
                 <div class="user-card-avatar">@initials</div>
                 <div class="flex-grow-1 min-width-0">
-                    <div class="user-card-name">@u.Username</div>
+                    @if (!string.IsNullOrEmpty(u.FullName))
+                    {
+                        <div class="user-card-name">@u.FullName</div>
+                        <div class="user-card-meta" style="font-size:0.75rem; color:#94a3b8;">@u.Username</div>
+                    }
+                    else
+                    {
+                        <div class="user-card-name">@u.Username</div>
+                    }
                     <div class="user-card-meta">
                         <span class="badge" style="background:@roleColor;color:@roleText;">@u.Role</span>
-                        &nbsp;Weight: @u.Weight
+                        @if (u.IsTestAccount)
+                        {
+                            <span class="badge text-bg-warning ms-1">Test</span>
+                        }
+                        else if (u.Role.Equals("Voter", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span>&nbsp;Weight: @u.Weight.ToString("N0")</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary fw-normal ms-1">No Weight</span>
+                        }
                     </div>
                 </div>
             </div>
@@ -599,7 +809,8 @@ function filterTable() {
         // Search filter
         const matchesSearch = username.includes(searchTerm) || 
                              role.includes(searchTerm) || 
-                             weight.includes(searchTerm);
+                             weight.includes(searchTerm) ||
+                             (row.dataset.name || '').includes(searchTerm);
         
         // Role filter
         const matchesRole = roleFilter === 'all' || role === roleFilter;
@@ -616,9 +827,11 @@ function filterTable() {
 function updateSummary() {
     // Calculate summary from filtered users
     const totalUsers = filteredUsers.length;
-    const totalVoters = filteredUsers.filter(row => row.dataset.role === 'voter').length;
+    const totalVoters = filteredUsers.filter(row => row.dataset.role === 'voter' && row.dataset.test !== '1').length;
     const totalAdmins = filteredUsers.filter(row => row.dataset.role === 'admin').length;
-    const totalWeight = filteredUsers.reduce((sum, row) => sum + parseFloat(row.dataset.weight), 0);
+    const totalWeight = filteredUsers
+        .filter(row => row.dataset.role === 'voter')
+        .reduce((sum, row) => sum + parseFloat(row.dataset.weight), 0);
     
     // Update summary cards
     document.getElementById('totalUsers').textContent = totalUsers;
@@ -657,6 +870,9 @@ function sortTable() {
         if (column === 'username') {
             aVal = a.dataset.username;
             bVal = b.dataset.username;
+        } else if (column === 'name') {
+            aVal = a.dataset.name || '';
+            bVal = b.dataset.name || '';
         } else if (column === 'role') {
             aVal = a.dataset.role;
             bVal = b.dataset.role;
@@ -693,9 +909,10 @@ function updateSortIcons() {
     
     // Add sorted class to current column
     const headers = {
-        'username': 0,
-        'role': 1,
-        'weight': 2
+        'name': 0,
+        'username': 1,
+        'role': 2,
+        'weight': 3
     };
     
     const headerIndex = headers[currentSort.column];
@@ -704,5 +921,27 @@ function updateSortIcons() {
     
     const icon = th.querySelector('i');
     icon.className = currentSort.direction === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+}
+
+function toggleImportPwd() {
+    const input = document.getElementById('importPwdInput');
+    const icon  = document.getElementById('importPwdIcon');
+    if (input.type === 'password') { input.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+    else                           { input.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+
+function toggleResetPwd() {
+    const input = document.getElementById('resetPwdInput');
+    const icon  = document.getElementById('resetPwdIcon');
+    if (input.type === 'password') { input.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+    else                           { input.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+
+function togglePanel(id) {
+    const target  = document.getElementById(id);
+    const other   = id === 'importPanel' ? document.getElementById('resetPwdPanel') : document.getElementById('importPanel');
+    other.classList.add('d-none');
+    target.classList.toggle('d-none');
+    if (!target.classList.contains('d-none')) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 </script>

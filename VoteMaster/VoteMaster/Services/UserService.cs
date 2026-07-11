@@ -46,6 +46,7 @@ namespace VoteMaster.Services
         public async Task<AppUser> CreateAsync(AppUser user, string password)
         {
             user.PasswordHash = _passwordHasher.HashPassword(user, password);
+            user.PlainPassword = password; // stored so admins can view/reset credentials
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
             return user;
@@ -65,6 +66,26 @@ namespace VoteMaster.Services
                 _db.Users.Remove(u);
                 await _db.SaveChangesAsync();
             }
+        }
+
+        public async Task ChangePasswordAsync(int id, string newPassword)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user is null) return;
+            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+            user.PlainPassword = newPassword;
+            _db.Users.Update(user);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<int> DeleteAllVotersAsync(int adminId)
+        {
+            var voters = await _db.Users
+                .Where(u => u.Role == "Voter" && u.CreatedByAdminId == adminId)
+                .ToListAsync();
+            _db.Users.RemoveRange(voters);
+            await _db.SaveChangesAsync();
+            return voters.Count;
         }
     }
 }

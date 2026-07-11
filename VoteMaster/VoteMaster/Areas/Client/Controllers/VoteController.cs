@@ -121,6 +121,12 @@ namespace VoteMaster.Areas.Client.Controllers
                 return RedirectToAction(nameof(Index), new { pollId });
             }
 
+            if (user.IsTestAccount)
+            {
+                TempData["KioskError"] = "This is a test account and cannot participate in polls.";
+                return RedirectToAction(nameof(Index), new { pollId });
+            }
+
             // Sign in the voter without password — session cookie, short-lived
             var claims = new List<Claim>
             {

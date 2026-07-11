@@ -5,6 +5,17 @@ namespace VoteMaster.Models
         public int Id { get; set; }
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
+
+        // Plain-text password stored so admins can view/reset voter credentials.
+        // Only populated for admin-created accounts; null for self-registered (Google) users.
+        public string? PlainPassword { get; set; }
+
+        // Full name of the shareholder / voter
+        public string? FullName { get; set; }
+
+        // Test/demo account — excluded from voting and weight calculations
+        public bool IsTestAccount { get; set; } = false;
+
         public string Role { get; set; } = "Voter"; // "Admin" or "Voter"
         public int Weight { get; set; } = 1;
 

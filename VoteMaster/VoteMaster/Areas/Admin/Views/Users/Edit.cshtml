@@ -2,22 +2,184 @@
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
 }
-<h3>Edit User</h3>
-<form method="post">
-    <div class="mb-3">
-        <label class="form-label">Username</label>
-        <input class="form-control" value="@Model.Username" disabled />
+
+<style>
+    .edit-card {
+        background: white;
+        border: 1px solid var(--vm-border);
+        border-radius: 1rem;
+        padding: 1.75rem;
+        box-shadow: var(--vm-shadow-sm);
+        height: 100%;
+    }
+    .edit-card h5 {
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        color: var(--vm-text-primary);
+    }
+    .password-field {
+        position: relative;
+    }
+    .password-field input {
+        padding-right: 2.75rem;
+    }
+    .password-toggle {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--vm-muted);
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .password-toggle:hover { color: var(--vm-text-primary); }
+    .section-divider {
+        border-top: 1px solid var(--vm-border);
+        margin: 1.5rem 0;
+    }
+</style>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="/Admin/Users" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+    <h3 class="mb-0">Edit User</h3>
+</div>
+
+@if (TempData["EditSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["EditSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Role</label>
-        <select class="form-select" name="role">
-            <option selected="@(Model.Role=="Voter")">Voter</option>
-            <option selected="@(Model.Role=="Admin")">Admin</option>
-        </select>
+}
+@if (TempData["EditError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["EditError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Weight</label>
-        <input class="form-control" type="number" name="weight" value="@Model.Weight" />
+}
+
+<div class="row g-4 align-items-start">
+
+    <!-- LEFT — Account Details -->
+    <div class="col-lg-6">
+        <div class="edit-card">
+            <h5><i class="bi bi-person-gear me-2"></i>Account Details</h5>
+
+            <form method="post" action="/Admin/Users/Edit/@Model.Id">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Full Name</label>
+                    <input class="form-control" name="fullName" value="@Model.FullName" placeholder="e.g. Juan Dela Cruz" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Username</label>
+                    <input class="form-control bg-light" value="@Model.Username" disabled />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Role</label>
+                    <select class="form-select" name="role">
+                        <option value="Voter" @(Model.Role == "Voter" ? "selected" : "")>Voter</option>
+                        <option value="Admin" @(Model.Role == "Admin" ? "selected" : "")>Admin</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Weight (Number of Shares)</label>
+                    <input class="form-control" type="number" name="weight" value="@Model.Weight" min="1" />
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               name="isTestAccount" id="isTestAccount" value="true"
+                               @(Model.IsTestAccount ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="isTestAccount">
+                            Test / Demo Account
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Test accounts cannot vote and their weight is excluded from all calculations.
+                    </div>
+                </div>
+                <button class="btn btn-primary">
+                    <i class="bi bi-floppy me-2"></i>Save Changes
+                </button>
+            </form>
+        </div>
     </div>
-    <button class="btn btn-primary">Save</button>
-</form>
+
+    <!-- RIGHT — Password -->
+    <div class="col-lg-6">
+        <div class="edit-card">
+            <h5><i class="bi bi-key me-2"></i>Password</h5>
+
+            @if (!string.IsNullOrEmpty(Model.PlainPassword))
+            {
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small">Current Password</label>
+                    <div class="password-field">
+                        <input type="password" id="currentPasswordDisplay"
+                               class="form-control bg-light"
+                               value="@Model.PlainPassword"
+                               readonly />
+                        <button type="button" class="password-toggle"
+                                onclick="toggleVisibility('currentPasswordDisplay', this)"
+                                title="Show / hide password">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">This is the plain-text password stored for this voter.</div>
+                </div>
+                <div class="section-divider"></div>
+            }
+            else
+            {
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    No stored plain-text password (this account was created before this feature or via Google sign-in).
+                </p>
+                <div class="section-divider"></div>
+            }
+
+            <form method="post" action="/Admin/Users/ChangePassword/@Model.Id">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Set New Password</label>
+                    <div class="password-field">
+                        <input type="password" id="newPasswordInput"
+                               class="form-control"
+                               name="newPassword"
+                               placeholder="Enter new password"
+                               required />
+                        <button type="button" class="password-toggle"
+                                onclick="toggleVisibility('newPasswordInput', this)"
+                                title="Show / hide password">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-warning text-dark">
+                    <i class="bi bi-key me-2"></i>Change Password
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>

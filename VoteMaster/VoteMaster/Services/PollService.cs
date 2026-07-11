@@ -120,6 +120,11 @@ namespace VoteMaster.Services
                     throw new InvalidOperationException("You are not marked as present for this poll. Please contact the administrator.");
             }
 
+            // Test account guard — test/demo accounts cannot cast real votes
+            var voter = await _db.Users.FindAsync(userId);
+            if (voter?.IsTestAccount == true)
+                throw new InvalidOperationException("This is a test account and cannot cast votes in a real poll.");
+
             // Count how many votes the user has already cast in this poll
             var existingVotes = await _db.Votes
                 .Include(v => v.Option)
@@ -163,7 +168,7 @@ namespace VoteMaster.Services
 
             return poll.Options.ToDictionary(
                 o => o.Text,
-                o => o.Votes.Sum(v => v.User.Weight));
+                o => o.Votes.Sum(v => v.User.IsTestAccount ? 0 : v.User.Weight));
         }
         
  public async Task DeletePollAsync(int id)
