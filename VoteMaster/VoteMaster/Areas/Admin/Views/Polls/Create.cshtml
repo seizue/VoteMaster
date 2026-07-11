@@ -1,6 +1,80 @@
+@using VoteMaster.Models
 @{
     Layout = "/Views/Shared/_Layout.cshtml";
+    var voters = (ViewBag.Voters as List<AppUser>) ?? new List<AppUser>();
+
+    // Detect if optionsCsv has voter options to restore toggle state on validation error
+    var optionsCsv = ViewBag.OptionsCsv as string ?? "";
+    var currentOptions = optionsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    bool hasVoterOptions = false;
+    if (voters.Any())
+    {
+        foreach (var v in voters)
+        {
+            var label = string.IsNullOrEmpty(v.FullName) ? v.Username : v.FullName;
+            var labelWithWeight = $"{label} ({v.Weight.ToString("N0")} {(v.Weight == 1 ? "share" : "shares")})";
+            if (currentOptions.Contains(label) || currentOptions.Contains(labelWithWeight))
+            {
+                hasVoterOptions = true;
+                break;
+            }
+        }
+    }
 }
+
+<style>
+    .voter-picker-panel {
+        background: #f8fafc;
+        border: 1px solid var(--vm-border);
+        border-radius: 0.875rem;
+        padding: 1.25rem;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .voter-picker-panel .voter-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.25rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .voter-picker-panel .voter-item:last-child { border-bottom: none; }
+    .voter-item label {
+        flex: 1;
+        cursor: pointer;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    .voter-item .voter-weight {
+        font-size: 0.8rem;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    .voter-picker-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .options-mode-toggle .btn-check + .btn {
+        font-size: 0.875rem;
+    }
+    .include-weight-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #475569;
+    }
+    .voter-collapse-btn[aria-expanded="false"] .collapse-icon {
+        transform: rotate(-90deg);
+    }
+    .collapse-icon {
+        transition: transform 0.2s ease-in-out;
+    }
+</style>
+
 <h3>Create Poll</h3>
 @if (!ViewData.ModelState.IsValid)
 {
@@ -25,16 +99,138 @@
         <label class="form-label">Description</label>
         <textarea class="form-control" name="description">@(ViewBag.Description ?? "")</textarea>
     </div>
+
+    <!-- Options field -->
     <div class="mb-3">
-        <label class="form-label">Options (comma-separated)</label>
-        <input class="form-control" name="optionsCsv" value="@(ViewBag.OptionsCsv ?? "")" placeholder="Option A, Option B, Option C" required />
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <label class="form-label mb-0 fw-semibold" for="optionsCsv">Options</label>
+
+            @if (voters.Any())
+            {
+                <!-- Mode toggle -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="btn-group btn-group-sm options-mode-toggle" role="group">
+                        <input type="radio" class="btn-check" name="optionsMode" id="modeManual" autocomplete="off" @(hasVoterOptions ? "" : "checked") />
+                        <label class="btn btn-outline-secondary" for="modeManual">
+                            <i class="bi bi-pencil me-1"></i>Manual CSV
+                        </label>
+                        <input type="radio" class="btn-check" name="optionsMode" id="modeVoters" autocomplete="off" @(hasVoterOptions ? "checked" : "") />
+                        <label class="btn btn-outline-primary" for="modeVoters">
+                            <i class="bi bi-people me-1"></i>Pick from Voters (@voters.Count)
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Comma-separated input (always visible) -->
+        <input class="form-control" name="optionsCsv" id="optionsCsv"
+               value="@(ViewBag.OptionsCsv ?? "")"
+               placeholder="Option A, Option B, Option C"
+               @(hasVoterOptions ? "readonly" : "") required />
+        <div class="form-text" id="optionsCsvHelp">
+            @(hasVoterOptions ? "Options are populated automatically from your voter selection." : "Enter each option separated by a comma.")
+        </div>
+
+        @if (voters.Any())
+        {
+            <!-- Collapsible voter list panel (below the comma-separated input) -->
+            <div id="voterPickerSection" class="collapse @(hasVoterOptions ? "show" : "") mt-3">
+                <div class="card border">
+                    <div class="card-header bg-light py-2 px-3">
+                        <button class="btn btn-link text-decoration-none text-dark p-0 w-100 text-start d-flex align-items-center justify-content-between voter-collapse-btn" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#votersCollapsePanel" 
+                                aria-expanded="true" 
+                                aria-controls="votersCollapsePanel">
+                            <span class="fw-semibold text-secondary"><i class="bi bi-people me-2 text-primary"></i>Voter List (@voters.Count)</span>
+                            <i class="bi bi-chevron-down collapse-icon"></i>
+                        </button>
+                    </div>
+                    <div id="votersCollapsePanel" class="collapse show">
+                        <div class="card-body p-3">
+                            <div class="voter-picker-actions border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="selectAllVoters(true)" style="font-size: 0.8rem;">
+                                        <i class="bi bi-check-all me-1"></i>Select All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="selectAllVoters(false)" style="font-size: 0.8rem;">
+                                        <i class="bi bi-x me-1"></i>Clear All
+                                    </button>
+                                </div>
+                                <div class="text-muted small">
+                                    Checking a voter adds them to options.
+                                </div>
+                            </div>
+
+                            <!-- Search Input with Clear Button -->
+                            <div class="mb-3 position-relative">
+                                <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" id="voterSearchInput" class="form-control ps-5 pe-5" placeholder="Search voters by name..." oninput="filterVoters()" />
+                                <button type="button" id="clearSearchBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted d-none" onclick="clearVoterSearch()" style="box-shadow: none; text-decoration: none;">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
+
+                            <div id="noVotersFoundMessage" class="text-center py-4 text-muted d-none border rounded-3 bg-light">
+                                <i class="bi bi-search fs-3 mb-2 d-block text-secondary"></i>
+                                No matching voters found
+                            </div>
+
+                            <div class="voter-picker-panel" style="max-height: 250px; overflow-y: auto;">
+                                @foreach (var v in voters)
+                                {
+                                    var label = string.IsNullOrEmpty(v.FullName) ? v.Username : v.FullName;
+                                    var labelWithWeight = $"{label} ({v.Weight.ToString("N0")} {(v.Weight == 1 ? "share" : "shares")})";
+                                    bool isVoterChecked = currentOptions.Contains(label) || currentOptions.Contains(labelWithWeight);
+                                    bool includeWeightChecked = isVoterChecked && currentOptions.Contains(labelWithWeight);
+
+                                    <div class="voter-item d-flex align-items-center justify-content-between py-2 border-bottom">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input flex-shrink-0 voter-checkbox"
+                                                   type="checkbox"
+                                                   id="voter_@v.Id"
+                                                   data-id="@v.Id"
+                                                   data-label="@label"
+                                                   data-weight="@v.Weight"
+                                                   onchange="rebuildOptions()"
+                                                   @(isVoterChecked ? "checked" : "") />
+                                            <label class="form-check-label ms-1" for="voter_@v.Id">
+                                                <strong>@label</strong> <span class="text-muted">(@v.Weight.ToString("N0") shares)</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input voter-weight-toggle"
+                                                       type="checkbox"
+                                                       role="switch"
+                                                       id="weightToggle_@v.Id"
+                                                       data-voter-id="@v.Id"
+                                                       onchange="rebuildOptions()"
+                                                       @(includeWeightChecked ? "checked" : "") />
+                                                <label class="form-check-label text-muted" for="weightToggle_@v.Id" style="font-size: 0.75rem;">
+                                                    Include Weight
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
-    
+
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
                 <label class="form-label" for="startDateTime">Poll Start Date & Time</label>
-                <input type="datetime-local" class="form-control" id="startDateTime" name="startDateTime" 
+                <input type="datetime-local" class="form-control" id="startDateTime" name="startDateTime"
                        value="@(ViewBag.StartDateTime ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm"))" required />
                 <small class="text-muted">When voting begins (in your local time)</small>
             </div>
@@ -42,45 +238,45 @@
         <div class="col-md-6">
             <div class="mb-3">
                 <label class="form-label" for="endDateTime">Poll End Date & Time</label>
-                <input type="datetime-local" class="form-control" id="endDateTime" name="endDateTime" 
+                <input type="datetime-local" class="form-control" id="endDateTime" name="endDateTime"
                        value="@(ViewBag.EndDateTime ?? DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm"))" required />
                 <small class="text-muted">When voting ends (in your local time)</small>
             </div>
         </div>
     </div>
-    
+
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
                 <label class="form-label" for="maxVotes">Maximum Votes Per Voter</label>
-                <input type="number" class="form-control" id="maxVotes" name="maxVotesPerVoter" 
+                <input type="number" class="form-control" id="maxVotes" name="maxVotesPerVoter"
                        value="@(ViewBag.MaxVotes ?? 1)" min="1" required />
             </div>
         </div>
         <div class="col-md-6">
             <div class="mb-3">
                 <label class="form-label" for="minVotes">Minimum Votes Per Voter</label>
-                <input type="number" class="form-control" id="minVotes" name="minVotesPerVoter" 
+                <input type="number" class="form-control" id="minVotes" name="minVotesPerVoter"
                        value="@(ViewBag.MinVotes ?? 1)" min="1" required />
             </div>
         </div>
     </div>
-    
+
     <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="allowPublicResults" name="allowPublicResults" value="true" @( (ViewBag.AllowPublicResults ?? true) ? "checked" : "" ) />
+        <input class="form-check-input" type="checkbox" id="allowPublicResults" name="allowPublicResults" value="true" @((ViewBag.AllowPublicResults ?? true) ? "checked" : "") />
         <label class="form-check-label" for="allowPublicResults">Allow Public Results</label>
     </div>
-    
+
     <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" id="enableLiveVoteCount" name="enableLiveVoteCount" value="true" />
         <label class="form-check-label" for="enableLiveVoteCount">Enable live vote count updates for users</label>
     </div>
-    
+
     <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" id="enablePollNotifications" name="enablePollNotifications" value="true" />
         <label class="form-check-label" for="enablePollNotifications">Enable notifications when poll starts/ends</label>
     </div>
-    
+
     <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" id="allowUsercodeEntry" name="allowUsercodeEntry" value="true" />
         <label class="form-check-label" for="allowUsercodeEntry">
@@ -94,9 +290,117 @@
             Require attendance <span class="text-muted fw-normal">(voters must be marked present by admin before they can vote)</span>
         </label>
     </div>
-    
+
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Create Poll</button>
         <a href="/Admin/Dashboard" class="btn btn-secondary">Cancel</a>
     </div>
 </form>
+
+<script>
+// ── Mode toggle ──────────────────────────────────────────────────────────────
+document.querySelectorAll('input[name="optionsMode"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const isVoterMode = document.getElementById('modeVoters').checked;
+        const voterPickerSection = document.getElementById('voterPickerSection');
+        const csv = document.getElementById('optionsCsv');
+        const help = document.getElementById('optionsCsvHelp');
+
+        if (!voterPickerSection) return;
+
+        // Initialize or get bootstrap collapse instance
+        let collapseInstance = bootstrap.Collapse.getInstance(voterPickerSection);
+        if (!collapseInstance) {
+            collapseInstance = new bootstrap.Collapse(voterPickerSection, { toggle: false });
+        }
+
+        if (isVoterMode) {
+            collapseInstance.show();
+            csv.setAttribute('readonly', 'readonly');
+            help.textContent = 'Options are populated automatically from your voter selection.';
+            rebuildOptions();
+        } else {
+            collapseInstance.hide();
+            csv.removeAttribute('readonly');
+            help.textContent = 'Enter each option separated by a comma.';
+        }
+    });
+});
+
+// ── Build CSV from checked voters ────────────────────────────────────────────
+function rebuildOptions() {
+    const checked = document.querySelectorAll('.voter-checkbox:checked');
+    const parts = Array.from(checked).map(cb => {
+        const label = cb.dataset.label;
+        const voterId = cb.dataset.id;
+        const weightToggle = document.getElementById(`weightToggle_${voterId}`);
+        const includeWeight = weightToggle ? weightToggle.checked : false;
+
+        let optionText = label;
+        if (includeWeight) {
+            const w = parseInt(cb.dataset.weight, 10);
+            const formattedW = w.toLocaleString('en-US');
+            const suffix = w === 1 ? 'share' : 'shares';
+            optionText = `${label} (${formattedW} ${suffix})`;
+        }
+
+        // If the option contains a comma, enclose it in quotes to prevent splitting
+        if (optionText.includes(',')) {
+            return `"${optionText}"`;
+        }
+        return optionText;
+    });
+    document.getElementById('optionsCsv').value = parts.join(', ');
+}
+
+// ── Select / clear all ────────────────────────────────────────────────────────
+function selectAllVoters(checked) {
+    document.querySelectorAll('.voter-item:not(.d-none) .voter-checkbox').forEach(cb => cb.checked = checked);
+    rebuildOptions();
+}
+
+// ── Search & Filter Voters ───────────────────────────────────────────────────
+function filterVoters() {
+    const query = document.getElementById('voterSearchInput').value.toLowerCase().trim();
+    const clearBtn = document.getElementById('clearSearchBtn');
+    
+    if (query) {
+        clearBtn.classList.remove('d-none');
+    } else {
+        clearBtn.classList.add('d-none');
+    }
+
+    const items = document.querySelectorAll('.voter-item');
+    let matchCount = 0;
+    
+    items.forEach(item => {
+        const checkbox = item.querySelector('.voter-checkbox');
+        const label = checkbox.dataset.label.toLowerCase();
+        if (label.includes(query)) {
+            item.classList.remove('d-none');
+            matchCount++;
+        } else {
+            item.classList.add('d-none');
+        }
+    });
+
+    const noMatchesEl = document.getElementById('noVotersFoundMessage');
+    const panelEl = document.querySelector('.voter-picker-panel');
+    if (matchCount === 0) {
+        noMatchesEl.classList.remove('d-none');
+        panelEl.classList.add('d-none');
+    } else {
+        noMatchesEl.classList.add('d-none');
+        panelEl.classList.remove('d-none');
+    }
+}
+
+function clearVoterSearch() {
+    const searchInput = document.getElementById('voterSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        filterVoters();
+        searchInput.focus();
+    }
+}
+</script>

@@ -353,6 +353,10 @@ else
                             <a class="btn btn-sm btn-info" href="/Admin/Polls/VoterStatus/@p.Id" title="Voter Status">
                                 <i class="bi bi-people me-1"></i>Status
                             </a>
+                            <a class="btn btn-sm" href="/Admin/Polls/Nominees/@p.Id" title="Nominees"
+                               style="background:#f59e0b;color:white;">
+                                <i class="bi bi-trophy-fill me-1"></i>Nominees
+                            </a>
 
                             @* ⋯ overflow dropdown — uses Popper fixed strategy to escape stacking contexts *@
                             <div class="dropdown">
@@ -466,6 +470,9 @@ else
                 </a>
                 <a class="btn btn-info" href="/Admin/Polls/VoterStatus/@p.Id">
                     <i class="bi bi-people me-1"></i>Status
+                </a>
+                <a class="btn" href="/Admin/Polls/Nominees/@p.Id" style="background:#f59e0b;color:white;">
+                    <i class="bi bi-trophy-fill me-1"></i>Nominees
                 </a>
                 @if (status != "Archived")
                 {

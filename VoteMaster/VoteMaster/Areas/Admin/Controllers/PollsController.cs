@@ -30,7 +30,16 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public IActionResult Create() => View();
+        public async Task<IActionResult> Create()
+        {
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            var voters = (await _users.GetAllForAdminAsync(adminId))
+                             .Where(u => u.Role == "Voter" && !u.IsTestAccount)
+                             .OrderBy(u => u.FullName ?? u.Username)
+                             .ToList();
+            ViewBag.Voters = voters;
+            return View();
+        }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
@@ -43,7 +52,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             var currentOwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
 
             ViewBag.Poll = poll;
-            ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text));
+            ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text.Contains(",") ? $"\"{o.Text}\"" : o.Text));
             ViewBag.StartDateTime = poll.StartTime.ToString("yyyy-MM-ddTHH:mm");
             ViewBag.EndDateTime = poll.EndTime.ToString("yyyy-MM-ddTHH:mm");
             ViewBag.SharedUsers = sharedUsers;
@@ -60,7 +69,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             var poll = await _polls.GetPollAsync(id);
             if (poll is null) return NotFound();
 
-            var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var options = ParseCsv(optionsCsv);
 
             // Parse datetime inputs - convert from local time to UTC
             DateTime startTime = poll.StartTime;
@@ -138,7 +147,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
             bool requireAttendance = false)
         {
-            var options = (optionsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var options = ParseCsv(optionsCsv);
 
             // Parse datetime inputs - convert from local time to UTC
             DateTime startTime = DateTime.UtcNow;
@@ -185,6 +194,14 @@ namespace VoteMaster.Areas.Admin.Controllers
                 ViewBag.AllowPublicResults = allowPublicResults;
                 ViewBag.StartDateTime = startDateTime;
                 ViewBag.EndDateTime = endDateTime;
+
+                var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+                var voters = (await _users.GetAllForAdminAsync(adminId))
+                                 .Where(u => u.Role == "Voter" && !u.IsTestAccount)
+                                 .OrderBy(u => u.FullName ?? u.Username)
+                                 .ToList();
+                ViewBag.Voters = voters;
+
                 return View();
             }
 
@@ -239,6 +256,15 @@ namespace VoteMaster.Areas.Admin.Controllers
             ViewBag.Poll = poll;
             ViewBag.RequireAttendance = poll.RequireAttendance;
             return View(voterStatus);
+        }
+
+        public async Task<IActionResult> Nominees(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            ViewBag.Poll = poll;
+            return View(poll);
         }
 
         [HttpPost]
@@ -496,6 +522,35 @@ namespace VoteMaster.Areas.Admin.Controllers
             }
 
             return RedirectToAction(nameof(VoterStatus), new { id });
+        }
+
+        private string[] ParseCsv(string? csv)
+        {
+            if (string.IsNullOrWhiteSpace(csv)) return Array.Empty<string>();
+            var list = new List<string>();
+            var current = new System.Text.StringBuilder();
+            bool inQuotes = false;
+            for (int i = 0; i < csv.Length; i++)
+            {
+                char c = csv[i];
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    var val = current.ToString().Trim(' ', '"', '\t', '\r', '\n');
+                    if (!string.IsNullOrEmpty(val)) list.Add(val);
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            var lastVal = current.ToString().Trim(' ', '"', '\t', '\r', '\n');
+            if (!string.IsNullOrEmpty(lastVal)) list.Add(lastVal);
+            return list.ToArray();
         }
     }
 }

@@ -166,9 +166,13 @@ namespace VoteMaster.Services
 
             if (poll is null) return new();
 
-            return poll.Options.ToDictionary(
-                o => o.Text,
-                o => o.Votes.Sum(v => v.User.IsTestAccount ? 0 : v.User.Weight));
+            return poll.Options
+                .GroupBy(o => o.Text)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.SelectMany(o => o.Votes)
+                          .Sum(v => v.User == null ? 0 : (v.User.IsTestAccount ? 0 : v.User.Weight))
+                );
         }
         
  public async Task DeletePollAsync(int id)

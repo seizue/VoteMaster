@@ -346,6 +346,10 @@ else
                             <a class="btn btn-sm btn-info" href="/Admin/Polls/VoterStatus/@poll.Id" title="Voter Status">
                                 <i class="bi bi-people me-1"></i>Status
                             </a>
+                            <a class="btn btn-sm" href="/Admin/Polls/Nominees/@poll.Id" title="Nominees"
+                               style="background:#f59e0b;color:white;">
+                                <i class="bi bi-trophy-fill me-1"></i>Nominees
+                            </a>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
                                         type="button"
@@ -461,6 +465,9 @@ else
                 </a>
                 <a class="btn btn-info" href="/Admin/Polls/VoterStatus/@poll.Id">
                     <i class="bi bi-people me-1"></i>Status
+                </a>
+                <a class="btn" href="/Admin/Polls/Nominees/@poll.Id" style="background:#f59e0b;color:white;">
+                    <i class="bi bi-trophy-fill me-1"></i>Nominees
                 </a>
                 @if (status != "Archived")
                 {

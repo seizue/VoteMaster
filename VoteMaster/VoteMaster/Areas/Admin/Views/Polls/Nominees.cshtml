@@ -1,0 +1,392 @@
+@model VoteMaster.Models.Poll
+@using VoteMaster.Models
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    var poll = Model;
+    var pollStatus = poll is null ? "Unknown" : (
+        poll.StartTime > DateTime.UtcNow ? "Upcoming" :
+        poll.EndTime   < DateTime.UtcNow ? "Archived" : "Active");
+
+    var nominees = poll?.Options
+        .OrderBy(o => o.Text)
+        .ToList() ?? new();
+}
+
+<style>
+    /* ── Normal list view ── */
+    .nominees-header { margin-bottom: 1.5rem; }
+    .nominees-header h3 { font-weight: 700; color: #0f172a; }
+
+    .nominee-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .nominee-card:hover {
+        box-shadow: 0 4px 16px rgba(15,23,42,0.08);
+        border-color: #cbd5e1;
+    }
+    .nominee-index {
+        min-width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .nominee-name {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #0f172a;
+    }
+
+    /* ══════════════════════════════════════════════
+       Present overlay — mirrors Results pres style
+    ══════════════════════════════════════════════ */
+    #present-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #f8fafc;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    #present-overlay.active { display: flex; }
+
+    /* Header bar */
+    .pnom-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 2rem 1rem;
+        flex-shrink: 0;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+    }
+    .pnom-title {
+        font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pnom-title i { color: #f59e0b; }
+    .pnom-subtitle {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 0.15rem;
+    }
+    .pnom-exit-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1.1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: 0.6rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        background: #0f172a;
+        color: white;
+        border: none;
+        transition: background 0.15s;
+    }
+    .pnom-exit-btn:hover { background: #334155; }
+
+    /* Scrollable body */
+    .pnom-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem 2rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Nominee row card */
+    .pnom-row {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.35rem 1.75rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #f59e0b;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+        transition: box-shadow 0.2s, transform 0.15s;
+        animation: nomSlideIn 0.35s ease both;
+    }
+    .pnom-row:hover {
+        box-shadow: 0 4px 16px rgba(15,23,42,0.10);
+        transform: translateY(-1px);
+    }
+
+    @@keyframes nomSlideIn {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .pnom-name {
+        font-size: clamp(1.35rem, 3vw, 2.1rem);
+        font-weight: 700;
+        color: #1e293b;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Footer bar */
+    .pnom-footer {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1rem 2rem;
+        border-top: 1px solid #e2e8f0;
+        background: white;
+        box-shadow: 0 -1px 3px rgba(15,23,42,0.06);
+    }
+    .pnom-footer-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pnom-footer-count {
+        font-size: clamp(1rem, 2vw, 1.4rem);
+        font-weight: 800;
+        color: white;
+        background: #f59e0b;
+        padding: 0.35rem 1.1rem;
+        border-radius: 2rem;
+    }
+
+    @@media (max-width: 640px) {
+        .pnom-header { padding: 0.875rem 1rem; }
+        .pnom-body   { padding: 0.875rem 1rem; gap: 0.5rem; }
+        .pnom-footer { padding: 0.75rem 1rem; }
+        .pnom-row    { padding: 0.75rem 1rem; border-radius: 0.75rem; }
+    }
+</style>
+
+<!-- ── Normal list view ── -->
+<div id="normal-view">
+    <div class="nominees-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+        <div>
+            <h3 class="mb-1">
+                <i class="bi bi-trophy-fill me-2" style="color:#f59e0b;"></i>Nominees
+            </h3>
+            <p class="text-muted small mb-0">
+                <span class="badge @(pollStatus == "Active" ? "bg-success" : pollStatus == "Archived" ? "bg-secondary" : "bg-info") me-2">@pollStatus</span>
+                @poll?.Title
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            @if (nominees.Any())
+            {
+                <button class="btn btn-sm btn-primary" onclick="enterPresent()">
+                    <i class="bi bi-easel2-fill me-1"></i>Present View
+                </button>
+            }
+            <button class="btn btn-sm btn-outline-primary" onclick="copyPollLink()">
+                <i class="bi bi-link-45deg me-1"></i>Copy Link
+            </button>
+            <button class="btn btn-sm btn-success" onclick="showQRCode()">
+                <i class="bi bi-qr-code me-1"></i>QR Code
+            </button>
+            <a class="btn btn-sm btn-outline-secondary" href="/Admin/Polls/Results/@poll?.Id">
+                <i class="bi bi-bar-chart me-1"></i>Results
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" href="/Admin/Polls/VoterStatus/@poll?.Id">
+                <i class="bi bi-people me-1"></i>Voter Status
+            </a>
+            <a class="btn btn-sm btn-dark" href="/Admin/Polls">
+                <i class="bi bi-arrow-left me-1"></i>Back to Polls
+            </a>
+        </div>
+    </div>
+
+    @if (!nominees.Any())
+    {
+        <div class="alert alert-secondary text-center py-4">
+            <i class="bi bi-person-x fs-3 d-block mb-2 text-muted"></i>
+            No nominees found for this poll.
+        </div>
+    }
+    else
+    {
+        @for (int i = 0; i < nominees.Count; i++)
+        {
+            <div class="nominee-card">
+                <span class="nominee-index">@(i + 1)</span>
+                <div class="nominee-name">@nominees[i].Text</div>
+            </div>
+        }
+    }
+<!-- ── QR Code Modal ── -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrCodeModalLabel">
+                    <i class="bi bi-qr-code me-2"></i>Share Poll
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-3">Scan to access the voting page</p>
+                <div id="qrCodeContainer" class="d-flex justify-content-center mb-3"></div>
+                <div class="input-group mb-1">
+                    <input type="text" class="form-control form-control-sm" id="pollLinkInput" readonly>
+                    <button class="btn btn-outline-primary btn-sm" onclick="copyPollLink(true)" title="Copy">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="downloadQRCode()">
+                    <i class="bi bi-download me-2"></i>Download QR
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- end #normal-view -->
+<div id="present-overlay" role="dialog" aria-modal="true" aria-label="Nominees Presentation View">
+
+    <!-- Header -->
+    <div class="pnom-header">
+        <div>
+            <div class="pnom-title">
+                <i class="bi bi-trophy-fill"></i>@poll?.Title
+            </div>
+            <div class="pnom-subtitle">Nominees &nbsp;·&nbsp; @nominees.Count nominee@(nominees.Count != 1 ? "s" : "")</div>
+        </div>
+        <button class="pnom-exit-btn" onclick="exitPresent()" title="Exit (Esc)">
+            <i class="bi bi-fullscreen-exit"></i> Exit
+        </button>
+    </div>
+
+    <!-- Rows -->
+    <div class="pnom-body">
+        @for (int i = 0; i < nominees.Count; i++)
+        {
+            <div class="pnom-row" style="animation-delay: @(i * 60)ms;">
+                <div class="pnom-name" title="@nominees[i].Text">@nominees[i].Text</div>
+            </div>
+        }
+    </div>
+
+    <!-- Footer -->
+    <div class="pnom-footer">
+        <div class="pnom-footer-label">
+            <i class="bi bi-people-fill"></i> Total Nominees
+        </div>
+        <div class="pnom-footer-count">@nominees.Count</div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    const overlay    = document.getElementById('present-overlay');
+    const pollVoteUrl = `${location.protocol}//${location.host}/Client/Vote/@poll?.Id`;
+
+    // ── Share: Copy Link ──────────────────────────────────────────────────
+    function copyPollLink(fromModal) {
+        navigator.clipboard.writeText(pollVoteUrl).then(() => {
+            if (fromModal) {
+                const btn = document.querySelector('#qrCodeModal .btn-outline-primary');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => btn.innerHTML = orig, 1800);
+            } else {
+                showToast('Poll link copied to clipboard!');
+            }
+        }).catch(() => {
+            prompt('Copy this link:', pollVoteUrl);
+        });
+    }
+
+    // ── Share: QR Code ────────────────────────────────────────────────────
+    function showQRCode() {
+        document.getElementById('pollLinkInput').value = pollVoteUrl;
+        const container = document.getElementById('qrCodeContainer');
+        container.innerHTML = '';
+        new QRCode(container, {
+            text: pollVoteUrl,
+            width: 220,
+            height: 220,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        new bootstrap.Modal(document.getElementById('qrCodeModal')).show();
+    }
+
+    function downloadQRCode() {
+        const canvas = document.querySelector('#qrCodeContainer canvas');
+        if (!canvas) return;
+        const a = document.createElement('a');
+        a.download = 'poll-qr-code.png';
+        a.href = canvas.toDataURL();
+        a.click();
+    }
+
+    // ── Toast helper ──────────────────────────────────────────────────────
+    function showToast(msg) {
+        const el = document.createElement('div');
+        el.className = 'alert alert-success alert-dismissible fade show';
+        el.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;z-index:99999;min-width:240px;';
+        el.innerHTML = `<i class="bi bi-check-circle me-2"></i>${msg}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
+    }
+
+    // ── Present overlay ───────────────────────────────────────────────────
+    function enterPresent() {
+        overlay.style.display = 'flex';
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }
+
+    function exitPresent() {
+        overlay.style.display = 'none';
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') exitPresent();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) exitPresent();
+    });
+</script>
+}
