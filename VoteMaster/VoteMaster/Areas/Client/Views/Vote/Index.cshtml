@@ -252,8 +252,8 @@
                     <div class="kiosk-icon">
                         <i class="bi bi-person-badge"></i>
                     </div>
-                    <h4 class="kiosk-title">Enter Your Username</h4>
-                    <p class="kiosk-subtitle">Type the username printed on your ballot ticket</p>
+                    <h4 class="kiosk-title">Enter Your Voter Code</h4>
+                    <p class="kiosk-subtitle">Type the 4-character code printed on your ballot ticket</p>
 
                     @if (TempData["KioskError"] != null)
                     {
@@ -266,15 +266,16 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="pollId" value="@Model.Id" />
                         <input type="text" name="username" class="kiosk-input"
-                               placeholder="Your username" autofocus required
-                               autocomplete="off" spellcheck="false" />
+                               placeholder="e.g. AB3X" autofocus required
+                               autocomplete="off" spellcheck="false"
+                               maxlength="20" style="text-transform:uppercase;" />
                         <button type="submit" class="kiosk-btn">
                             Continue <i class="bi bi-arrow-right ms-2"></i>
                         </button>
                     </form>
 
                     <p class="kiosk-hint">
-                        <i class="bi bi-ticket-perforated me-1"></i>Your username is on your ballot ticket
+                        <i class="bi bi-ticket-perforated me-1"></i>Your 4-character code is on your ballot ticket
                     </p>
                 </div>
             </div>
@@ -474,7 +475,8 @@
   })();
   
   // Share and QR Code functionality
-  const pollUrl = window.location.href;
+  const _networkBase = localStorage.getItem('networkBaseUrl') || window.location.origin;
+  const pollUrl = _networkBase + '/Client/Vote/' + @Model.Id;
   
   function copyPollLink() {
     navigator.clipboard.writeText(pollUrl).then(() => {
@@ -527,7 +529,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     const pollLinkInput = document.getElementById('pollLinkInput');
     if (pollLinkInput) {
-      pollLinkInput.value = window.location.href;
+      pollLinkInput.value = pollUrl;
     }
   });
 </script>

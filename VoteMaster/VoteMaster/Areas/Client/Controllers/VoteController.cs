@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using VoteMaster.Hubs;
+using VoteMaster.Models;
 using VoteMaster.Services;
 
 namespace VoteMaster.Areas.Client.Controllers
@@ -91,7 +92,7 @@ namespace VoteMaster.Areas.Client.Controllers
             return View(poll);
         }
 
-        // Kiosk entry — sign in by username only (no password) for polls that allow it
+        // Kiosk entry — sign in by voter code or username (no password) for polls that allow it
         [HttpPost]
         [Route("Client/Vote/KioskEntry")]
         [AllowAnonymous]
@@ -104,20 +105,29 @@ namespace VoteMaster.Areas.Client.Controllers
             // Guard: poll must have kiosk mode enabled
             if (!poll.AllowUsercodeEntry)
             {
-                TempData["Error"] = "Usercode-only entry is not enabled for this poll.";
+                TempData["Error"] = "Unique code-only entry is not enabled for this poll.";
                 return RedirectToAction(nameof(Index), new { pollId });
             }
 
             if (string.IsNullOrWhiteSpace(username))
             {
-                TempData["KioskError"] = "Please enter your username.";
+                TempData["KioskError"] = "Please enter your voter code or username.";
                 return RedirectToAction(nameof(Index), new { pollId });
             }
 
-            var user = await _userService.GetByUsernameAsync(username.Trim());
+            var trimmed = username.Trim();
+
+            // Try voter code first (4 chars, case-insensitive), then fall back to username
+            AppUser? user = null;
+            if (trimmed.Length == 4)
+                user = await _userService.GetByVoterCodeAsync(trimmed);
+
+            if (user is null)
+                user = await _userService.GetByUsernameAsync(trimmed);
+
             if (user is null || user.Role == "Admin")
             {
-                TempData["KioskError"] = "Username not recognised. Please check and try again.";
+                TempData["KioskError"] = "Code not recognised. Please check and try again.";
                 return RedirectToAction(nameof(Index), new { pollId });
             }
 

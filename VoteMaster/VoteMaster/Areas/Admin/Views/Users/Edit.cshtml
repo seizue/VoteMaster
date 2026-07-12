@@ -81,6 +81,20 @@
                     <label class="form-label fw-semibold">Username</label>
                     <input class="form-control bg-light" value="@Model.Username" disabled />
                 </div>
+                @if (!string.IsNullOrEmpty(Model.VoterCode))
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Uniquecode</label>
+                        <div class="input-group">
+                            <input class="form-control bg-light fw-bold text-danger" style="font-family:monospace;letter-spacing:0.15em;font-size:1.1rem;"
+                                   value="@Model.VoterCode" disabled />
+                            <span class="input-group-text text-muted" style="font-size:0.78rem;">
+                                <i class="bi bi-ticket-perforated me-1"></i>4-char voter code
+                            </span>
+                        </div>
+                        <div class="form-text">This is the unique code printed on the voter's ballot ticket.</div>
+                    </div>
+                }
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Role</label>
                     <select class="form-select" name="role">

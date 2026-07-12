@@ -317,7 +317,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
     const overlay    = document.getElementById('present-overlay');
-    const pollVoteUrl = `${location.protocol}//${location.host}/Client/Vote/@poll?.Id`;
+    const _networkBase = '@(ViewBag.NetworkBaseUrl ?? string.Empty)'
+                       || '@(ViewBag.RequestBaseUrl ?? string.Empty)'
+                       || `${location.protocol}//${location.host}`;
+    const pollVoteUrl = `${_networkBase}/Client/Vote/@poll?.Id`;
 
     // ── Share: Copy Link ──────────────────────────────────────────────────
     function copyPollLink(fromModal) {

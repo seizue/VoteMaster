@@ -14,6 +14,7 @@ namespace VoteMaster.Data
         public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
         public DbSet<PollShare> PollShares => Set<PollShare>();
         public DbSet<PollAttendance> PollAttendances => Set<PollAttendance>();
+        public DbSet<AppSettings> AppSettings => Set<AppSettings>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,6 +23,7 @@ namespace VoteMaster.Data
             modelBuilder.Entity<AppUser>(e =>
             {
                 e.HasIndex(u => u.Username).IsUnique();
+                e.HasIndex(u => u.VoterCode).IsUnique().HasFilter("[VoterCode] IS NOT NULL");
                 e.HasOne(u => u.CreatedByAdmin)
                  .WithMany()
                  .HasForeignKey(u => u.CreatedByAdminId)

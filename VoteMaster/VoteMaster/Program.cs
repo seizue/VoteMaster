@@ -124,6 +124,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
 builder.Services.AddHostedService<PollCleanupService>();
 builder.Services.AddSingleton<VoteMaster.Services.BrowserService>();
 
@@ -251,10 +252,44 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
+        // ── Backfill VoterCode for any voters that don't have one yet ──────────
+        {
+            const string codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1
+            var rng = new Random();
+            var existingCodes = new HashSet<string>(
+                db.Users.Where(u => u.VoterCode != null).Select(u => u.VoterCode!));
+
+            var votersWithoutCode = db.Users
+                .Where(u => u.Role == "Voter" && u.VoterCode == null)
+                .ToList();
+
+            if (votersWithoutCode.Count > 0)
+            {
+                foreach (var v in votersWithoutCode)
+                {
+                    string code;
+                    int attempts = 0;
+                    do
+                    {
+                        code = new string(Enumerable.Range(0, 4)
+                            .Select(_ => codeChars[rng.Next(codeChars.Length)])
+                            .ToArray());
+                        if (++attempts > 100_000)
+                            throw new InvalidOperationException("VoterCode space exhausted during backfill.");
+                    } while (existingCodes.Contains(code));
+
+                    existingCodes.Add(code);
+                    v.VoterCode = code;
+                }
+                saveRequired = true;
+                logger.LogInformation("Assigned VoterCode for {Count} voter(s).", votersWithoutCode.Count);
+            }
+        }
+
         if (saveRequired)
         {
             db.SaveChanges();
-            logger.LogInformation("Database seeding completed successfully.");
+            logger.LogInformation("Database seeding and voter code backfill completed successfully.");
         }
     }
     catch (Exception ex)
@@ -265,9 +300,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ========= MIDDLEWARE =========
+app.UseDeveloperExceptionPage(); // Temporary: show full error details
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
     app.UseHttpsRedirection();
 }

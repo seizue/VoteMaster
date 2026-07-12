@@ -13,6 +13,9 @@ namespace VoteMaster.Models
         // Full name of the shareholder / voter
         public string? FullName { get; set; }
 
+        // 4-character unique voter code — alternative identifier for kiosk / ticket-based voting
+        public string? VoterCode { get; set; }
+
         // Test/demo account — excluded from voting and weight calculations
         public bool IsTestAccount { get; set; } = false;
 

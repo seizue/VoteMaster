@@ -10,7 +10,13 @@ namespace VoteMaster.Areas.Admin.Controllers
     public class DashboardController : Controller
     {
         private readonly IPollService _polls;
-        public DashboardController(IPollService polls) { _polls = polls; }
+        private readonly IAppSettingsService _appSettings;
+
+        public DashboardController(IPollService polls, IAppSettingsService appSettings)
+        {
+            _polls = polls;
+            _appSettings = appSettings;
+        }
 
         public async Task<IActionResult> Index(string status = "active")
         {
@@ -24,6 +30,8 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             ViewBag.CurrentStatus = status;
             ViewBag.StatusOptions = new List<string> { "active", "archived", "upcoming", "all" };
+            ViewBag.NetworkBaseUrl = await _appSettings.GetNetworkBaseUrlAsync();
+            ViewBag.RequestBaseUrl = $"{Request.Scheme}://{Request.Host}";
             return View(pollDtos);
         }
 

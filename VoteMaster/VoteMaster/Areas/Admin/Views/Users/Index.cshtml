@@ -545,6 +545,7 @@
                 <th class="sortable" onclick="sortByColumn('username')">
                     Username<i class="bi bi-arrow-down-up"></i>
                 </th>
+                <th>Uniquecode</th>
                 <th class="sortable" onclick="sortByColumn('role')">
                     Role<i class="bi bi-arrow-down-up"></i>
                 </th>
@@ -563,6 +564,16 @@
                     @if (u.IsTestAccount)
                     {
                         <span class="badge text-bg-warning ms-1" title="Test account — excluded from voting and weight">Test</span>
+                    }
+                </td>
+                <td>
+                    @if (!string.IsNullOrEmpty(u.VoterCode))
+                    {
+                        <span class="badge text-bg-danger fw-bold" style="font-size:0.85rem;letter-spacing:0.08em;">@u.VoterCode</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">—</span>
                     }
                 </td>
                 <td>@u.Role</td>
@@ -634,6 +645,10 @@
                         else
                         {
                             <span class="badge text-bg-secondary fw-normal ms-1">No Weight</span>
+                        }
+                        @if (!string.IsNullOrEmpty(u.VoterCode))
+                        {
+                            <span class="badge text-bg-danger ms-1" style="font-family:monospace;letter-spacing:0.08em;">@u.VoterCode</span>
                         }
                     </div>
                 </div>

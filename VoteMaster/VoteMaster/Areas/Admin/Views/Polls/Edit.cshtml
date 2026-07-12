@@ -248,7 +248,7 @@
                 <input type="checkbox" class="form-check-input" id="allowUsercodeEntry" name="allowUsercodeEntry" value="true"
                        @((ViewBag.AllowUsercodeEntry ?? poll?.AllowUsercodeEntry ?? false) ? "checked" : "") />
                 <label class="form-check-label" for="allowUsercodeEntry">
-                    Allow usercode-only entry <span class="text-muted fw-normal">(voters enter only their username — no password needed)</span>
+                    Allow unique code-only entry <span class="text-muted fw-normal">(voters enter their unique 4-character code or username to vote — no password needed)</span>
                 </label>
             </div>
 

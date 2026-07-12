@@ -12,7 +12,14 @@ namespace VoteMaster.Areas.Admin.Controllers
     {
         private readonly IPollService _polls;
         private readonly IUserService _users;
-        public PollsController(IPollService polls, IUserService users) { _polls = polls; _users = users; }
+        private readonly IAppSettingsService _appSettings;
+
+        public PollsController(IPollService polls, IUserService users, IAppSettingsService appSettings)
+        {
+            _polls = polls;
+            _users = users;
+            _appSettings = appSettings;
+        }
 
         public async Task<IActionResult> Index(string status = "active")
         {
@@ -26,6 +33,8 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             ViewBag.CurrentStatus = status;
             ViewBag.StatusOptions = new List<string> { "active", "archived", "upcoming", "all" };
+            ViewBag.NetworkBaseUrl = await _appSettings.GetNetworkBaseUrlAsync();
+            ViewBag.RequestBaseUrl = $"{Request.Scheme}://{Request.Host}";
             return View(pollDtos);
         }
 
@@ -238,8 +247,6 @@ namespace VoteMaster.Areas.Admin.Controllers
             ViewBag.PollTitle = poll?.Title ?? "Poll Results";
             var res = await _polls.GetWeightedResultsAsync(id);
 
-            // For attendance-enabled polls, show the total weight of present voters
-            // so admins can see "X of Y total weighted votes cast"
             if (poll?.RequireAttendance == true)
             {
                 ViewBag.RequireAttendance = true;
@@ -251,6 +258,8 @@ namespace VoteMaster.Areas.Admin.Controllers
                 ViewBag.RequireAttendance = false;
             }
 
+            ViewBag.NetworkBaseUrl = await _appSettings.GetNetworkBaseUrlAsync();
+            ViewBag.RequestBaseUrl = $"{Request.Scheme}://{Request.Host}";
             return View(res);
         }
 
@@ -271,6 +280,8 @@ namespace VoteMaster.Areas.Admin.Controllers
             if (poll is null) return NotFound();
 
             ViewBag.Poll = poll;
+            ViewBag.NetworkBaseUrl = await _appSettings.GetNetworkBaseUrlAsync();
+            ViewBag.RequestBaseUrl = $"{Request.Scheme}://{Request.Host}";
             return View(poll);
         }
 

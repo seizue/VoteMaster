@@ -17,14 +17,16 @@ namespace VoteMaster.Areas.Admin.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IUserService _userService;
         private readonly BrowserService _browserService;
+        private readonly IAppSettingsService _appSettings;
 
-        public TemplatesController(AppDbContext db, IPollService polls, IWebHostEnvironment env, IUserService userService, BrowserService browserService)
+        public TemplatesController(AppDbContext db, IPollService polls, IWebHostEnvironment env, IUserService userService, BrowserService browserService, IAppSettingsService appSettings)
         {
             _db = db;
             _polls = polls;
             _env = env;
             _userService = userService;
             _browserService = browserService;
+            _appSettings = appSettings;
         }
 
         public async Task<IActionResult> Index()
@@ -152,10 +154,16 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             if (template is null) return NotFound();
 
-            // Build the voting URL from custom baseUrl or fallback to request host
-            var baseUrlToUse = string.IsNullOrWhiteSpace(baseUrl)
-                ? $"{Request.Scheme}://{Request.Host}"
-                : baseUrl;
+            // If a baseUrl was explicitly passed (from form submit), save it
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+                await _appSettings.SetNetworkBaseUrlAsync(baseUrl.Trim());
+
+            // Use saved network URL, fall back to request host
+            var savedBase = await _appSettings.GetNetworkBaseUrlAsync();
+            var baseUrlToUse = !string.IsNullOrWhiteSpace(savedBase)
+                ? savedBase
+                : $"{Request.Scheme}://{Request.Host}";
+
             var voteUrl = $"{baseUrlToUse}/Client/Vote/{template.PollId}";
 
             // Generate QR code as base64 PNG
@@ -172,8 +180,29 @@ namespace VoteMaster.Areas.Admin.Controllers
             ViewBag.VoteUrl = voteUrl;
             ViewBag.QrCodeBase64 = qrBase64;
             ViewBag.Voters = voters;
+            ViewBag.SavedBaseUrl = baseUrlToUse;
 
             return View(template);
+        }
+
+        // ── Save network base URL ──────────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNetworkBaseUrl(int? templateId, string? networkBaseUrl)
+        {
+            var trimmed = networkBaseUrl?.Trim();
+            await _appSettings.SetNetworkBaseUrlAsync(string.IsNullOrWhiteSpace(trimmed) ? null : trimmed);
+
+            if (templateId.HasValue)
+                return RedirectToAction(nameof(Ticket), new { id = templateId.Value });
+
+            // Called from Dashboard or Polls — go back to referrer or Dashboard
+            var referrer = Request.Headers["Referer"].ToString();
+            if (!string.IsNullOrEmpty(referrer)
+                && Uri.TryCreate(referrer, UriKind.Absolute, out var refUri)
+                && string.Equals(refUri.Host, Request.Host.Host, StringComparison.OrdinalIgnoreCase))
+                return Redirect(referrer);
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
 
         [HttpGet]
@@ -191,10 +220,11 @@ namespace VoteMaster.Areas.Admin.Controllers
                 .Select(w => char.ToUpper(w[0])));
             var ticketCode = $"{initials}-{template.CreatedAt:yyyyMMdd}";
 
-            // Build the voting URL from custom baseUrl or fallback to request host
-            var baseUrlToUse = string.IsNullOrWhiteSpace(baseUrl)
-                ? $"{Request.Scheme}://{Request.Host}"
-                : baseUrl;
+            // Build the voting URL from custom baseUrl or fallback to saved/request host
+            var savedBase = await _appSettings.GetNetworkBaseUrlAsync();
+            var baseUrlToUse = !string.IsNullOrWhiteSpace(baseUrl) ? baseUrl.Trim()
+                : !string.IsNullOrWhiteSpace(savedBase) ? savedBase
+                : $"{Request.Scheme}://{Request.Host}";
             var voteUrl = $"{baseUrlToUse}/Client/Vote/{template.PollId}";
             using var qrGenerator = new QRCoder.QRCodeGenerator();
             var qrData = qrGenerator.CreateQrCode(voteUrl, QRCoder.QRCodeGenerator.ECCLevel.Q);
@@ -252,7 +282,9 @@ namespace VoteMaster.Areas.Admin.Controllers
                             break;
                         }
                         var voter = page[idx];
-                        var uname = System.Web.HttpUtility.HtmlEncode(voter.Username);
+                        var voterCode = System.Web.HttpUtility.HtmlEncode(voter.VoterCode ?? voter.Username);
+                        var fullName  = System.Web.HttpUtility.HtmlEncode(voter.FullName ?? voter.Username);
+                        var urlEncoded = System.Web.HttpUtility.HtmlEncode(voteUrl);
                         var signatureRow = template.IncludeSignature
                             ? "<div class=\"ticket-field-row\"><span class=\"ticket-field-label\">Signature:</span><div class=\"ticket-field-line\"></div></div>"
                             : "";
@@ -267,12 +299,20 @@ namespace VoteMaster.Areas.Admin.Controllers
                             <div class=""ticket-qr-section"">
                                 <div class=""ticket-scan-label"">Scan to Vote</div>
                                 <img class=""ticket-qr-img"" src=""data:image/png;base64,{qrBase64}"" />
-                                <div class=""ticket-scan-sub"">{System.Web.HttpUtility.HtmlEncode(voteUrl)}</div>
+                                <div class=""ticket-scan-sub"">{urlEncoded}</div>
                             </div>
                             <div class=""ticket-fields"">
                                 <div class=""ticket-field-row"">
-                                    <span class=""ticket-field-label"">Username:</span>
-                                    <div class=""ticket-field-value usercode"">{uname}</div>
+                                    <span class=""ticket-field-label"">Uniquecode:</span>
+                                    <div class=""ticket-field-value usercode"">{voterCode}</div>
+                                </div>
+                                <div class=""ticket-field-row"">
+                                    <span class=""ticket-field-label"">URL:</span>
+                                    <div class=""ticket-field-value"" style=""font-size:6pt;"">{urlEncoded}</div>
+                                </div>
+                                <div class=""ticket-field-row"">
+                                    <span class=""ticket-field-label"">Name:</span>
+                                    <div class=""ticket-field-value"">{fullName}</div>
                                 </div>
                                 {signatureRow}
                             </div>
@@ -383,6 +423,42 @@ namespace VoteMaster.Areas.Admin.Controllers
             {
                 await puppeteerPage.CloseAsync();
             }
+        }
+
+        // ── Regenerate all voter codes ──────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegenerateVoterCodes(int templateId)
+        {
+            const string codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1
+            var rng = new Random();
+
+            var voters = await _db.Users
+                .Where(u => u.Role == "Voter")
+                .ToListAsync();
+
+            // Build a fresh set of codes — all reassigned regardless of existing value
+            var used = new HashSet<string>();
+            foreach (var voter in voters)
+            {
+                string code;
+                int attempts = 0;
+                do
+                {
+                    code = new string(Enumerable.Range(0, 4)
+                        .Select(_ => codeChars[rng.Next(codeChars.Length)])
+                        .ToArray());
+                    if (++attempts > 100_000)
+                        throw new InvalidOperationException("VoterCode space exhausted.");
+                } while (used.Contains(code));
+
+                used.Add(code);
+                voter.VoterCode = code;
+            }
+
+            await _db.SaveChangesAsync();
+            TempData["CodesRegenerated"] = $"Unique codes regenerated for {voters.Count} voter(s).";
+            return RedirectToAction(nameof(Ticket), new { id = templateId });
         }
 
         [HttpPost]

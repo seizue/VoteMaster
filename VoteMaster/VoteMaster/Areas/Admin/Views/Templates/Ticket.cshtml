@@ -278,10 +278,27 @@
     <a class="btn btn-success" id="exportPdfBtn" href="/Admin/Templates/ExportPdf/@Model.Id" target="_blank">
         <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
     </a>
+    <button class="btn btn-warning text-dark" onclick="confirmRegenerate()">
+        <i class="bi bi-arrow-repeat me-2"></i>Regenerate All Codes
+    </button>
     <a class="btn btn-secondary" href="/Admin/Templates">
         <i class="bi bi-arrow-left me-2"></i>Back to Templates
     </a>
 </div>
+
+@* Hidden form for regenerating codes *@
+<form id="regenForm" method="post" action="/Admin/Templates/RegenerateVoterCodes">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="templateId" value="@Model.Id" />
+</form>
+
+@if (TempData["CodesRegenerated"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["CodesRegenerated"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 @* ── Network base URL config ── *@
 <div class="card mb-3 border-warning">
@@ -291,15 +308,22 @@
                 <i class="bi bi-wifi text-warning fs-5"></i>
                 <span class="fw-semibold" style="white-space:nowrap;">Network Base URL</span>
             </div>
-            <input type="text" id="baseUrlInput"
-                   class="form-control form-control-sm"
-                   style="max-width:320px;font-family:monospace;"
-                   value="@($"{Context.Request.Scheme}://{Context.Request.Host}")"
-                   placeholder="e.g. http://192.168.31.57:5000" />
-            <button class="btn btn-sm btn-warning" onclick="applyBaseUrl()">
-                <i class="bi bi-arrow-repeat me-1"></i>Regenerate QR &amp; Link
-            </button>
-            <span class="text-muted small">Change this to your LAN IP so phones can scan and reach the right address.</span>
+            <form id="saveBaseUrlForm" method="post" action="/Admin/Templates/SaveNetworkBaseUrl" class="d-flex align-items-center gap-2 flex-wrap">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="templateId" value="@Model.Id" />
+                <input type="text" id="baseUrlInput" name="networkBaseUrl"
+                       class="form-control form-control-sm"
+                       style="max-width:320px;font-family:monospace;"
+                       value="@ViewBag.SavedBaseUrl"
+                       placeholder="e.g. http://192.168.1.57:5000" />
+                <button type="submit" class="btn btn-sm btn-warning">
+                    <i class="bi bi-arrow-repeat me-1"></i>Save &amp; Apply
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBaseUrl()">
+                    <i class="bi bi-x-circle me-1"></i>Reset
+                </button>
+            </form>
+            <span class="text-muted small">Enter your LAN IP — saved server-side, persists across all pages and refreshes.</span>
         </div>
     </div>
 </div>
@@ -369,8 +393,16 @@
                             @* Fields *@
                             <div class="ticket-fields">
                                 <div class="ticket-field-row" id="top-row-@voter.Username">
-                                    <span class="ticket-field-label">Username:</span>
-                                    <div class="ticket-field-value usercode">@voter.Username</div>
+                                    <span class="ticket-field-label">Uniquecode:</span>
+                                    <div class="ticket-field-value usercode">@(voter.VoterCode ?? voter.Username)</div>
+                                </div>
+                                <div class="ticket-field-row">
+                                    <span class="ticket-field-label">URL:</span>
+                                    <div class="ticket-field-value ticket-url-value" style="font-size:6pt;">@voteUrl</div>
+                                </div>
+                                <div class="ticket-field-row">
+                                    <span class="ticket-field-label">Name:</span>
+                                    <div class="ticket-field-value">@(voter.FullName ?? voter.Username)</div>
                                 </div>
                                 @if (Model.IncludeSignature)
                                 {
@@ -416,49 +448,53 @@
     const pollId = @Model.PollId;
     let currentPage = 0;
 
-    // ── Base URL regeneration ────────────────────────────────────────────
-    function applyBaseUrl() {
-        const base = document.getElementById('baseUrlInput').value.trim();
-        if (!base) { alert('Please enter a base URL.'); return; }
+    // ── Regenerate codes confirmation ────────────────────────────────────
+    function confirmRegenerate() {
+        if (confirm('This will assign brand-new 4-character codes to ALL voters.\n\nAny previously printed tickets will no longer work for kiosk login.\n\nContinue?')) {
+            document.getElementById('regenForm').submit();
+        }
+    }
 
+    // ── Apply base URL to QR codes and URL labels (client-side preview) ──
+    // Called on page load using the server-saved value, and on form submit preview.
+    function applyBaseUrl(base) {
+        if (!base) return;
         const voteUrl = `${base}/Client/Vote/${pollId}`;
 
-        // Update all text links
         document.querySelectorAll('.ticket-scan-sub').forEach(el => el.textContent = voteUrl);
+        document.querySelectorAll('.ticket-url-value').forEach(el => el.textContent = voteUrl);
 
-        // Regenerate QR codes
         document.querySelectorAll('.ticket-qr-img').forEach(img => {
             const parent = img.parentElement;
             const temp = document.createElement('div');
             temp.style.width = '160px';
             temp.style.height = '160px';
             parent.replaceChild(temp, img);
-
-            // Generate QR
             new QRCode(temp, {
-                text: voteUrl,
-                width: 160,
-                height: 160,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
+                text: voteUrl, width: 160, height: 160,
+                colorDark: '#000000', colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.Q
             });
-
-            // Replace temp div with the generated img
             setTimeout(() => {
                 const newImg = temp.querySelector('img');
-                if (newImg) {
-                    newImg.className = 'ticket-qr-img';
-                    parent.replaceChild(newImg, temp);
-                }
+                if (newImg) { newImg.className = 'ticket-qr-img'; parent.replaceChild(newImg, temp); }
             }, 50);
         });
 
-        // Update PDF export link
         const pdfBtn = document.getElementById('exportPdfBtn');
-        if (pdfBtn) {
-            pdfBtn.href = `/Admin/Templates/ExportPdf/@Model.Id?baseUrl=${encodeURIComponent(base)}`;
-        }
+        if (pdfBtn) pdfBtn.href = `/Admin/Templates/ExportPdf/@Model.Id?baseUrl=${encodeURIComponent(base)}`;
+    }
+
+    // ── Auto-apply server-saved URL on page load ──────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedBase = document.getElementById('baseUrlInput').value.trim();
+        if (savedBase) applyBaseUrl(savedBase);
+    });
+
+    // ── Reset: POST empty string to clear saved URL on server ─────────────
+    function clearBaseUrl() {
+        document.getElementById('baseUrlInput').value = '';
+        document.getElementById('saveBaseUrlForm').submit();
     }
 
     // ── Page navigation ──────────────────────────────────────────────────

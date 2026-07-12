@@ -735,7 +735,10 @@
         }
         
         // Share and QR Code functionality
-        const pollUrl = window.location.origin + '/Client/Vote/' + pollId;
+        const _networkBase = '@(ViewBag.NetworkBaseUrl ?? string.Empty)'
+                           || '@(ViewBag.RequestBaseUrl ?? string.Empty)'
+                           || window.location.origin;
+        const pollUrl = _networkBase + '/Client/Vote/' + pollId;
         
         function copyPollLink() {
             navigator.clipboard.writeText(pollUrl).then(() => {

@@ -8,6 +8,7 @@ namespace VoteMaster.Services
         Task<AppUser?> GetByUsernameAsync(string username);
         Task<AppUser?> GetByEmailAsync(string email);
         Task<AppUser?> GetByIdAsync(int id);
+        Task<AppUser?> GetByVoterCodeAsync(string voterCode);
         Task<List<AppUser>> GetAllAsync();
         // Returns only users created by this admin (plus null-owner legacy users)
         Task<List<AppUser>> GetAllForAdminAsync(int adminId);

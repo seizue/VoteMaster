@@ -260,6 +260,7 @@
     </div>
 </div>
 
+
 <!-- Search and Filters -->
 <div class="dashboard-filters">
     <div class="search-box">
@@ -941,9 +942,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// ── Shared helper: get the base URL (LAN IP if set, else current host) ────
+function getNetworkBase() {
+    const saved = '@(ViewBag.NetworkBaseUrl ?? string.Empty)';
+    return saved || '@(ViewBag.RequestBaseUrl ?? string.Empty)' || `${location.protocol}//${location.host}`;
+}
+
 // ── Share: Copy Link ──────────────────────────────────────────────────────
 function sharePollLink(pollId) {
-    const url = `${location.protocol}//${location.host}/Client/Vote/${pollId}`;
+    const url = `${getNetworkBase()}/Client/Vote/${pollId}`;
     navigator.clipboard.writeText(url).then(() => {
         showShareToast('Poll link copied to clipboard!');
     }).catch(() => { prompt('Copy this link:', url); });
@@ -951,7 +958,7 @@ function sharePollLink(pollId) {
 
 // ── Share: QR Code ────────────────────────────────────────────────────────
 function sharePollQR(pollId) {
-    const url = `${location.protocol}//${location.host}/Client/Vote/${pollId}`;
+    const url = `${getNetworkBase()}/Client/Vote/${pollId}`;
     document.getElementById('shareQrLinkInput').value = url;
     const container = document.getElementById('shareQrContainer');
     container.innerHTML = '';
