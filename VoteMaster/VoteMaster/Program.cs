@@ -339,7 +339,14 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Run("http://0.0.0.0:5000");
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_PORT")))
+{
+    app.Run("http://0.0.0.0:5000");
+}
+else
+{
+    app.Run();
+}
 
 // ====== Helper Seed Model ======
 public class UserSeedModel
