@@ -39,6 +39,22 @@
     }
     .att-toolbar .divider { width: 1px; height: 24px; background: #e2e8f0; }
 
+    .att-search-bar {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem;
+        margin-bottom: 1rem; padding: 0.75rem 1rem;
+        background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem;
+    }
+    .att-search-input {
+        flex: 1; min-width: 180px; border: 1px solid #e2e8f0; border-radius: 0.5rem;
+        padding: 0.45rem 0.85rem 0.45rem 2.25rem; font-size: 0.875rem;
+        background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 0.75rem center;
+        outline: none; transition: border-color .15s;
+    }
+    .att-search-input:focus { border-color: #6366f1; background-color: white; }
+    .att-no-results {
+        padding: 2.5rem 1rem; text-align: center; color: #94a3b8; display: none;
+    }
+
     .att-select-bar {
         display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
         padding: 0.55rem 1rem; background: #f8fafc;
@@ -171,6 +187,23 @@ else
         </span>
     </div>
 
+    @* ── Search / filter bar ── *@
+    <div class="att-search-bar">
+        <i class="bi bi-search text-muted" style="font-size:0.9rem;"></i>
+        <input type="text" id="attSearch" class="att-search-input"
+               placeholder="Search by name or username…"
+               oninput="filterAttendance()" autocomplete="off" />
+        <div class="divider" style="width:1px;height:24px;background:#e2e8f0;"></div>
+        <select id="attStatusFilter" class="form-select form-select-sm" style="width:auto;min-width:130px;" onchange="filterAttendance()">
+            <option value="all">All voters</option>
+            <option value="present">Present only</option>
+            <option value="absent">Absent only</option>
+            <option value="voted">Voted</option>
+            <option value="notvoted">Not voted</option>
+        </select>
+        <span class="text-muted small ms-auto" id="filterCount"></span>
+    </div>
+
     @* ── Desktop table (NO outer form — checkboxes are just UI, bulk form built by JS) ── *@
     <div class="card att-table-wrap">
         <div class="att-select-bar">
@@ -190,13 +223,15 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var voter in Model!.OrderBy(u => u.Username))
+                @foreach (var voter in Model!.OrderBy(u => u.FullName ?? u.Username))
                 {
-                    var isPresent = presentIds.Contains(voter.Id);
-                    var hasVoted  = votedIds.Contains(voter.Id);
-                    var initials  = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
+                    var isPresent    = presentIds.Contains(voter.Id);
+                    var hasVoted     = votedIds.Contains(voter.Id);
+                    var displayName  = !string.IsNullOrWhiteSpace(voter.FullName) ? voter.FullName : voter.Username;
+                    var initials     = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "?";
 
-                    <tr>
+                    <tr data-name="@displayName.ToLower()" data-username="@voter.Username.ToLower()"
+                        data-present="@isPresent.ToString().ToLower()" data-voted="@hasVoted.ToString().ToLower()">
                         <td>
                             <input type="checkbox" class="form-check-input voter-check"
                                    value="@voter.Id" onchange="updateSelCount()" />
@@ -205,8 +240,8 @@ else
                             <div class="d-flex align-items-center gap-2">
                                 <div class="voter-avatar">@initials</div>
                                 <div>
-                                    <div class="fw-semibold" style="color:#0f172a;">@voter.Username</div>
-                                    <div style="font-size:0.72rem;color:#94a3b8;">weight: @voter.Weight</div>
+                                    <div class="fw-semibold" style="color:#0f172a;">@displayName</div>
+                                    <div style="font-size:0.72rem;color:#94a3b8;">@voter.Username &nbsp;·&nbsp; weight: @voter.Weight</div>
                                 </div>
                             </div>
                         </td>
@@ -256,19 +291,25 @@ else
                 }
             </tbody>
         </table>
+        <div class="att-no-results" id="tableNoResults">
+            <i class="bi bi-search fs-4 d-block mb-2"></i>No voters match your search.
+        </div>
     </div>
 
     @* ── Mobile cards ── *@
     <div class="att-cards">
-        @foreach (var voter in Model!.OrderBy(u => u.Username))
+        @foreach (var voter in Model!.OrderBy(u => u.FullName ?? u.Username))
         {
-            var isPresent = presentIds.Contains(voter.Id);
-            var hasVoted  = votedIds.Contains(voter.Id);
-            var initials  = voter.Username.Length > 0 ? voter.Username[0].ToString().ToUpper() : "?";
-            var cardBg    = isPresent ? "#f0fdf4" : "#f8fafc";
-            var dotColor  = isPresent ? "#22c55e" : "#94a3b8";
+            var isPresent    = presentIds.Contains(voter.Id);
+            var hasVoted     = votedIds.Contains(voter.Id);
+            var displayName  = !string.IsNullOrWhiteSpace(voter.FullName) ? voter.FullName : voter.Username;
+            var initials     = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "?";
+            var cardBg       = isPresent ? "#f0fdf4" : "#f8fafc";
+            var dotColor     = isPresent ? "#22c55e" : "#94a3b8";
 
-            <div class="att-voter-card">
+            <div class="att-voter-card"
+                 data-name="@displayName.ToLower()" data-username="@voter.Username.ToLower()"
+                 data-present="@isPresent.ToString().ToLower()" data-voted="@hasVoted.ToString().ToLower()">
                 <input type="checkbox" class="form-check-input voter-check"
                        value="@voter.Id" onchange="updateSelCount()"
                        style="width:20px;height:20px;flex-shrink:0;" />
@@ -276,9 +317,9 @@ else
                     @initials
                 </div>
                 <div class="att-voter-info">
-                    <div class="att-voter-name">@voter.Username</div>
+                    <div class="att-voter-name">@displayName</div>
                     <div class="att-voter-meta">
-                        weight @voter.Weight
+                        @voter.Username &nbsp;·&nbsp; weight @voter.Weight
                         @if (hasVoted) { <text>&nbsp;·&nbsp;<span class="text-primary">Voted</span></text> }
                     </div>
                 </div>
@@ -298,6 +339,9 @@ else
                 </button>
             </div>
         }
+    </div>
+    <div class="att-no-results" id="cardsNoResults">
+        <i class="bi bi-search fs-4 d-block mb-2"></i>No voters match your search.
     </div>
 }
 
@@ -333,6 +377,49 @@ else
 @section Scripts {
 <script>
 (function () {
+    // ── Search / filter ─────────────────────────────────────────────────
+    window.filterAttendance = function () {
+        var q      = (document.getElementById('attSearch').value || '').toLowerCase().trim();
+        var status = document.getElementById('attStatusFilter').value;
+
+        var rows  = document.querySelectorAll('.att-table tbody tr[data-name]');
+        var cards = document.querySelectorAll('.att-voter-card[data-name]');
+        var total = rows.length || cards.length;
+        var shown = 0;
+
+        function matches(el) {
+            var nameOk    = !q || el.dataset.name.includes(q) || el.dataset.username.includes(q);
+            var present   = el.dataset.present === 'true';
+            var voted     = el.dataset.voted    === 'true';
+            var statusOk  = status === 'all'
+                         || (status === 'present'  &&  present)
+                         || (status === 'absent'   && !present)
+                         || (status === 'voted'    &&  voted)
+                         || (status === 'notvoted' && !voted);
+            return nameOk && statusOk;
+        }
+
+        rows.forEach(function (r) {
+            var show = matches(r);
+            r.style.display = show ? '' : 'none';
+            if (show) shown++;
+        });
+        cards.forEach(function (c) { c.style.display = matches(c) ? '' : 'none'; });
+
+        // "no results" placeholders
+        var tableNone = document.getElementById('tableNoResults');
+        var cardsNone = document.getElementById('cardsNoResults');
+        if (tableNone) tableNone.style.display = (shown === 0 && total > 0) ? 'block' : 'none';
+        if (cardsNone) cardsNone.style.display = (shown === 0 && total > 0) ? 'block' : 'none';
+
+        // result count hint
+        var fc = document.getElementById('filterCount');
+        if (fc) fc.textContent = (q || status !== 'all') ? (shown + ' of ' + total + ' shown') : '';
+
+        // keep master checkbox in sync
+        updateSelCount();
+    };
+
     // ── Selection helpers ───────────────────────────────────────────────
     function updateSelCount() {
         var n = document.querySelectorAll('.voter-check:checked').length;

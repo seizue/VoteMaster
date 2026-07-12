@@ -51,7 +51,14 @@ namespace VoteMaster.Areas.Admin.Controllers
             var allAdmins = await _users.GetAllAsync();
             var currentOwnerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
 
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            var voters = (await _users.GetAllForAdminAsync(adminId))
+                             .Where(u => u.Role == "Voter" && !u.IsTestAccount)
+                             .OrderBy(u => u.FullName ?? u.Username)
+                             .ToList();
+
             ViewBag.Poll = poll;
+            ViewBag.Voters = voters;
             ViewBag.OptionsCsv = string.Join(", ", poll.Options.Select(o => o.Text.Contains(",") ? $"\"{o.Text}\"" : o.Text));
             ViewBag.StartDateTime = poll.StartTime.ToString("yyyy-MM-ddTHH:mm");
             ViewBag.EndDateTime = poll.EndTime.ToString("yyyy-MM-ddTHH:mm");
