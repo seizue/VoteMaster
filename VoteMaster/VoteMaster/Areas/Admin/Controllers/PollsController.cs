@@ -77,7 +77,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string optionsCsv,
+        public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string? optionsCsv,
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
             bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
             bool requireAttendance = false)
@@ -110,7 +110,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("maxVotesPerVoter", "Maximum votes must be greater than or equal to minimum votes.");
             }
-            if (maxVotesPerVoter > options.Length)
+            if (options.Length > 0 && maxVotesPerVoter > options.Length)
             {
                 ModelState.AddModelError("maxVotesPerVoter", "Maximum votes cannot exceed the number of options.");
             }
@@ -158,7 +158,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string optionsCsv, 
+        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string? optionsCsv, 
             string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
             bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
             bool requireAttendance = false)
@@ -190,7 +190,7 @@ namespace VoteMaster.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("maxVotesPerVoter", "Maximum votes must be greater than or equal to minimum votes.");
             }
-            if (maxVotesPerVoter > options.Length)
+            if (options.Length > 0 && maxVotesPerVoter > options.Length)
             {
                 ModelState.AddModelError("maxVotesPerVoter", "Maximum votes cannot exceed the number of options.");
             }

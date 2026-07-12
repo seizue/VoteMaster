@@ -101,8 +101,7 @@
                 <input class="form-control" name="optionsCsv" id="optionsCsv"
                        value="@optionsCsv"
                        placeholder="Option A, Option B, Option C"
-                       @(hasVoterOptions ? "readonly" : "")
-                       required />
+                       @(hasVoterOptions ? "readonly" : "") />
                 <div class="form-text" id="optionsCsvHelp">
                     @(hasVoterOptions
                         ? "Options are populated automatically from your voter selection."
@@ -349,6 +348,48 @@
 @section Scripts {
 <script>
 // ── Mode toggle ──────────────────────────────────────────────────────────────
+// ── Sync checkboxes from the CSV input value ────────────────────────────────
+function syncCheckboxesFromCsv() {
+    var csvInput = document.getElementById('optionsCsv');
+    if (!csvInput) return;
+    var currentOptions = parseCsv(csvInput.value);
+
+    var checkboxes = document.querySelectorAll('.voter-checkbox');
+    checkboxes.forEach(function(cb) {
+        var label = cb.dataset.label;
+        var weight = parseInt(cb.dataset.weight, 10);
+        var cleanText = label;
+        var weightedText = label + ' (' + weight.toLocaleString('en-US') + ' ' + (weight === 1 ? 'share' : 'shares') + ')';
+
+        var cleanIndex = currentOptions.indexOf(cleanText);
+        var weightedIndex = currentOptions.indexOf(weightedText);
+
+        var voterId = cb.dataset.id;
+        var weightToggle = document.getElementById('weightToggle_' + voterId);
+
+        if (cleanIndex !== -1) {
+            cb.checked = true;
+            if (weightToggle) weightToggle.checked = false;
+        } else if (weightedIndex !== -1) {
+            cb.checked = true;
+            if (weightToggle) weightToggle.checked = true;
+        } else {
+            cb.checked = false;
+        }
+    });
+}
+
+// Attach input listener to sync checkboxes when admin types manually
+document.addEventListener('DOMContentLoaded', function() {
+    var csv = document.getElementById('optionsCsv');
+    if (csv) {
+        csv.addEventListener('input', syncCheckboxesFromCsv);
+    }
+    // Perform initial sync on edit page load
+    syncCheckboxesFromCsv();
+});
+
+// ── Mode toggle ──────────────────────────────────────────────────────────────
 document.querySelectorAll('input[name="optionsMode"]').forEach(function (radio) {
     radio.addEventListener('change', function () {
         var isVoterMode = document.getElementById('modeVoters').checked;
@@ -364,6 +405,7 @@ document.querySelectorAll('input[name="optionsMode"]').forEach(function (radio) 
             collapseEl.show();
             csv.setAttribute('readonly', 'readonly');
             help.textContent = 'Options are populated automatically from your voter selection.';
+            syncCheckboxesFromCsv();
             rebuildOptions();
         } else {
             collapseEl.hide();
@@ -373,22 +415,88 @@ document.querySelectorAll('input[name="optionsMode"]').forEach(function (radio) 
     });
 });
 
-// ── Build CSV from checked voters ────────────────────────────────────────────
-function rebuildOptions() {
-    var checked = document.querySelectorAll('.voter-checkbox:checked');
-    var parts = Array.from(checked).map(function (cb) {
-        var label = cb.dataset.label;
-        var voterId = cb.dataset.id;
-        var weightToggle = document.getElementById('weightToggle_' + voterId);
-        var includeWeight = weightToggle ? weightToggle.checked : false;
-        var text = label;
-        if (includeWeight) {
-            var w = parseInt(cb.dataset.weight, 10);
-            text = label + ' (' + w.toLocaleString('en-US') + ' ' + (w === 1 ? 'share' : 'shares') + ')';
+function parseCsv(csv) {
+    if (!csv) return [];
+    var list = [];
+    var current = '';
+    var inQuotes = false;
+    for (var i = 0; i < csv.length; i++) {
+        var c = csv[i];
+        if (c === '"') {
+            inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+            var val = current.trim();
+            if (val) {
+                list.push(val.replace(/^"|"$/g, '').trim());
+            }
+            current = '';
+        } else {
+            current += c;
         }
-        return text.includes(',') ? '"' + text + '"' : text;
+    }
+    var lastVal = current.trim();
+    if (lastVal) {
+        list.push(lastVal.replace(/^"|"$/g, '').trim());
+    }
+    return list;
+}
+
+function serializeCsv(list) {
+    return list.map(function(item) {
+        var trimmed = item.trim();
+        if (trimmed.includes(',')) {
+            return '"' + trimmed + '"';
+        }
+        return trimmed;
+    }).join(', ');
+}
+
+// ── Build CSV from checked voters while retaining non-voter choices ──────────
+function rebuildOptions() {
+    var csvInput = document.getElementById('optionsCsv');
+    var currentOptions = parseCsv(csvInput.value);
+
+    // Get all voter checkboxes
+    var voterCheckboxes = document.querySelectorAll('.voter-checkbox');
+    
+    // Create a set of all possible voter options to identify non-voter options
+    var voterOptionsSet = new Set();
+    voterCheckboxes.forEach(function(cb) {
+        var label = cb.dataset.label;
+        var weight = parseInt(cb.dataset.weight, 10);
+        var cleanText = label;
+        var weightedText = label + ' (' + weight.toLocaleString('en-US') + ' ' + (weight === 1 ? 'share' : 'shares') + ')';
+        
+        voterOptionsSet.add(cleanText);
+        voterOptionsSet.add(weightedText);
     });
-    document.getElementById('optionsCsv').value = parts.join(', ');
+
+    // Separate non-voter options
+    var nonVoterOptions = currentOptions.filter(function(opt) {
+        return !voterOptionsSet.has(opt);
+    });
+
+    // Collect all checked voter options
+    var selectedVoterOptions = [];
+    voterCheckboxes.forEach(function(cb) {
+        if (cb.checked) {
+            var label = cb.dataset.label;
+            var voterId = cb.dataset.id;
+            var weightToggle = document.getElementById('weightToggle_' + voterId);
+            var includeWeight = weightToggle ? weightToggle.checked : false;
+            
+            var text = label;
+            if (includeWeight) {
+                var weight = parseInt(cb.dataset.weight, 10);
+                text = label + ' (' + weight.toLocaleString('en-US') + ' ' + (weight === 1 ? 'share' : 'shares') + ')';
+            }
+            selectedVoterOptions.push(text);
+        }
+    });
+
+    // Combine
+    var newOptions = nonVoterOptions.concat(selectedVoterOptions);
+    csvInput.value = serializeCsv(newOptions);
 }
 
 // ── Select / clear all ────────────────────────────────────────────────────────
