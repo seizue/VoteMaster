@@ -339,11 +339,11 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_PORT")))
+try
 {
     app.Run("http://0.0.0.0:5000");
 }
-else
+catch (InvalidOperationException)
 {
     app.Run();
 }
