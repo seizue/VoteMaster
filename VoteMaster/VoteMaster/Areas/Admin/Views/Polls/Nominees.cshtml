@@ -13,6 +13,8 @@
 }
 
 <style>
+    @@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
+
     /* ── Normal list view ── */
     .nominees-header { margin-bottom: 1.5rem; }
     .nominees-header h3 { font-weight: 700; color: #0f172a; }
@@ -33,159 +35,264 @@
         border-color: #cbd5e1;
     }
     .nominee-index {
-        min-width: 2rem;
-        height: 2rem;
-        border-radius: 50%;
-        background: #f1f5f9;
-        color: #64748b;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        font-weight: 700;
-        flex-shrink: 0;
+        min-width: 2rem; height: 2rem; border-radius: 50%;
+        background: #f1f5f9; color: #64748b;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
     }
-    .nominee-name {
-        font-weight: 600;
-        font-size: 1rem;
-        color: #0f172a;
-    }
+    .nominee-name { font-weight: 600; font-size: 1rem; color: #0f172a; }
 
-    /* ══════════════════════════════════════════════
-       Present overlay — mirrors Results pres style
-    ══════════════════════════════════════════════ */
+    /* ══ Present Overlay ══ */
     #present-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        background: #f8fafc;
-        flex-direction: column;
-        overflow: hidden;
+        display: none; position: fixed; inset: 0; z-index: 9999;
+        background: #0f172a;
+        flex-direction: column; overflow: hidden;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        user-select: none;
     }
     #present-overlay.active { display: flex; }
 
-    /* Header bar */
+    /* ── Overlay Header ── */
     .pnom-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.25rem 2rem 1rem;
-        flex-shrink: 0;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.75rem; flex-shrink: 0;
+        background: rgba(255,255,255,0.04);
+        border-bottom: 1px solid rgba(255,255,255,0.09);
     }
     .pnom-title {
-        font-size: clamp(1.1rem, 2.5vw, 1.6rem);
-        font-weight: 800;
-        color: #0f172a;
-        letter-spacing: -0.01em;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        font-size: clamp(1rem, 2.2vw, 1.4rem); font-weight: 800;
+        color: #f1f5f9; letter-spacing: -0.01em;
+        display: flex; align-items: center; gap: 0.5rem;
     }
     .pnom-title i { color: #f59e0b; }
-    .pnom-subtitle {
-        font-size: 0.8rem;
-        color: #64748b;
-        margin-top: 0.15rem;
-    }
+    .pnom-subtitle { font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
     .pnom-exit-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.5rem 1.1rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        border-radius: 0.6rem;
-        cursor: pointer;
-        flex-shrink: 0;
-        background: #0f172a;
-        color: white;
-        border: none;
+        padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: 600;
+        border-radius: 0.6rem; cursor: pointer;
+        background: rgba(255,255,255,0.10); color: #f1f5f9;
+        border: 1px solid rgba(255,255,255,0.15);
         transition: background 0.15s;
     }
-    .pnom-exit-btn:hover { background: #334155; }
+    .pnom-exit-btn:hover { background: rgba(255,255,255,0.18); }
 
-    /* Scrollable body */
-    .pnom-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem 2rem 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+    /* ── Slideshow wrapper ── */
+    .slides-wrapper {
+        flex: 1; position: relative; overflow: hidden;
     }
+    .slide {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.55s cubic-bezier(.4,0,.2,1), transform 0.55s cubic-bezier(.4,0,.2,1);
+        transform: translateX(60px);
+    }
+    .slide.prev { transform: translateX(-60px); opacity: 0; pointer-events: none; }
+    .slide.active { opacity: 1; pointer-events: all; transform: translateX(0); }
 
-    /* Nominee row card */
-    .pnom-row {
+    .slide-nominees { padding: 1.5rem 1rem; overflow-y: auto; justify-content: center; }
+    .slide-nominees-header {
+        font-family: 'Poppins', 'Segoe UI', sans-serif;
+        font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+        font-weight: 800;
+        color: #f1f5f9;
+        text-align: center;
+        margin-bottom: 2rem;
         display: flex;
         align-items: center;
-        gap: 1.25rem;
-        padding: 1.35rem 1.75rem;
-        background: white;
-        border: 1px solid #e2e8f0;
+        justify-content: center;
+        gap: 0.55rem;
+    }
+    /* Adaptive nominee list — centers in the slide, scales with count */
+    .pnom-list {
+        display: grid;
+        grid-template-columns: var(--nom-cols, 1fr);
+        width: 100%;
+        max-width: var(--nom-max-w, 760px);
+        gap: var(--nom-gap, 0.65rem);
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+    @@media (max-width: 768px) {
+        .pnom-list {
+            grid-template-columns: 1fr !important;
+            max-width: 600px !important;
+        }
+    }
+    .pnom-row {
+        display: flex; align-items: center; gap: 1.1rem;
+        padding: var(--nom-pad, 1rem 1.75rem);
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.10);
         border-left: 4px solid #f59e0b;
-        border-radius: 1rem;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.06);
-        transition: box-shadow 0.2s, transform 0.15s;
+        border-radius: 0.875rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.18);
         animation: nomSlideIn 0.35s ease both;
+        flex-shrink: 0;
     }
-    .pnom-row:hover {
-        box-shadow: 0 4px 16px rgba(15,23,42,0.10);
-        transform: translateY(-1px);
+    .pnom-num {
+        width: var(--nom-num-size, 2.2rem);
+        height: var(--nom-num-size, 2.2rem);
+        border-radius: 50%;
+        background: rgba(245,158,11,0.18); color: #fbbf24;
+        display: flex; align-items: center; justify-content: center;
+        font-size: var(--nom-num-fs, 0.9rem); font-weight: 800; flex-shrink: 0;
     }
-
+    .pnom-name {
+        font-size: var(--nom-fs, 1.5rem); font-weight: 700;
+        color: #f1f5f9;
+        white-space: normal; word-break: break-word; line-height: 1.25;
+    }
     @@keyframes nomSlideIn {
-        from { opacity: 0; transform: translateY(14px); }
+        from { opacity: 0; transform: translateY(12px); }
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    .pnom-name {
-        font-size: clamp(1.35rem, 3vw, 2.1rem);
-        font-weight: 700;
-        color: #1e293b;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    /* ── Slide 1: QR Code ── */
+    .slide-qr { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); }
+    .qr-card {
+        background: white; border-radius: 1.5rem;
+        padding: 2.5rem 3rem; text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        max-width: 420px; width: 90%;
+    }
+    .qr-card h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem; }
+    .qr-card p { color: #64748b; font-size: 0.9rem; margin-bottom: 1.25rem; }
+    #slideQrContainer { display: flex; justify-content: center; margin-bottom: 1rem; }
+    .qr-url {
+        font-size: 0.78rem; color: #94a3b8;
+        word-break: break-all; background: #f8fafc;
+        border-radius: 0.5rem; padding: 0.5rem 0.75rem;
     }
 
-    /* Footer bar */
-    .pnom-footer {
+    /* ── Slide 2: Tutorial (mobile kiosk mock) ── */
+    .slide-tutorial { background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%); gap: 2rem; }
+    .tutorial-label {
+        font-family: 'Poppins', 'Segoe UI', sans-serif;
+        font-size: clamp(1.6rem, 3.2vw, 2.4rem); font-weight: 800; letter-spacing: 0.08em;
+        color: #5eead4;
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+    .phone-mockup {
+        width: 260px;
+        background: #1e293b;
+        border-radius: 2.5rem;
+        border: 3px solid rgba(255,255,255,0.12);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07);
+        overflow: hidden;
+        padding: 0;
+        position: relative;
+    }
+    .phone-notch {
+        width: 80px; height: 18px; background: #0f172a;
+        border-radius: 0 0 1rem 1rem;
+        margin: 0 auto;
+    }
+    .phone-screen {
+        padding: 0.75rem 1rem 1.25rem;
+        display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    /* mini kiosk card inside phone */
+    .phone-kiosk-card {
+        background: white; border-radius: 1rem;
+        padding: 1rem 0.85rem; text-align: center;
+    }
+    .phone-kiosk-icon {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 0.5rem; font-size: 1rem; color: white;
+    }
+    .phone-kiosk-title { font-size: 0.75rem; font-weight: 700; color: #0f172a; margin-bottom: 0.2rem; }
+    .phone-kiosk-sub { font-size: 0.62rem; color: #64748b; margin-bottom: 0.65rem; }
+    .phone-kiosk-input {
+        width: 100%; font-size: 0.85rem; font-weight: 700;
+        padding: 0.45rem 0.5rem;
+        border: 2px solid #6366f1; border-radius: 0.5rem;
+        text-align: center; letter-spacing: 0.1em; color: #0f172a;
+        background: #f8fafc; margin-bottom: 0.5rem;
+    }
+    .phone-kiosk-btn {
+        width: 100%; padding: 0.45rem; font-size: 0.75rem; font-weight: 700;
+        border: none; border-radius: 0.5rem;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    }
+    .phone-option {
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 0.6rem; padding: 0.45rem 0.65rem;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .phone-option-text { font-size: 0.68rem; font-weight: 600; color: #f1f5f9; }
+    .phone-option-check {
+        width: 16px; height: 16px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.2);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .phone-option-check.checked { background: #14b8a6; border-color: #14b8a6; color: white; font-size: 0.55rem; }
+    .phone-submit {
+        width: 100%; padding: 0.5rem; font-size: 0.72rem; font-weight: 700;
+        border: none; border-radius: 0.5rem;
+        background: linear-gradient(135deg, #14b8a6, #0d9488); color: white;
+        margin-top: 0.25rem;
+    }
+    .tutorial-steps {
+        display: flex; flex-direction: column; gap: 2rem;
+        max-width: 650px;
+    }
+    .tutorial-step {
+        display: flex; align-items: flex-start; gap: 1.5rem;
+    }
+    .step-num {
+        width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+        background: #14b8a6; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; font-weight: 800; margin-top: 4px;
+    }
+    .step-text { font-size: clamp(1.4rem, 2.8vw, 2.1rem); color: #cbd5e1; line-height: 1.4; }
+    .step-text strong { color: #f1f5f9; }
+
+    /* ── Bottom bar: arrows + dots + timer ── */
+    .pnom-controls {
+        flex-shrink: 0; display: flex; align-items: center;
+        justify-content: center; gap: 1.5rem;
+        padding: 0.9rem 2rem;
+        background: rgba(255,255,255,0.04);
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-arrow {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.08); color: #f1f5f9;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 1rem;
+        transition: background 0.15s, transform 0.1s;
+    }
+    .nav-arrow:hover { background: rgba(255,255,255,0.18); transform: scale(1.08); }
+    .nav-arrow:active { transform: scale(0.96); }
+    .slide-dots { display: flex; gap: 0.5rem; align-items: center; }
+    .slide-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: rgba(255,255,255,0.22); cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+    }
+    .slide-dot.active { background: #f59e0b; transform: scale(1.35); }
+    .timer-ring {
+        width: 30px; height: 30px; position: relative;
         flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
-        padding: 1rem 2rem;
-        border-top: 1px solid #e2e8f0;
-        background: white;
-        box-shadow: 0 -1px 3px rgba(15,23,42,0.06);
     }
-    .pnom-footer-label {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #475569;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .pnom-footer-count {
-        font-size: clamp(1rem, 2vw, 1.4rem);
-        font-weight: 800;
-        color: white;
-        background: #f59e0b;
-        padding: 0.35rem 1.1rem;
-        border-radius: 2rem;
-    }
+    .timer-ring svg { transform: rotate(-90deg); }
+    .timer-ring circle { fill: none; stroke-width: 3; }
+    .timer-track { stroke: rgba(255,255,255,0.12); }
+    .timer-prog  { stroke: #14b8a6; stroke-linecap: round;
+                   stroke-dasharray: 75.4; stroke-dashoffset: 0;
+                   transition: stroke-dashoffset linear; }
 
     @@media (max-width: 640px) {
-        .pnom-header { padding: 0.875rem 1rem; }
-        .pnom-body   { padding: 0.875rem 1rem; gap: 0.5rem; }
-        .pnom-footer { padding: 0.75rem 1rem; }
-        .pnom-row    { padding: 0.75rem 1rem; border-radius: 0.75rem; }
+        .pnom-header { padding: 0.75rem 1rem; }
+        .pnom-controls { padding: 0.65rem 1rem; gap: 1rem; }
+        .slide-nominees { padding: 0.75rem; }
+        .tutorial-steps { display: none; }
+        .phone-mockup { width: 220px; }
     }
 </style>
 
@@ -240,89 +347,220 @@
             </div>
         }
     }
-<!-- ── Bottom nav ── -->
-<div class="mt-4 pt-3 border-top">
-    <a class="btn btn-dark" href="/Admin/Polls">
-        <i class="bi bi-arrow-left me-2"></i>Back to Polls
-    </a>
-</div>
 
-<!-- ── QR Code Modal ── -->
-<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="qrCodeModalLabel">
-                    <i class="bi bi-qr-code me-2"></i>Share Poll
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <p class="text-muted mb-3">Scan to access the voting page</p>
-                <div id="qrCodeContainer" class="d-flex justify-content-center mb-3"></div>
-                <div class="input-group mb-1">
-                    <input type="text" class="form-control form-control-sm" id="pollLinkInput" readonly>
-                    <button class="btn btn-outline-primary btn-sm" onclick="copyPollLink(true)" title="Copy">
-                        <i class="bi bi-clipboard"></i>
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrCodeModalLabel">
+                        <i class="bi bi-qr-code me-2"></i>Share Poll
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="text-muted mb-3">Scan to access the voting page</p>
+                    <div id="qrCodeContainer" class="d-flex justify-content-center mb-3"></div>
+                    <div class="input-group mb-1">
+                        <input type="text" class="form-control form-control-sm" id="pollLinkInput" readonly>
+                        <button class="btn btn-outline-primary btn-sm" onclick="copyPollLink(true)" title="Copy">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="downloadQRCode()">
+                        <i class="bi bi-download me-2"></i>Download QR
                     </button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" onclick="downloadQRCode()">
-                    <i class="bi bi-download me-2"></i>Download QR
-                </button>
-            </div>
         </div>
     </div>
-</div>
 
+    <div class="mt-4 pt-3 border-top">
+        <a class="btn btn-dark" href="/Admin/Polls">
+            <i class="bi bi-arrow-left me-2"></i>Back to Polls
+        </a>
+    </div>
 </div><!-- end #normal-view -->
+
+<!-- ════════════════════ PRESENT OVERLAY ════════════════════ -->
 <div id="present-overlay" role="dialog" aria-modal="true" aria-label="Nominees Presentation View">
 
     <!-- Header -->
     <div class="pnom-header">
         <div>
-            <div class="pnom-title">
-                <i class="bi bi-trophy-fill"></i>@poll?.Title
-            </div>
+            <div class="pnom-title"><i class="bi bi-trophy-fill"></i>@poll?.Title</div>
             <div class="pnom-subtitle">Nominees &nbsp;·&nbsp; @nominees.Count nominee@(nominees.Count != 1 ? "s" : "")</div>
         </div>
         <button class="pnom-exit-btn" onclick="exitPresent()" title="Exit (Esc)">
-            <i class="bi bi-fullscreen-exit"></i> Exit
+            <i class="bi bi-fullscreen-exit me-1"></i> Exit
         </button>
     </div>
 
-    <!-- Rows -->
-    <div class="pnom-body">
-        @for (int i = 0; i < nominees.Count; i++)
-        {
-            <div class="pnom-row" style="animation-delay: @(i * 60)ms;">
-                <div class="pnom-name" title="@nominees[i].Text">@nominees[i].Text</div>
-            </div>
+    <!-- Slides wrapper -->
+    <div class="slides-wrapper">
+
+        <!-- ── Slide 0: Nominees list ── -->
+        @{
+            int nc = nominees.Count;
+            // Determine columns based on nominee count
+            string nomCols = nc <= 5 ? "1fr" :
+                             nc <= 12 ? "1fr 1fr" : "1fr 1fr 1fr";
+            
+            // Adjust max width based on columns
+            string nomMaxW = nc <= 5 ? "760px" :
+                             nc <= 12 ? "1300px" : "1600px";
+
+            // Sizing elements depending on the layout columns
+            string nomFs   = nc <= 5  ? "clamp(1.5rem, 3.2vw, 2.3rem)" :
+                             nc <= 12 ? "clamp(1.25rem, 2.3vw, 1.8rem)" :
+                                        "clamp(1rem, 1.8vw, 1.35rem)";
+
+            string nomPad  = nc <= 5  ? "1.2rem 1.8rem" :
+                             nc <= 12 ? "0.9rem 1.5rem" :
+                                        "0.7rem 1.25rem";
+
+            string nomGap  = nc <= 5  ? "1rem" :
+                             nc <= 12 ? "0.85rem" :
+                                        "0.65rem";
+
+            string numSize = nc <= 5  ? "2.4rem" :
+                             nc <= 12 ? "2.1rem" :
+                                        "1.8rem";
+
+            string numFs   = nc <= 5  ? "1.05rem" :
+                             nc <= 12 ? "0.9rem" :
+                                        "0.78rem";
         }
-    </div>
-
-    <!-- Footer -->
-    <div class="pnom-footer">
-        <div class="pnom-footer-label">
-            <i class="bi bi-people-fill"></i> Total Nominees
+        <div class="slide slide-nominees active" id="slide-0"
+             style="--nom-fs:@nomFs; --nom-pad:@nomPad; --nom-num-size:@numSize; --nom-num-fs:@numFs;">
+            <h2 class="slide-nominees-header">Nominees</h2>
+            <div class="pnom-list" style="grid-template-columns: @nomCols; max-width: @nomMaxW; gap: @nomGap;">
+                @for (int i = 0; i < nominees.Count; i++)
+                {
+                    <div class="pnom-row" style="animation-delay: @(i * 45)ms;">
+                        <div class="pnom-num">@(i + 1)</div>
+                        <div class="pnom-name">@nominees[i].Text</div>
+                    </div>
+                }
+            </div>
         </div>
-        <div class="pnom-footer-count">@nominees.Count</div>
+
+        <!-- ── Slide 1: QR Code ── -->
+        <div class="slide slide-qr" id="slide-1">
+            <div class="qr-card">
+                <h2><i class="bi bi-qr-code-scan me-2" style="color:#6366f1;"></i>Scan to Vote</h2>
+                <p>Point your phone camera at the QR code to open the voting page</p>
+                <div id="slideQrContainer"></div>
+                <div class="qr-url" id="slideQrUrl"></div>
+            </div>
+        </div>
+
+        <!-- ── Slide 2: Tutorial / Mobile how-to ── -->
+        <div class="slide slide-tutorial" id="slide-2">
+            <!-- Phone mockup -->
+            <div class="tutorial-label mb-4">
+                <i class="bi bi-phone"></i> How To Vote
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:3rem; flex-wrap:wrap; justify-content:center;">
+                <div class="phone-mockup">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <!-- Step 1: enter code -->
+                        <div class="phone-kiosk-card">
+                            <div class="phone-kiosk-icon"><i class="bi bi-person-badge"></i></div>
+                            <div class="phone-kiosk-title">Enter Your Voter Code</div>
+                            <div class="phone-kiosk-sub">Type the 4-character code on your ballot ticket</div>
+                            <input class="phone-kiosk-input" value="DEMO" readonly />
+                            <button class="phone-kiosk-btn">Continue →</button>
+                        </div>
+                        <!-- Step 2: pick nominees (sample names) -->
+                        <div class="phone-option">
+                            <span class="phone-option-text">John Doe</span>
+                            <div class="phone-option-check checked"><i class="bi bi-check"></i></div>
+                        </div>
+                        <div class="phone-option">
+                            <span class="phone-option-text">Jane Smith</span>
+                            <div class="phone-option-check checked"><i class="bi bi-check"></i></div>
+                        </div>
+                        <div class="phone-option">
+                            <span class="phone-option-text">Michael Johnson</span>
+                            <div class="phone-option-check"></div>
+                        </div>
+                        <div class="phone-option">
+                            <span class="phone-option-text">Emily Davis</span>
+                            <div class="phone-option-check"></div>
+                        </div>
+                        <div class="phone-option">
+                            <span class="phone-option-text">Robert Garcia</span>
+                            <div class="phone-option-check"></div>
+                        </div>
+                        <button class="phone-submit"><i class="bi bi-check2-circle me-1"></i> Submit My Vote</button>
+                    </div>
+                </div>
+                <!-- Step descriptions -->
+                <div class="tutorial-steps">
+                    <div class="tutorial-step">
+                        <div class="step-num">1</div>
+                        <div class="step-text"><strong>Scan the QR code</strong> or visit the poll link on your phone.</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-num">2</div>
+                        <div class="step-text"><strong>Enter your unique 4-character code</strong> from your ballot ticket.</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-num">3</div>
+                        <div class="step-text"><strong>Select your nominee(s)</strong> by tapping on their names.</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-num">4</div>
+                        <div class="step-text"><strong>Tap Submit</strong> to cast your vote. You're done!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end .slides-wrapper -->
+
+    <!-- Controls: prev / dots / timer / next -->
+    <div class="pnom-controls">
+        <button class="nav-arrow" id="prevBtn" onclick="navSlide(-1)" title="Previous">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <div class="slide-dots" id="slideDots">
+            <div class="slide-dot active" data-idx="0" onclick="goSlide(0)"></div>
+            <div class="slide-dot" data-idx="1" onclick="goSlide(1)"></div>
+            <div class="slide-dot" data-idx="2" onclick="goSlide(2)"></div>
+        </div>
+
+        <!-- Countdown ring -->
+        <div class="timer-ring" title="Auto-advance in 15 seconds">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+                <circle class="timer-track" cx="15" cy="15" r="12"/>
+                <circle class="timer-prog" id="timerCircle" cx="15" cy="15" r="12"/>
+            </svg>
+        </div>
+
+        <button class="nav-arrow" id="nextBtn" onclick="navSlide(1)" title="Next">
+            <i class="bi bi-chevron-right"></i>
+        </button>
     </div>
 
-</div>
+</div><!-- end #present-overlay -->
 
 @section Scripts {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-    const overlay    = document.getElementById('present-overlay');
+    const overlay      = document.getElementById('present-overlay');
     const _networkBase = '@(ViewBag.NetworkBaseUrl ?? string.Empty)'
                        || '@(ViewBag.RequestBaseUrl ?? string.Empty)'
                        || `${location.protocol}//${location.host}`;
-    const pollVoteUrl = `${_networkBase}/Client/Vote/@poll?.Id`;
+    const pollVoteUrl  = `${_networkBase}/Client/Vote/@poll?.Id`;
 
-    // ── Share: Copy Link ──────────────────────────────────────────────────
+    // ── Share helpers ──────────────────────────────────────────
     function copyPollLink(fromModal) {
         navigator.clipboard.writeText(pollVoteUrl).then(() => {
             if (fromModal) {
@@ -331,39 +569,29 @@
                 btn.innerHTML = '<i class="bi bi-check2"></i>';
                 setTimeout(() => btn.innerHTML = orig, 1800);
             } else {
-                showToast('Poll link copied to clipboard!');
+                showToast('Poll link copied!');
             }
-        }).catch(() => {
-            prompt('Copy this link:', pollVoteUrl);
-        });
+        }).catch(() => prompt('Copy this link:', pollVoteUrl));
     }
 
-    // ── Share: QR Code ────────────────────────────────────────────────────
     function showQRCode() {
         document.getElementById('pollLinkInput').value = pollVoteUrl;
         const container = document.getElementById('qrCodeContainer');
         container.innerHTML = '';
         new QRCode(container, {
-            text: pollVoteUrl,
-            width: 220,
-            height: 220,
-            colorDark: '#0f172a',
-            colorLight: '#ffffff',
+            text: pollVoteUrl, width: 220, height: 220,
+            colorDark: '#0f172a', colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H
         });
         new bootstrap.Modal(document.getElementById('qrCodeModal')).show();
     }
-
     function downloadQRCode() {
         const canvas = document.querySelector('#qrCodeContainer canvas');
         if (!canvas) return;
         const a = document.createElement('a');
-        a.download = 'poll-qr-code.png';
-        a.href = canvas.toDataURL();
-        a.click();
+        a.download = 'poll-qr-code.png'; a.href = canvas.toDataURL(); a.click();
     }
 
-    // ── Toast helper ──────────────────────────────────────────────────────
     function showToast(msg) {
         const el = document.createElement('div');
         el.className = 'alert alert-success alert-dismissible fade show';
@@ -374,26 +602,106 @@
         setTimeout(() => el.remove(), 3000);
     }
 
-    // ── Present overlay ───────────────────────────────────────────────────
+    // ── Slideshow logic ────────────────────────────────────────
+    const SLIDE_COUNT = 3;
+    const SLIDE_DURATION = 15000; // 15 seconds per slide
+    let currentSlide = 0;
+    let slideTimer = null;
+    let timerStart = null;
+    let timerRaf = null;
+    let qrBuilt = false;
+
+    const slides = document.querySelectorAll('.slide');
+    const dots   = document.querySelectorAll('.slide-dot');
+    const timerCircle = document.getElementById('timerCircle');
+    const circumference = 2 * Math.PI * 12; // r=12 → 75.4
+
+    function goSlide(idx) {
+        if (idx === currentSlide) return;
+        const prev = currentSlide;
+        slides[prev].classList.remove('active');
+        slides[prev].classList.add('prev');
+        setTimeout(() => slides[prev].classList.remove('prev'), 560);
+
+        currentSlide = ((idx % SLIDE_COUNT) + SLIDE_COUNT) % SLIDE_COUNT;
+        slides[currentSlide].classList.add('active');
+
+        dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+
+        // Build QR once when slide 1 becomes visible
+        if (currentSlide === 1 && !qrBuilt) {
+            buildSlideQR();
+            qrBuilt = true;
+        }
+
+        resetTimer();
+    }
+
+    function navSlide(dir) {
+        goSlide(currentSlide + dir);
+    }
+
+    function resetTimer() {
+        clearTimeout(slideTimer);
+        cancelAnimationFrame(timerRaf);
+        timerStart = performance.now();
+        animateTimer();
+        slideTimer = setTimeout(() => goSlide(currentSlide + 1), SLIDE_DURATION);
+    }
+
+    function animateTimer() {
+        const elapsed = performance.now() - timerStart;
+        const fraction = Math.min(elapsed / SLIDE_DURATION, 1);
+        // dash offset goes 0 → full circumference (empty → full)
+        timerCircle.style.strokeDashoffset = (fraction * circumference).toFixed(2);
+        if (fraction < 1) timerRaf = requestAnimationFrame(animateTimer);
+    }
+
+    function buildSlideQR() {
+        const container = document.getElementById('slideQrContainer');
+        container.innerHTML = '';
+        document.getElementById('slideQrUrl').textContent = pollVoteUrl;
+        new QRCode(container, {
+            text: pollVoteUrl, width: 200, height: 200,
+            colorDark: '#0f172a', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    // ── Enter / Exit ───────────────────────────────────────────
     function enterPresent() {
-        overlay.style.display = 'flex';
+        currentSlide = 0;
+        slides.forEach((s, i) => {
+            s.classList.toggle('active', i === 0);
+            s.classList.remove('prev');
+        });
+        dots.forEach((d, i) => d.classList.toggle('active', i === 0));
+        overlay.classList.add('active');
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        qrBuilt = false;
+        resetTimer();
     }
 
     function exitPresent() {
-        overlay.style.display = 'none';
+        overlay.classList.remove('active');
+        clearTimeout(slideTimer);
+        cancelAnimationFrame(timerRaf);
         if (document.fullscreenElement) document.exitFullscreen();
         else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
     }
 
+    // Keyboard navigation
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') exitPresent();
+        if (!overlay.classList.contains('active')) return;
+        if (e.key === 'Escape')       exitPresent();
+        if (e.key === 'ArrowRight')   navSlide(1);
+        if (e.key === 'ArrowLeft')    navSlide(-1);
     });
 
     document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) exitPresent();
+        if (!document.fullscreenElement && overlay.classList.contains('active')) exitPresent();
     });
 </script>
 }
