@@ -269,6 +269,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
 // Security Headers
@@ -281,8 +282,6 @@ app.Use(async (context, next) =>
     context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
     await next();
 });
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter(); // Enable rate limiting
@@ -305,7 +304,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Run();
+app.Run("http://0.0.0.0:5000");
 
 // ====== Helper Seed Model ======
 public class UserSeedModel

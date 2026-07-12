@@ -143,7 +143,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         // Renders the printable ticket vote form
-        public async Task<IActionResult> Ticket(int id)
+        public async Task<IActionResult> Ticket(int id, string? baseUrl)
         {
             var template = await _db.TicketTemplates
                 .Include(t => t.Poll)
@@ -152,8 +152,11 @@ namespace VoteMaster.Areas.Admin.Controllers
 
             if (template is null) return NotFound();
 
-            // Build the voting URL
-            var voteUrl = $"{Request.Scheme}://{Request.Host}/Client/Vote/{template.PollId}";
+            // Build the voting URL from custom baseUrl or fallback to request host
+            var baseUrlToUse = string.IsNullOrWhiteSpace(baseUrl)
+                ? $"{Request.Scheme}://{Request.Host}"
+                : baseUrl;
+            var voteUrl = $"{baseUrlToUse}/Client/Vote/{template.PollId}";
 
             // Generate QR code as base64 PNG
             using var qrGenerator = new QRCodeGenerator();
@@ -174,7 +177,7 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ExportPdf(int id)
+        public async Task<IActionResult> ExportPdf(int id, string? baseUrl)
         {
             var template = await _db.TicketTemplates
                 .Include(t => t.Poll)
@@ -188,8 +191,11 @@ namespace VoteMaster.Areas.Admin.Controllers
                 .Select(w => char.ToUpper(w[0])));
             var ticketCode = $"{initials}-{template.CreatedAt:yyyyMMdd}";
 
-            // Build the voting URL and QR code
-            var voteUrl = $"{Request.Scheme}://{Request.Host}/Client/Vote/{template.PollId}";
+            // Build the voting URL from custom baseUrl or fallback to request host
+            var baseUrlToUse = string.IsNullOrWhiteSpace(baseUrl)
+                ? $"{Request.Scheme}://{Request.Host}"
+                : baseUrl;
+            var voteUrl = $"{baseUrlToUse}/Client/Vote/{template.PollId}";
             using var qrGenerator = new QRCoder.QRCodeGenerator();
             var qrData = qrGenerator.CreateQrCode(voteUrl, QRCoder.QRCodeGenerator.ECCLevel.Q);
             using var qrCode = new QRCoder.PngByteQRCode(qrData);
