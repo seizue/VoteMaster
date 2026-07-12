@@ -186,6 +186,37 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate(); // Apply migrations
         logger.LogInformation("Database migration completed successfully.");
 
+        // Direct schema verification and self-healing for VoterCode column (in case of empty EF migration desync)
+        try
+        {
+            using (var cmd = db.Database.GetDbConnection().CreateCommand())
+            {
+                if (cmd.Connection?.State != System.Data.ConnectionState.Open)
+                {
+                    cmd.Connection?.Open();
+                }
+
+                // Check if VoterCode column exists
+                cmd.CommandText = "SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'VoterCode'";
+                var columnExists = ((int?)cmd.ExecuteScalar() ?? 0) > 0;
+
+                if (!columnExists)
+                {
+                    logger.LogWarning("VoterCode column is missing from Users table. Adding it now via direct SQL query...");
+                    cmd.CommandText = "ALTER TABLE Users ADD VoterCode nvarchar(450) NULL";
+                    cmd.ExecuteNonQuery();
+
+                    cmd.CommandText = "CREATE UNIQUE INDEX IX_Users_VoterCode ON Users(VoterCode) WHERE VoterCode IS NOT NULL";
+                    cmd.ExecuteNonQuery();
+                    logger.LogInformation("VoterCode column and unique index added successfully.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to run direct schema verification / patch for VoterCode.");
+        }
+
         var config = app.Configuration.GetSection("Seed");
         var passwordHasher = new PasswordHasher<AppUser>();
         bool saveRequired = false;
