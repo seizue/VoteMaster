@@ -370,14 +370,13 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-try
-{
-    app.Run("http://0.0.0.0:5000");
-}
-catch (InvalidOperationException)
-{
-    app.Run();
-}
+// Azure App Service sets PORT env var; respect it so the platform can route traffic correctly.
+// Locally, fall back to 5000.
+var port = Environment.GetEnvironmentVariable("PORT")
+        ?? Environment.GetEnvironmentVariable("ASPNETCORE_PORT")
+        ?? "5000";
+
+app.Run($"http://0.0.0.0:{port}");
 
 // ====== Helper Seed Model ======
 public class UserSeedModel
