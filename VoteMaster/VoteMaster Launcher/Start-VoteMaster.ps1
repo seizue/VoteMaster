@@ -7,6 +7,10 @@
     Requires PowerShell 7+ and auto-installs PwshSpectreConsole on first run.
 #>
 
+# ─── Console Encoding & Spectre Configuration ──────────────────────────────
+$OutputEncoding = [Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+$env:IgnoreSpectreEncoding = $true
+
 # ─── Bootstrap: Install PwshSpectreConsole if missing ──────────────────────
 if (-not (Get-Module -ListAvailable -Name PwshSpectreConsole)) {
     Write-Host "  Installing PwshSpectreConsole..." -ForegroundColor Cyan
@@ -24,6 +28,7 @@ if (-not (Test-Path $ShortcutPath)) {
         $lnk.TargetPath = if ($pwshExe) { $pwshExe.Source } else { 'pwsh.exe' }
         $lnk.Arguments = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`""
         $lnk.WorkingDirectory = $PSScriptRoot
+        $lnk.IconLocation = "$PSScriptRoot\VoteMaster.ico,0"
         $lnk.Description = 'VoteMaster Launcher — Start, stop and manage VoteMaster'
         $lnk.Hotkey = 'CTRL+ALT+V'
         $lnk.WindowStyle = 1
@@ -94,10 +99,6 @@ function Get-UptimeString {
     $up = (Get-Date) - $proc.CreationDate
     return '{0:D2}h {1:D2}m {2:D2}s' -f [int]$up.TotalHours, $up.Minutes, $up.Seconds
 }
-
-# ─── Console Encoding (Anthony Simmon: UTF-8 for full emoji & symbol support) ─
-[Console]::InputEncoding = [System.Text.Encoding]::UTF8
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # ─── Header banner ─────────────────────────────────────────────────────────
 function Show-Header {

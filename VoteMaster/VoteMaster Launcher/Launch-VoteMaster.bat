@@ -1,9 +1,8 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 title VoteMaster Launcher
 
-:: ─── Check for PowerShell 7 (pwsh) ─────────────────────────────────────────
+:: --- Check for PowerShell 7 (pwsh) -----------------------------------------
 where pwsh >nul 2>&1
 if %errorlevel% equ 0 goto :launch
 
@@ -14,7 +13,7 @@ echo.
 echo  Attempting to install PowerShell 7 automatically...
 echo.
 
-:: ─── Try winget first ───────────────────────────────────────────────────────
+:: --- Try winget first -------------------------------------------------------
 where winget >nul 2>&1
 if %errorlevel% equ 0 (
     echo  [Method 1] Installing via winget...
@@ -27,7 +26,7 @@ if %errorlevel% equ 0 (
     echo  [!] winget install failed. Trying direct download...
 )
 
-:: ─── Fallback: download MSI via PowerShell 5 ────────────────────────────────
+:: --- Fallback: download MSI via PowerShell 5 --------------------------------
 echo  [Method 2] Downloading PowerShell 7 MSI installer...
 echo.
 set "PS7_URL=https://github.com/PowerShell/PowerShell/releases/latest/download/PowerShell-7.6.5-win-x64.msi"
@@ -61,7 +60,7 @@ if %errorlevel% neq 0 (
 
 del /f /q "%PS7_MSI%" >nul 2>&1
 
-:: ─── Refresh PATH so pwsh is visible in this session ────────────────────────
+:: --- Refresh PATH so pwsh is visible in this session ------------------------
 :refresh
 echo.
 echo  [OK] Refreshing environment PATH...
@@ -79,7 +78,7 @@ if %errorlevel% neq 0 (
     exit /b 0
 )
 
-:: ─── Launch the PowerShell 7 launcher ───────────────────────────────────────
+:: --- Launch the PowerShell 7 launcher ---------------------------------------
 :launch
 echo.
 echo  Launching VoteMaster...
