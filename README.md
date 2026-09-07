@@ -11,11 +11,6 @@ For example:
 - Microsoft SQL Server – ensures reliable data storage and querying.
 - Voting Results – displays final tallies and resolution outcomes based on weighted votes.
 
-## Live Demo
-
-The application is deployed on Azure and accessible at:
-**https://votemaster-seizue.azurewebsites.net**
-
 Default login credentials:
 - Admin: Username `admin` / Password `admin123`
 - Test Voter: Username `bob` / Password `pass123`
