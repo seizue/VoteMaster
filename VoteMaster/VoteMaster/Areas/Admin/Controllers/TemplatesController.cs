@@ -355,7 +355,7 @@ namespace VoteMaster.Areas.Admin.Controllers
   .ticket-header-wrap img {{ width:100%; height:auto; display:block; max-height:55px; object-fit:cover; object-position:top; }}
   .ticket-header-placeholder {{
       height: 24px; flex-shrink: 0;
-      background: linear-gradient(135deg,#0f172a,#1e3a5f);
+      background: #0f172a;
       display: flex; align-items: center; justify-content: center;
       color: white; font-size: 7pt; font-weight: 700;
   }}

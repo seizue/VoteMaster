@@ -14,19 +14,13 @@
 
     /* ─── Hero banner ────────────────────────────────────── */
     .dash-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #134e4a 100%);
+        background: #0f172a;
+        border: 1px solid rgba(255,255,255,.08);
         border-radius: 1.25rem;
         padding: 2rem 2rem 2.75rem;
         margin-bottom: -1.5rem;           /* cards overlap the banner */
         position: relative;
         overflow: hidden;
-    }
-    .dash-hero::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(ellipse at 80% 50%, rgba(20,184,166,.18) 0%, transparent 70%);
-        pointer-events: none;
     }
     .dash-hero-inner {
         display: flex;
@@ -125,10 +119,10 @@
         margin: 1rem -0 0;
         border-radius: 0 0 1rem 1rem;
     }
-    .kpi-bar.polls     { background: linear-gradient(90deg, #14b8a6, #06b6d4); }
-    .kpi-bar.active    { background: linear-gradient(90deg, #10b981, #34d399); }
-    .kpi-bar.voters    { background: linear-gradient(90deg, #3b82f6, #818cf8); }
-    .kpi-bar.templates { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+    .kpi-bar.polls     { background: #14b8a6; }
+    .kpi-bar.active    { background: #10b981; }
+    .kpi-bar.voters    { background: #3b82f6; }
+    .kpi-bar.templates { background: #8b5cf6; }
 
     /* ─── Section title ──────────────────────────────────── */
     .section-title {

@@ -12,6 +12,70 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .site-footer {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border-top: 1px solid #1e293b !important;
+        }
+        .site-footer::before,
+        .footer-accent-bar {
+            display: none !important;
+        }
+        .footer-brand-icon {
+            background: #14b8a6 !important;
+            border: none !important;
+            color: #ffffff !important;
+            border-radius: 0.5rem !important;
+            box-shadow: none !important;
+        }
+        .footer-stats,
+        .footer-github {
+            background: #1e293b !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.5rem !important;
+            box-shadow: none !important;
+            color: #f1f5f9 !important;
+        }
+        .footer-github:hover {
+            background: #334155 !important;
+            border-color: #475569 !important;
+            color: #ffffff !important;
+        }
+        .footer-stat i,
+        .footer-stat span {
+            color: #94a3b8 !important;
+        }
+        .footer-stat-divider {
+            background: #334155 !important;
+        }
+        .footer-col-heading-dot {
+            background: #64748b !important;
+            box-shadow: none !important;
+        }
+        .footer-link-icon {
+            background: #1e293b !important;
+            border: 1px solid #334155 !important;
+            color: #94a3b8 !important;
+            border-radius: 0.375rem !important;
+        }
+        .footer-links li a {
+            color: #94a3b8 !important;
+        }
+        .footer-links li a:hover {
+            color: #ffffff !important;
+            background: #1e293b !important;
+        }
+        .footer-links li a:hover .footer-link-icon {
+            background: #334155 !important;
+            color: #ffffff !important;
+        }
+        .footer-bottom-logo {
+            background: #14b8a6 !important;
+            border: none !important;
+            color: #ffffff !important;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
@@ -79,9 +143,6 @@
     </div>
 
     <footer class="site-footer">
-        <!-- Decorative top accent bar -->
-        <div class="footer-accent-bar"></div>
-
         <div class="container">
 
             @if (user?.IsAuthenticated ?? false)
