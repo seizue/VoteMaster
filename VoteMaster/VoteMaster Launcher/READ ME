@@ -1,0 +1,7 @@
+## Quick Launch (Windows)
+
+The easiest way to run and manage VoteMaster is via the interactive launcher:
+
+1. Navigate to `VoteMaster/VoteMaster Launcher/`.
+2. Double-click **`Launch-VoteMaster.bat`**.
+3. A **VoteMaster Launcher** shortcut will automatically be created on your Desktop for convenient one-click access (or press `Ctrl + Alt + V`).
