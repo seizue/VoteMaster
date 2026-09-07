@@ -1,6 +1,6 @@
 Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase, System.Drawing
 
-function Build-Ico {
+function New-VoteMasterIcon {
     param(
         [string]$OutputPath = "$PSScriptRoot\VoteMaster.ico"
     )
@@ -28,7 +28,7 @@ function Build-Ico {
 
         # Background gradient (teal #0d9488 to #14b8a6)
         $startColor = [System.Windows.Media.Color]::FromRgb(13, 148, 136)
-        $endColor   = [System.Windows.Media.Color]::FromRgb(20, 184, 166)
+        $endColor = [System.Windows.Media.Color]::FromRgb(20, 184, 166)
         $brush = New-Object System.Windows.Media.LinearGradientBrush(
             $startColor, $endColor,
             (New-Object System.Windows.Point(0, 0)),
@@ -114,4 +114,4 @@ function Build-Ico {
     Write-Host "Created $OutputPath successfully."
 }
 
-Build-Ico
+New-VoteMasterIcon
