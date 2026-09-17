@@ -137,6 +137,37 @@
     }
     .section-title i { font-size: 1rem; }
 
+    /* ─── Activity section header & toggle ───────────────── */
+    .activity-section-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 0.5rem 0 1rem;
+    }
+    .activity-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #64748b;
+        background: #fff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 0.65rem;
+        cursor: pointer;
+        transition: all .2s ease;
+        box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    }
+    .activity-toggle-btn:hover {
+        color: #14b8a6;
+        border-color: #14b8a6;
+        background: rgba(20,184,166,.05);
+    }
+    .activity-toggle-btn i { font-size: 0.875rem; }
+
     /* ─── Activity feed card ─────────────────────────────── */
     .activity-card {
         background: #fff;
@@ -424,7 +455,13 @@
 </div>
 
 <!-- Recent Activity Feed -->
-<h4 class="section-title"><i class="bi bi-clock-history" style="color:#14b8a6;"></i>Recent Activity</h4>
+<div class="activity-section-bar">
+    <h4 class="section-title mb-0"><i class="bi bi-clock-history" style="color:#14b8a6;"></i>Recent Activity</h4>
+    <button type="button" id="toggleActivityBtn" class="activity-toggle-btn" aria-expanded="true" aria-controls="activityCard" title="Toggle Recent Activity">
+        <i class="bi bi-eye-slash" id="toggleActivityIcon"></i>
+        <span id="toggleActivityText">Hide</span>
+    </button>
+</div>
 @{
     var allActivity = ViewBag.AllActivityItems as List<ActivityItem>;
     var activityJson = System.Text.Json.JsonSerializer.Serialize(
@@ -436,7 +473,7 @@
     );
 }
 
-<div class="activity-card">
+<div class="activity-card" id="activityCard">
     <!-- Card header: search + filter pills -->
     <div class="activity-card-header">
         <div class="activity-search-wrap">
@@ -575,6 +612,43 @@
     });
 
     render();
+
+    // Toggle Hide / View for Recent Activity
+    const toggleBtn = document.getElementById('toggleActivityBtn');
+    const toggleIcon = document.getElementById('toggleActivityIcon');
+    const toggleText = document.getElementById('toggleActivityText');
+    const activityCard = document.getElementById('activityCard');
+    const STORAGE_KEY = 'voteMaster_hideRecentActivity';
+
+    function setActivityVisibility(hidden) {
+        if (!activityCard || !toggleBtn) return;
+        if (hidden) {
+            activityCard.style.display = 'none';
+            toggleIcon.className = 'bi bi-eye';
+            toggleText.textContent = 'View';
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        } else {
+            activityCard.style.display = '';
+            toggleIcon.className = 'bi bi-eye-slash';
+            toggleText.textContent = 'Hide';
+            toggleBtn.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    if (localStorage.getItem(STORAGE_KEY) === 'true') {
+        setActivityVisibility(true);
+    }
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            const currentlyHidden = activityCard.style.display === 'none';
+            const nextHidden = !currentlyHidden;
+            setActivityVisibility(nextHidden);
+            try {
+                localStorage.setItem(STORAGE_KEY, nextHidden);
+            } catch (e) {}
+        });
+    }
 })();
 </script>
 

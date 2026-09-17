@@ -48,7 +48,45 @@ $ProjectPath = Join-Path $PSScriptRoot '..\VoteMaster\VoteMaster.csproj'
 $WebPort = 5000
 $LogFile = Join-Path $env:TEMP 'VoteMaster.log'
 
-# ─── Process helpers ───────────────────────────────────────────────────────
+# ─── Database helpers ───────────────────────────────────────────────────────
+function Check-SqlServer {
+    $sqlSvc = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction SilentlyContinue
+    if ($sqlSvc) {
+        return $sqlSvc.Status.ToString()
+    }
+    $defSvc = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+    if ($defSvc) {
+        return $defSvc.Status.ToString()
+    }
+    return 'NotFound'
+}
+
+function Start-SqlServerPrompt {
+    $state = Check-SqlServer
+    if ($state -eq 'Stopped') {
+        Clear-Host
+        Show-Header
+        "  [bold teal]|[/] [bold yellow]SQL Server Service is Stopped[/]" | Write-SpectreHost
+        "    [grey]• VoteMaster needs SQL Server for authentication and poll data.[/]" | Write-SpectreHost
+        "    [grey]• Starting the service now ensures VoteMaster connects and launches instantly.[/]" | Write-SpectreHost
+        Write-Host ""
+
+        $startNow = Read-SpectreConfirm -Prompt "  Start SQL Server (SQLEXPRESS) now? (Opens UAC prompt)" -Default $true -Color "teal"
+        if ($startNow) {
+            "  [grey]Requesting administrator permission to start SQL Server...[/]" | Write-SpectreHost
+            try {
+                $p = Start-Process net -ArgumentList 'start "SQL Server (SQLEXPRESS)"' -Verb RunAs -PassThru -Wait
+                Start-Sleep 2
+            }
+            catch {
+                "  [yellow]Notice: UAC prompt was cancelled or elevation failed.[/]" | Write-SpectreHost
+                Start-Sleep 2
+            }
+        }
+    }
+}
+
+# ─── Process & Port helpers ─────────────────────────────────────────────────
 function Get-AppProcess {
     # 1. Try finding process listening on the web port first (most accurate)
     try {
@@ -87,10 +125,16 @@ function Test-PortOpen([string]$ip = '127.0.0.1', [int]$port = 5000) {
     }
 }
 
+function Get-AppStatus {
+    $portOpen = Test-PortOpen '127.0.0.1' $WebPort
+    if ($portOpen) { return 'Online' }
+    $proc = Get-AppProcess
+    if ($null -ne $proc) { return 'Starting' }
+    return 'Stopped'
+}
+
 function Test-AppRunning {
-    if (Test-PortOpen '127.0.0.1' $WebPort) { return $true }
-    if ($null -ne (Get-AppProcess)) { return $true }
-    return $false
+    return (Get-AppStatus) -ne 'Stopped'
 }
 
 function Get-UptimeString {
@@ -110,35 +154,62 @@ function Show-Header {
 
 # ─── Status panel ──────────────────────────────────────────────────────────
 function Show-StatusPanel {
-    if (Test-AppRunning) {
-        $proc = Get-AppProcess
-        $pidStr = if ($proc) { "$($proc.ProcessId)" } else { "Active" }
-        $uptime = Get-UptimeString
-        $uptimeStr = if ($uptime) { $uptime } else { "Just now" }
-        "  [bold teal]|[/] [bold green]Running[/]" | Write-SpectreHost
-        "    [grey]• PID     :[/] [teal]$pidStr[/]" | Write-SpectreHost
-        "    [grey]• Uptime  :[/] [teal]$uptimeStr[/]" | Write-SpectreHost
-        "    [grey]• URL     :[/] [bold underline teal]http://localhost:$WebPort[/]" | Write-SpectreHost
+    $status = Get-AppStatus
+    $proc = Get-AppProcess
+    $pidStr = if ($proc) { "$($proc.ProcessId)" } else { "None" }
+    $uptime = Get-UptimeString
+    $uptimeStr = if ($uptime) { $uptime } else { "Just now" }
+    $sqlState = Check-SqlServer
+
+    switch ($status) {
+        'Online' {
+            "  [bold teal]|[/] [bold green]Online[/] [grey](Accepting traffic)[/]" | Write-SpectreHost
+            "    [grey]• PID     :[/] [teal]$pidStr[/]" | Write-SpectreHost
+            "    [grey]• Uptime  :[/] [teal]$uptimeStr[/]" | Write-SpectreHost
+            "    [grey]• URL     :[/] [bold underline teal]http://localhost:$WebPort[/]" | Write-SpectreHost
+        }
+        'Starting' {
+            "  [bold teal]|[/] [bold yellow]Starting up[/] [grey](Port $WebPort not ready yet)[/]" | Write-SpectreHost
+            "    [grey]• PID     :[/] [teal]$pidStr[/]" | Write-SpectreHost
+            "    [grey]• Status  :[/] [yellow]Initializing / Running database migrations...[/]" | Write-SpectreHost
+            "    [grey]• Target  :[/] [teal]http://localhost:$WebPort[/]" | Write-SpectreHost
+        }
+        'Stopped' {
+            "  [bold teal]|[/] [bold white]Stopped[/]" | Write-SpectreHost
+            "    [grey]• Status  :[/] [grey]Application is currently idle[/]" | Write-SpectreHost
+            "    [grey]• Target  :[/] [teal]http://localhost:$WebPort[/]" | Write-SpectreHost
+        }
     }
-    else {
-        "  [bold teal]|[/] [bold white]Stopped[/]" | Write-SpectreHost
-        "    [grey]• Status  :[/] [grey]Application is currently idle[/]" | Write-SpectreHost
-        "    [grey]• Target  :[/] [teal]http://localhost:$WebPort[/]" | Write-SpectreHost
+
+    if ($sqlState -eq 'Stopped') {
+        "    [grey]• Database:[/] [bold yellow]SQL Server is Stopped (SQLEXPRESS)[/]" | Write-SpectreHost
     }
+    elseif ($sqlState -eq 'Running') {
+        "    [grey]• Database:[/] [teal]SQL Server is Active (SQLEXPRESS)[/]" | Write-SpectreHost
+    }
+
     Write-Host ""
 }
 
 # ─── Start app ─────────────────────────────────────────────────────────────
 function Start-App {
-    if (Test-AppRunning) {
-        "  [bold teal]|[/] [yellow]VoteMaster is already running.[/]" | Write-SpectreHost
+    $status = Get-AppStatus
+    if ($status -eq 'Online') {
+        "  [bold teal]|[/] [yellow]VoteMaster is already online and responding on port $WebPort.[/]" | Write-SpectreHost
         Start-Sleep 1; return
+    }
+    if ($status -eq 'Starting') {
+        "  [bold teal]|[/] [yellow]VoteMaster is already starting up. Waiting for port $WebPort to come online...[/]" | Write-SpectreHost
+        Start-Sleep 2; return
     }
     if (-not (Test-Path $ProjectPath)) {
         "  [bold teal]|[/] [red]Project not found:[/] [grey]$ProjectPath[/]" | Write-SpectreHost
         "  [grey]   Ensure the 'VoteMaster Launcher' folder sits next to the VoteMaster project folder.[/]" | Write-SpectreHost
         Start-Sleep 3; return
     }
+
+    # Prompt user if SQL Server is stopped before launching
+    Start-SqlServerPrompt
 
     $localProjectPath = $ProjectPath
     $localLogFile = $LogFile
@@ -151,6 +222,8 @@ function Start-App {
     "    [grey]• Target  :[/] [teal]http://localhost:$localWebPort[/]" | Write-SpectreHost
     Write-Host ""
 
+    $script:launchSuccess = $false
+
     Invoke-SpectreCommandWithStatus -Spinner "Dots2" -Title "[teal]Building & starting VoteMaster (waiting for port $localWebPort)...[/]" -Color "teal" -ScriptBlock {
         $errLog = [IO.Path]::ChangeExtension($localLogFile, '.err.log')
         Start-Process -FilePath 'dotnet' `
@@ -160,16 +233,14 @@ function Start-App {
             -RedirectStandardOutput $localLogFile `
             -RedirectStandardError $errLog
 
-        $attempts = 0; $started = $false
+        $attempts = 0
         while ($attempts -lt 45) {
             Start-Sleep -Milliseconds 1000
             if (Test-PortOpen '127.0.0.1' $localWebPort) {
-                $started = $true; break
+                $script:launchSuccess = $true
+                break
             }
             $attempts++
-        }
-        if (-not $started) {
-            throw "Application did not respond after 45 seconds. Check log: $localLogFile"
         }
     }
 
@@ -177,12 +248,18 @@ function Start-App {
     Show-Header
     Show-StatusPanel
 
-    if (Test-AppRunning) {
-        "  [bold teal]|[/] [bold green]VoteMaster started successfully.[/]" | Write-SpectreHost
+    if ($script:launchSuccess -or (Test-PortOpen '127.0.0.1' $WebPort)) {
+        "  [bold teal]|[/] [bold green]VoteMaster started successfully and is online.[/]" | Write-SpectreHost
         "    [grey]• URL     :[/] [bold underline teal]http://localhost:$WebPort[/]" | Write-SpectreHost
     }
+    elseif ($null -ne (Get-AppProcess)) {
+        "  [bold teal]|[/] [bold yellow]Application process is running, but port $WebPort is not responding yet.[/]" | Write-SpectreHost
+        "    [grey]• It may still be compiling or waiting for SQL Server database connection.[/]" | Write-SpectreHost
+        "    [grey]• Check 'View Application Log' or wait a few moments, then refresh.[/]" | Write-SpectreHost
+    }
     else {
-        "  [bold teal]|[/] [yellow]Could not confirm startup. Check the log window.[/]" | Write-SpectreHost
+        "  [bold teal]|[/] [bold red]VoteMaster failed to start.[/]" | Write-SpectreHost
+        "    [grey]• Check 'View Application Log' in the menu for error details.[/]" | Write-SpectreHost
     }
     Write-Host ""
     Read-Host "  Press Enter to continue"
@@ -308,14 +385,23 @@ while ($true) {
     Show-Header
     Show-StatusPanel
 
-    $running = Test-AppRunning
+    $status = Get-AppStatus
+    $sqlState = Check-SqlServer
 
-    $choices = if ($running) {
-        @(" Stop Application", " Open Web Portal", " View Network Interfaces", " View Application Log", " Quit")
+    $choices = [System.Collections.Generic.List[string]]::new()
+    if ($status -eq 'Stopped') {
+        $choices.Add(" Start Application")
     }
     else {
-        @(" Start Application", " Open Web Portal", " View Network Interfaces", " View Application Log", " Quit")
+        $choices.Add(" Stop Application")
     }
+    $choices.Add(" Open Web Portal")
+    if ($sqlState -eq 'Stopped') {
+        $choices.Add(" Start SQL Server (SQLEXPRESS)")
+    }
+    $choices.Add(" View Network Interfaces")
+    $choices.Add(" View Application Log")
+    $choices.Add(" Quit")
 
     $action = Read-SpectreSelection `
         -Choices $choices `
@@ -329,7 +415,23 @@ while ($true) {
     switch -Wildcard ($action) {
         "*Start Application*" { Start-App }
         "*Stop Application*" { Stop-App }
+        "*Start SQL Server*" { Start-SqlServerPrompt }
         "*Open Web Portal*" {
+            $isOnline = Test-PortOpen '127.0.0.1' $WebPort
+            if (-not $isOnline) {
+                if ($null -ne (Get-AppProcess)) {
+                    Write-Host ""
+                    "  [bold teal]|[/] [bold yellow]Notice: VoteMaster is still starting up; port $WebPort is not listening yet.[/]" | Write-SpectreHost
+                    $openAnyway = Read-SpectreConfirm -Prompt "  Open in browser anyway?" -Default $false -Color "yellow"
+                    if (-not $openAnyway) { continue }
+                }
+                else {
+                    Write-Host ""
+                    "  [bold teal]|[/] [bold yellow]VoteMaster is not running. Please start the application first.[/]" | Write-SpectreHost
+                    Start-Sleep 2
+                    continue
+                }
+            }
             Start-Process "http://localhost:$WebPort"
             "  [teal]Opened http://localhost:$WebPort[/]" | Write-SpectreHost
             Start-Sleep 1
