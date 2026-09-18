@@ -37,15 +37,24 @@ namespace VoteMaster.Areas.Client.Controllers
             // Check if user is authenticated
             if (!User.Identity?.IsAuthenticated ?? true)
             {
+                var pollStatusUnauth = _polls.GetPollStatus(poll);
+                var showResultsUnauth = poll.AllowPublicResults && pollStatusUnauth == "Archived";
+
                 // For non-authenticated users, show poll details but not voting functionality
                 ViewBag.HasVoted = false;
                 ViewBag.VoteCount = 0;
                 ViewBag.MaxVotes = poll.MaxVotesPerVoter;
                 ViewBag.UserVotes = new List<int>();
-                ViewBag.ShowResults = false;
-                ViewBag.PollStatus = _polls.GetPollStatus(poll);
+                ViewBag.ShowResults = showResultsUnauth;
+                ViewBag.PollStatus = pollStatusUnauth;
                 ViewBag.IsAuthenticated = false;
                 ViewBag.AllowUsercodeEntry = poll.AllowUsercodeEntry;
+
+                if (showResultsUnauth)
+                {
+                    var weighted = await _polls.GetWeightedResultsAsync(pollId);
+                    ViewBag.WeightedTotal = weighted.Values.Sum();
+                }
 
                 return View(poll);
             }
@@ -64,7 +73,7 @@ namespace VoteMaster.Areas.Client.Controllers
 
             // Check if poll has ended
             var pollStatus = _polls.GetPollStatus(poll);
-            var showResults = pollStatus == "Archived" || (hasVoted && poll.AllowPublicResults);
+            var showResults = poll.AllowPublicResults && (pollStatus == "Archived" || hasVoted);
 
             // Attendance check
             bool isPresent = true; // default: no restriction

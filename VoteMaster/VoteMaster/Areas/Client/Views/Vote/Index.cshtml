@@ -12,7 +12,11 @@
     int weightedTotal = (int?)ViewBag.WeightedTotal ?? 0;
     bool requireAttendance = (bool?)ViewBag.RequireAttendance ?? false;
     bool isPresent = (bool?)ViewBag.IsPresent ?? true;
-    var sortedOptions = Model.Options.OrderByDescending(o => o.Votes.Count).ToList();
+    bool allowPublicResults = Model.AllowPublicResults;
+    // Only sort by votes descending when results are visible; otherwise keep original order by Id
+    var sortedOptions = showResults
+        ? Model.Options.OrderByDescending(o => o.Votes.Count).ToList()
+        : Model.Options.OrderBy(o => o.Id).ToList();
     var totalVotes = sortedOptions.Sum(o => o.Votes.Count);
 }
 
@@ -239,6 +243,30 @@
             </div>
         </div>
     }
+    else if (hasVoted && voteCount >= maxVotes && !allowPublicResults && pollStatus != "Archived")
+    {
+        @* Voter has voted but results are private — show a clean completion card *@
+        <div class="alert alert-success d-flex align-items-start gap-3 mt-3">
+            <i class="bi bi-check-circle-fill fs-3 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>Voting Complete!</strong>
+                <p class="mb-0 mt-1">Your vote has been recorded. Results for this poll are private and will not be shown publicly.</p>
+            </div>
+        </div>
+        @if (pollStatus != "Archived")
+        {
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline-dark"
+                        onclick="if(confirm('Are you sure you want to reset your votes? This will remove all your current votes for this poll.')) { document.getElementById('resetFormPrivate').submit(); }">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Reset My Votes
+                </button>
+            </div>
+            <form method="post" action="@Url.Action("Reset", "Vote", new { area = "Client" })" id="resetFormPrivate" style="display:none;">
+                <input type="hidden" name="pollId" value="@Model.Id" />
+                @Html.AntiForgeryToken()
+            </form>
+        }
+    }
     else
     {
         @* Desktop: side-by-side layout. Mobile: stacked. *@
@@ -308,12 +336,16 @@
                                 <i class="bi bi-check-circle-fill"></i>
                             </div>
                         </div>
-                        <div class="vote-option-footer">
-                            <div class="vote-count-badge">
-                                <i class="bi bi-people-fill"></i>
-                                <span>@votes</span>
+                        @* Only show vote counts when AllowPublicResults is enabled *@
+                        @if (allowPublicResults && Model.EnableLiveVoteCount)
+                        {
+                            <div class="vote-option-footer">
+                                <div class="vote-count-badge">
+                                    <i class="bi bi-people-fill"></i>
+                                    <span>@votes</span>
+                                </div>
                             </div>
-                        </div>
+                        }
                     </label>
                 </div>
             }
@@ -377,7 +409,7 @@
     const hint = document.getElementById('voteHint');
     const checkboxes = document.querySelectorAll('.vote-checkbox');
     const cards = document.querySelectorAll('.vote-option-card');
-    const enableLiveVoteCount = @(Model.EnableLiveVoteCount.ToString().ToLower());
+    const enableLiveVoteCount = @(Model.EnableLiveVoteCount.ToString().ToLower()) && @(Model.AllowPublicResults.ToString().ToLower());
     const pollId = @Model.Id;
 
     // Only run voting logic if form elements exist

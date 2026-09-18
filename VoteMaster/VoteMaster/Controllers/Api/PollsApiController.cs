@@ -16,6 +16,16 @@ namespace VoteMaster.Controllers.Api
         public async Task<IActionResult> GetActive() => Ok(await _polls.GetActivePollsAsync());
 
         [HttpGet("{id:int}/results")]
-        public async Task<IActionResult> Results(int id) => Ok(await _polls.GetWeightedResultsAsync(id));
+        public async Task<IActionResult> Results(int id)
+        {
+            var poll = await _polls.GetPollAsync(id);
+            if (poll is null) return NotFound();
+
+            // Respect AllowPublicResults — deny access if results are private
+            if (!poll.AllowPublicResults)
+                return StatusCode(403, new { error = "Results for this poll are not publicly available." });
+
+            return Ok(await _polls.GetWeightedResultsAsync(id));
+        }
     }
 }

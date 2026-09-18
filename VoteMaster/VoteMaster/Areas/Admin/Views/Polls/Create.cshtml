@@ -263,6 +263,7 @@
     </div>
 
     <div class="form-check mb-3">
+        <input type="hidden" name="allowPublicResults" value="false" />
         <input class="form-check-input" type="checkbox" id="allowPublicResults" name="allowPublicResults" value="true" @((ViewBag.AllowPublicResults ?? true) ? "checked" : "") />
         <label class="form-check-label" for="allowPublicResults">Allow Public Results</label>
     </div>

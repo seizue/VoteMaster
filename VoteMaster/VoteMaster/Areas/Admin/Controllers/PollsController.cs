@@ -77,8 +77,8 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults, string? optionsCsv,
-            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
+        public async Task<IActionResult> Edit(int id, string title, string? description, bool allowPublicResults = false, string? optionsCsv = null,
+            string? startDateTime = null, string? endDateTime = null, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
             bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
             bool requireAttendance = false)
         {
@@ -146,11 +146,30 @@ namespace VoteMaster.Areas.Admin.Controllers
             poll.AllowUsercodeEntry = allowUsercodeEntry;
             poll.RequireAttendance = requireAttendance;
 
-            // Update options - clear and recreate
-            poll.Options.Clear();
-            foreach (var text in options)
+            // Update options - safely preserve existing options and votes if options have not changed
+            var newOptionTexts = options.Select(o => o.Trim()).Where(o => !string.IsNullOrEmpty(o)).ToList();
+            var existingOptions = poll.Options.ToList();
+
+            bool optionsChanged = existingOptions.Count != newOptionTexts.Count ||
+                !existingOptions.Select(o => o.Text).SequenceEqual(newOptionTexts, StringComparer.OrdinalIgnoreCase);
+
+            if (optionsChanged)
             {
-                poll.Options.Add(new PollOption { Text = text });
+                // Remove options that are no longer in the list
+                var toRemove = existingOptions.Where(eo => !newOptionTexts.Contains(eo.Text, StringComparer.OrdinalIgnoreCase)).ToList();
+                foreach (var rem in toRemove)
+                {
+                    poll.Options.Remove(rem);
+                }
+
+                // Add newly added options
+                foreach (var text in newOptionTexts)
+                {
+                    if (!existingOptions.Any(eo => eo.Text.Equals(text, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        poll.Options.Add(new PollOption { Text = text });
+                    }
+                }
             }
 
             await _polls.UpdatePollAsync(poll);
@@ -158,8 +177,8 @@ namespace VoteMaster.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults, string? optionsCsv, 
-            string? startDateTime, string? endDateTime, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
+        public async Task<IActionResult> Create(string title, string? description, bool allowPublicResults = false, string? optionsCsv = null, 
+            string? startDateTime = null, string? endDateTime = null, int maxVotesPerVoter = 1, int minVotesPerVoter = 1,
             bool enableLiveVoteCount = false, bool enablePollNotifications = false, bool allowUsercodeEntry = false,
             bool requireAttendance = false)
         {
