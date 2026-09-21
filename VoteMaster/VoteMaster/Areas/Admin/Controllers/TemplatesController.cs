@@ -205,6 +205,35 @@ namespace VoteMaster.Areas.Admin.Controllers
             return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
 
+        // ── Return the server's LAN IP for the auto-detect toggle ─────────────
+        [HttpGet]
+        public IActionResult GetLocalIp()
+        {
+            try
+            {
+                // Find the first non-loopback IPv4 address
+                var lanIp = System.Net.NetworkInformation.NetworkInterface
+                    .GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up
+                             && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback)
+                    .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+                    .Where(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    .Select(a => a.Address.ToString())
+                    .FirstOrDefault();
+
+                var port = Request.Host.Port ?? (Request.Scheme == "https" ? 443 : 80);
+                var url = lanIp != null
+                    ? $"{Request.Scheme}://{lanIp}:{port}"
+                    : $"{Request.Scheme}://{Request.Host}";
+
+                return Json(new { ip = lanIp, url });
+            }
+            catch
+            {
+                return Json(new { ip = (string?)null, url = $"{Request.Scheme}://{Request.Host}" });
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> ExportPdf(int id, string? baseUrl)
         {

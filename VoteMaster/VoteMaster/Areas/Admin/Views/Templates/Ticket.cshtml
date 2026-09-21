@@ -23,8 +23,9 @@
     .page-nav {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin: 1.5rem auto 1rem;
     }
     .page-indicator {
         font-size: 0.875rem;
@@ -36,8 +37,10 @@
 
     .a4-scaler {
         width: 794px;
+        max-width: 100%;
+        overflow: hidden;
         transform-origin: top left;
-        margin: 0 auto 2rem;
+        margin: 0 auto;
     }
 
     .a4-page {
@@ -249,6 +252,7 @@
             margin: 0 !important;
             padding: 0 !important;
             height: auto !important;
+            overflow: visible !important;
         }
 
         /* Each page breaks cleanly */
@@ -302,29 +306,44 @@
 
 @* ── Network base URL config ── *@
 <div class="card mb-3 border-warning">
-    <div class="card-body py-2 px-3">
-        <div class="d-flex align-items-center flex-wrap gap-3">
+    <div class="card-body py-2 px-3" style="display:flex; flex-direction:column; gap:0.5rem;">
+
+        @* Row 1: label | toggle | URL input *@
+        <div class="d-flex align-items-center gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 <i class="bi bi-wifi text-warning fs-5"></i>
                 <span class="fw-semibold" style="white-space:nowrap;">Network Base URL</span>
             </div>
-            <form id="saveBaseUrlForm" method="post" action="/Admin/Templates/SaveNetworkBaseUrl" class="d-flex align-items-center gap-2 flex-wrap">
+
+            @* Toggle: Localhost / Auto-Detect *@
+            <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="URL Mode" id="urlModeGroup">
+                <input type="radio" class="btn-check" name="urlMode" id="modeLocalhost" value="localhost" autocomplete="off" checked />
+                <label class="btn btn-outline-secondary" for="modeLocalhost">Localhost</label>
+                <input type="radio" class="btn-check" name="urlMode" id="modeAutoDetect" value="autodetect" autocomplete="off" />
+                <label class="btn btn-outline-info" for="modeAutoDetect">Auto-Detect IP</label>
+            </div>
+
+            <form id="saveBaseUrlForm" method="post" action="/Admin/Templates/SaveNetworkBaseUrl"
+                  class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap" style="margin:0;">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="templateId" value="@Model.Id" />
                 <input type="text" id="baseUrlInput" name="networkBaseUrl"
-                       class="form-control form-control-sm"
-                       style="max-width:320px;font-family:monospace;"
+                       class="form-control form-control-sm flex-grow-1"
+                       style="max-width:340px; font-family:monospace;"
                        value="@ViewBag.SavedBaseUrl"
                        placeholder="e.g. http://192.168.1.57:5000" />
-                <button type="submit" class="btn btn-sm btn-warning">
-                    <i class="bi bi-arrow-repeat me-1"></i>Save &amp; Apply
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBaseUrl()">
-                    <i class="bi bi-x-circle me-1"></i>Reset
-                </button>
+                <div class="d-flex gap-2 flex-shrink-0">
+                    <button type="submit" class="btn btn-sm btn-warning">Save &amp; Apply</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBaseUrl()">Reset</button>
+                </div>
             </form>
-            <span class="text-muted small">Enter your LAN IP — saved server-side, persists across all pages and refreshes.</span>
         </div>
+
+        @* Row 2: hint text *@
+        <div>
+            <span class="text-muted small" id="urlModeHint">Using localhost — only accessible on this machine. Switch to Auto-Detect for LAN access.</span>
+        </div>
+
     </div>
 </div>
 
@@ -485,17 +504,70 @@
         if (pdfBtn) pdfBtn.href = `/Admin/Templates/ExportPdf/@Model.Id?baseUrl=${encodeURIComponent(base)}`;
     }
 
-    // ── Auto-apply server-saved URL on page load ──────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedBase = document.getElementById('baseUrlInput').value.trim();
-        if (savedBase) applyBaseUrl(savedBase);
-    });
+    // ── Auto-apply server-saved URL on page load + init toggle state ────────
+    // (merged with toggle init below — see DOMContentLoaded in toggle section)
 
     // ── Reset: POST empty string to clear saved URL on server ─────────────
     function clearBaseUrl() {
         document.getElementById('baseUrlInput').value = '';
         document.getElementById('saveBaseUrlForm').submit();
     }
+
+    // ── URL-mode toggle: Localhost ↔ Auto-Detect IP ───────────────────────
+    const localhostUrl = `${location.protocol}//localhost:${location.port || (location.protocol === 'https:' ? '443' : '80')}`;
+
+    const hints = {
+        localhost:  'Using localhost — only accessible on this machine. Switch to Auto-Detect for LAN access.',
+        autodetect: 'Detected LAN IP pre-filled — click Save & Apply so other devices on the network can scan the QR codes.'
+    };
+
+    function setUrlMode(mode) {
+        const input  = document.getElementById('baseUrlInput');
+        const hint   = document.getElementById('urlModeHint');
+        hint.textContent = hints[mode] ?? '';
+
+        if (mode === 'localhost') {
+            input.value = localhostUrl;
+        } else {
+            // Show a loading indicator while fetching
+            input.value = 'Detecting…';
+            input.disabled = true;
+            fetch('/Admin/Templates/GetLocalIp')
+                .then(r => r.json())
+                .then(data => {
+                    input.value = data.url ?? localhostUrl;
+                })
+                .catch(() => {
+                    input.value = localhostUrl;
+                    hint.textContent = '⚠ Could not detect LAN IP. Falling back to localhost.';
+                    document.getElementById('modeLocalhost').checked = true;
+                })
+                .finally(() => { input.disabled = false; });
+        }
+    }
+
+    document.getElementById('modeLocalhost').addEventListener('change', () => setUrlMode('localhost'));
+    document.getElementById('modeAutoDetect').addEventListener('change', () => setUrlMode('autodetect'));
+
+    // ── Initialise on page load: apply saved URL + set correct toggle button ──
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedBase = document.getElementById('baseUrlInput').value.trim();
+        if (savedBase) {
+            applyBaseUrl(savedBase);
+            // Reflect mode in toggle: localhost vs LAN IP
+            const isLocal = /localhost|127\.0\.0\.1/.test(savedBase);
+            if (!isLocal) {
+                document.getElementById('modeAutoDetect').checked = true;
+                document.getElementById('urlModeHint').textContent = hints.autodetect;
+            } else {
+                document.getElementById('modeLocalhost').checked = true;
+                document.getElementById('urlModeHint').textContent = hints.localhost;
+            }
+        } else {
+            // No saved URL — show the localhost hint as the default state
+            document.getElementById('urlModeHint').textContent = hints.localhost;
+        }
+    });
 
     // ── Page navigation ──────────────────────────────────────────────────
     function changePage(dir) {
@@ -519,12 +591,13 @@
         const page = wrapper.querySelector('.a4-page');
         if (!page) return;
         const available = wrapper.parentElement.clientWidth;
-        const natural = page.offsetWidth;
+        const natural = 794;
         if (natural > 0 && available > 0) {
             const scale = Math.min(1, available / natural);
             page.style.transform = `scale(${scale})`;
             page.style.transformOrigin = 'top left';
-            wrapper.style.height = (page.offsetHeight * scale) + 'px';
+            wrapper.style.height = Math.ceil(1123 * scale) + 'px';
+            wrapper.style.width = Math.ceil(794 * scale) + 'px';
         }
     }
 
