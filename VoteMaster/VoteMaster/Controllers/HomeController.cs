@@ -40,13 +40,11 @@ namespace VoteMaster.Controllers
         {
             _logger.LogInformation("Health check endpoint called");
             var hasConnectionString = !string.IsNullOrEmpty(_configuration.GetConnectionString("DefaultConnection"));
-            return Ok(new
-            {
-                status = "healthy",
-                timestamp = DateTime.UtcNow,
-                environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-                hasConnectionString = hasConnectionString
-            });
+            ViewData["Status"] = "Operational";
+            ViewData["HasConnectionString"] = hasConnectionString;
+            ViewData["Timestamp"] = DateTime.UtcNow;
+            ViewData["Environment"] = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            return View();
         }
     }
 }

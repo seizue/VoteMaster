@@ -1,0 +1,270 @@
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "System Health";
+
+    var status = ViewData["Status"]?.ToString() ?? "Unknown";
+    var hasDb = (bool)(ViewData["HasConnectionString"] ?? false);
+    var timestamp = (DateTime)(ViewData["Timestamp"] ?? DateTime.UtcNow);
+    var environment = ViewData["Environment"]?.ToString() ?? "Production";
+    var isHealthy = status == "Operational";
+}
+
+<style>
+    .health-page {
+        max-width: 780px;
+        margin: 0 auto;
+    }
+
+    .health-hero {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .health-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0.4rem 0.9rem;
+        border-radius: 9999px;
+        border: 1px solid;
+    }
+
+    .health-status-badge.ok {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #10b981;
+    }
+
+    .health-status-badge.error {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    .health-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: hpulse 2s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+
+    @@keyframes hpulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .health-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.875rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        transition: box-shadow 0.15s ease;
+    }
+
+    .health-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+    }
+
+    .health-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .health-card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .health-card-title i {
+        font-size: 1rem;
+        color: #14b8a6;
+    }
+
+    .health-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.65rem;
+        border-radius: 9999px;
+    }
+
+    .health-chip.green {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .health-chip.red {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .health-chip.blue {
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .health-meta {
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .health-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    @@media (max-width: 600px) {
+        .health-grid { grid-template-columns: 1fr; }
+    }
+
+    .health-timestamp {
+        font-size: 0.8125rem;
+        color: #94a3b8;
+        margin-top: 2rem;
+        text-align: center;
+    }
+</style>
+
+<div class="health-page">
+
+    <!-- Hero Header -->
+    <div class="health-hero">
+        <div>
+            <h1 style="font-size:1.75rem;font-weight:800;color:#0f172a;margin:0 0 0.35rem;">
+                <i class="bi bi-activity me-2" style="color:#14b8a6;"></i>System Health
+            </h1>
+            <p style="font-size:0.875rem;color:#64748b;margin:0;">
+                Real-time status of VoteMaster services and infrastructure.
+            </p>
+        </div>
+        <div class="ms-auto">
+            <span class="health-status-badge @(isHealthy ? "ok" : "error")">
+                <span class="health-pulse"></span>
+                @(isHealthy ? "All Systems Operational" : "Degraded")
+            </span>
+        </div>
+    </div>
+
+    <!-- Service checks -->
+    <div class="health-card">
+        <div class="health-card-header">
+            <h2 class="health-card-title">
+                <i class="bi bi-server"></i>
+                Web Application
+            </h2>
+            <span class="health-chip green">
+                <i class="bi bi-check-circle-fill"></i> Healthy
+            </span>
+        </div>
+        <p class="health-meta">
+            ASP.NET Core application is running and serving requests normally.
+        </p>
+    </div>
+
+    <div class="health-card">
+        <div class="health-card-header">
+            <h2 class="health-card-title">
+                <i class="bi bi-database"></i>
+                Database Connection
+            </h2>
+            @if (hasDb)
+            {
+                <span class="health-chip green">
+                    <i class="bi bi-check-circle-fill"></i> Configured
+                </span>
+            }
+            else
+            {
+                <span class="health-chip red">
+                    <i class="bi bi-x-circle-fill"></i> Not Configured
+                </span>
+            }
+        </div>
+        <p class="health-meta">
+            @(hasDb
+                ? "A connection string is configured and the database layer is ready."
+                : "No connection string found. The application may not be able to read or write data.")
+        </p>
+    </div>
+
+    <div class="health-card">
+        <div class="health-card-header">
+            <h2 class="health-card-title">
+                <i class="bi bi-lightning-charge"></i>
+                Real-time Hub (SignalR)
+            </h2>
+            <span class="health-chip green">
+                <i class="bi bi-check-circle-fill"></i> Active
+            </span>
+        </div>
+        <p class="health-meta">
+            SignalR hub is mounted at <code>/hubs/results</code> and accepting connections.
+        </p>
+    </div>
+
+    <!-- Environment & Metadata grid -->
+    <div class="health-grid">
+        <div class="health-card" style="margin-bottom:0;">
+            <div class="health-card-header">
+                <h2 class="health-card-title">
+                    <i class="bi bi-tags"></i>
+                    Environment
+                </h2>
+                <span class="health-chip blue">
+                    @environment
+                </span>
+            </div>
+            <p class="health-meta">Current ASP.NET Core runtime environment.</p>
+        </div>
+
+        <div class="health-card" style="margin-bottom:0;">
+            <div class="health-card-header">
+                <h2 class="health-card-title">
+                    <i class="bi bi-clock"></i>
+                    Checked At
+                </h2>
+            </div>
+            <p class="health-meta">
+                @timestamp.ToString("dddd, MMMM d, yyyy")<br />
+                <strong>@timestamp.ToString("HH:mm:ss") UTC</strong>
+            </p>
+        </div>
+    </div>
+
+    <p class="health-timestamp">
+        <i class="bi bi-arrow-repeat me-1"></i>
+        This page refreshes on each visit. Last checked: <strong>@timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</strong>
+    </p>
+
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-dismiss the page loader since this is a static view
+        if (typeof dismissLoader === 'function') dismissLoader();
+    </script>
+}

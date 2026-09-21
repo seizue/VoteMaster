@@ -15,65 +15,257 @@
     <style>
         .site-footer {
             background: #0f172a !important;
-            color: #f1f5f9 !important;
-            border-top: 1px solid #1e293b !important;
+            color: #f1f5f9;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .site-footer::before,
-        .footer-accent-bar {
-            display: none !important;
+        .footer-grid {
+            display: grid !important;
+            grid-template-columns: 2.2fr 1fr 1fr !important;
+            gap: 3.5rem !important;
+            padding: 2.5rem 0 2rem !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .footer-brand-col {
+            display: flex;
+            flex-direction: column;
+            max-width: 440px;
+        }
+        .footer-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            margin-bottom: 0.875rem;
+            width: fit-content;
         }
         .footer-brand-icon {
-            background: #14b8a6 !important;
-            border: none !important;
-            color: #ffffff !important;
-            border-radius: 0.5rem !important;
-            box-shadow: none !important;
+            width: 38px;
+            height: 38px;
+            background: #14b8a6;
+            border: none;
+            color: white;
+            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
+            transition: all 0.2s ease;
         }
-        .footer-stats,
-        .footer-github {
+        .footer-brand:hover .footer-brand-icon {
+            background: #0d9488;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.35);
+        }
+        .footer-brand-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+        .footer-tagline {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.65;
+            margin: 0 0 1.25rem;
+            max-width: 420px;
+        }
+        .footer-brand-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .footer-stats {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+            margin-bottom: 0 !important;
+            padding: 0.5rem 0.875rem !important;
             background: #1e293b !important;
             border: 1px solid #334155 !important;
             border-radius: 0.5rem !important;
-            box-shadow: none !important;
-            color: #f1f5f9 !important;
+            height: 38px !important;
+            box-sizing: border-box !important;
         }
-        .footer-github:hover {
-            background: #334155 !important;
-            border-color: #475569 !important;
-            color: #ffffff !important;
+        .footer-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #94a3b8;
         }
-        .footer-stat i,
-        .footer-stat span {
-            color: #94a3b8 !important;
+        .footer-stat i {
+            color: #14b8a6;
+            font-size: 0.8125rem;
         }
         .footer-stat-divider {
-            background: #334155 !important;
+            width: 1px;
+            height: 14px;
+            background: #334155;
         }
-        .footer-col-heading-dot {
-            background: #64748b !important;
-            box-shadow: none !important;
-        }
-        .footer-link-icon {
-            background: #1e293b !important;
+        .footer-github {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            font-size: 0.8125rem !important;
+            font-weight: 600 !important;
+            color: #f1f5f9 !important;
+            text-decoration: none !important;
+            padding: 0.5rem 0.875rem !important;
             border: 1px solid #334155 !important;
-            color: #94a3b8 !important;
-            border-radius: 0.375rem !important;
+            border-radius: 0.5rem !important;
+            background: #1e293b !important;
+            height: 38px !important;
+            box-sizing: border-box !important;
+            transition: all 0.2s ease !important;
+        }
+        .footer-github:hover {
+            border-color: #475569 !important;
+            background: #334155 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px) !important;
+        }
+        .footer-github i:first-child { font-size: 0.95rem; }
+        .footer-github-arrow {
+            font-size: 0.6875rem;
+            color: #64748b;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .footer-github:hover .footer-github-arrow {
+            transform: translate(2px, -2px);
+            color: #14b8a6;
+        }
+        .footer-links-col {
+            min-width: 140px;
+        }
+        .footer-col-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #e2e8f0;
+            margin-bottom: 1.1rem;
+        }
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
         .footer-links li a {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.6rem !important;
+            font-size: 0.875rem !important;
             color: #94a3b8 !important;
+            text-decoration: none !important;
+            padding: 0.15rem 0 !important;
+            transition: all 0.2s ease !important;
+            background: transparent !important;
+        }
+        .footer-link-icon-subtle {
+            font-size: 0.875rem;
+            color: #14b8a6;
+            opacity: 0.85;
+            transition: transform 0.2s ease, opacity 0.2s ease;
         }
         .footer-links li a:hover {
             color: #ffffff !important;
-            background: #1e293b !important;
+            transform: translateX(4px) !important;
+            background: transparent !important;
         }
-        .footer-links li a:hover .footer-link-icon {
-            background: #334155 !important;
-            color: #ffffff !important;
+        .footer-links li a:hover .footer-link-icon-subtle {
+            opacity: 1;
+            transform: scale(1.18);
         }
-        .footer-bottom-logo {
-            background: #14b8a6 !important;
-            border: none !important;
-            color: #ffffff !important;
+        .footer-bottom {
+            padding: 1.25rem 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .footer-bottom-left {
+            font-size: 0.8125rem;
+            color: #64748b;
+        }
+        .footer-bottom-status,
+        .footer-auth-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78125rem;
+            font-weight: 500;
+            color: #94a3b8;
+            padding: 0.35rem 0.8rem;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            border-radius: 9999px;
+            transition: border-color 0.2s ease;
+        }
+        .footer-bottom-status:hover,
+        .footer-auth-status:hover {
+            border-color: rgba(71, 85, 105, 0.9);
+        }
+        .footer-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: status-pulse 2.5s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @@keyframes status-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+            60%  { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        @@media (max-width: 992px) {
+            .footer-grid {
+                gap: 2.5rem !important;
+                grid-template-columns: 1.5fr 1fr 1fr !important;
+            }
+        }
+        @@media (max-width: 768px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem !important;
+            }
+            .footer-brand-col {
+                grid-column: 1 / -1 !important;
+                max-width: 100% !important;
+            }
+            .footer-tagline {
+                max-width: 100% !important;
+            }
+        }
+        @@media (max-width: 520px) {
+            .footer-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.75rem !important;
+            }
+            .footer-brand-actions {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                width: 100% !important;
+            }
+            .footer-stats,
+            .footer-github {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+            .footer-bottom {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.75rem !important;
+            }
         }
     </style>
 </head>
@@ -189,10 +381,10 @@
             }
             else
             {
-                <!-- ── Guest footer: 3-column grid ── -->
+                <!-- ── Guest footer: modern, organized layout ── -->
                 <div class="footer-grid">
 
-                    <!-- Brand column -->
+                    <!-- Brand & mission column -->
                     <div class="footer-brand-col">
                         <a href="/" class="footer-brand">
                             <span class="footer-brand-icon"><i class="bi bi-check2-square"></i></span>
@@ -201,63 +393,71 @@
                         <p class="footer-tagline">
                             Simple, modern voting for teams and communities. Create polls, collect votes, and see results in real time.
                         </p>
-                        <div class="footer-stats">
-                            <div class="footer-stat">
-                                <i class="bi bi-bar-chart-fill"></i>
-                                <span>Real-time results</span>
+                        <div class="footer-brand-actions">
+                            <div class="footer-stats">
+                                <div class="footer-stat">
+                                    <i class="bi bi-bar-chart-fill"></i>
+                                    <span>Real-time results</span>
+                                </div>
+                                <div class="footer-stat-divider"></div>
+                                <div class="footer-stat">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>Secure voting</span>
+                                </div>
                             </div>
-                            <div class="footer-stat-divider"></div>
-                            <div class="footer-stat">
-                                <i class="bi bi-shield-check"></i>
-                                <span>Secure voting</span>
-                            </div>
+                            <a href="https://github.com/seizue/VoteMaster" target="_blank" rel="noopener noreferrer" class="footer-github">
+                                <i class="bi bi-github"></i>
+                                <span>View on GitHub</span>
+                                <i class="bi bi-arrow-up-right footer-github-arrow"></i>
+                            </a>
                         </div>
-                        <a href="https://github.com/seizue/VoteMaster" target="_blank" rel="noopener noreferrer" class="footer-github">
-                            <i class="bi bi-github"></i>
-                            <span>View on GitHub</span>
-                            <i class="bi bi-arrow-up-right footer-github-arrow"></i>
-                        </a>
                     </div>
 
                     <!-- Product column -->
                     <div class="footer-links-col">
-                        <h6 class="footer-col-heading">
-                            <span class="footer-col-heading-dot"></span>
-                            Product
-                        </h6>
+                        <h6 class="footer-col-heading">Product</h6>
                         <ul class="footer-links">
                             <li>
                                 <a href="/#features">
-                                    <span class="footer-link-icon"><i class="bi bi-stars"></i></span>
+                                    <i class="bi bi-stars footer-link-icon-subtle"></i>
                                     <span>Features</span>
                                 </a>
                             </li>
                             <li>
                                 <a href="/#get-started">
-                                    <span class="footer-link-icon"><i class="bi bi-rocket-takeoff"></i></span>
+                                    <i class="bi bi-rocket-takeoff footer-link-icon-subtle"></i>
                                     <span>Get Started</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/Account/Login">
+                                    <i class="bi bi-box-arrow-in-right footer-link-icon-subtle"></i>
+                                    <span>Sign In</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Legal column -->
+                    <!-- Legal & Trust column -->
                     <div class="footer-links-col">
-                        <h6 class="footer-col-heading">
-                            <span class="footer-col-heading-dot"></span>
-                            Legal
-                        </h6>
+                        <h6 class="footer-col-heading">Legal & Trust</h6>
                         <ul class="footer-links">
                             <li>
                                 <a href="/Privacy">
-                                    <span class="footer-link-icon"><i class="bi bi-shield-lock"></i></span>
+                                    <i class="bi bi-shield-lock footer-link-icon-subtle"></i>
                                     <span>Privacy Policy</span>
                                 </a>
                             </li>
                             <li>
                                 <a href="/Cookies">
-                                    <span class="footer-link-icon"><i class="bi bi-cookie"></i></span>
+                                    <i class="bi bi-cookie footer-link-icon-subtle"></i>
                                     <span>Cookie Policy</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/health" target="_blank" rel="noopener noreferrer">
+                                    <i class="bi bi-activity footer-link-icon-subtle"></i>
+                                    <span>System Health</span>
                                 </a>
                             </li>
                         </ul>
@@ -268,7 +468,6 @@
                 <!-- Bottom bar -->
                 <div class="footer-bottom">
                     <div class="footer-bottom-left">
-                        <span class="footer-bottom-logo"><i class="bi bi-check2-square"></i></span>
                         <span>© @DateTime.UtcNow.Year VoteMaster. All rights reserved.</span>
                     </div>
                     <div class="footer-bottom-right">
