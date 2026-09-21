@@ -373,12 +373,6 @@
     .pc-toggle { display: flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; margin-top: 0.75rem; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600; color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 0.5rem; cursor: pointer; transition: background .15s; }
     .pc-toggle:hover { background: #e2e8f0; }
 
-    /* ─── Dropdown menu ──────────────────────────────────── */
-    .actions-dropdown-menu { display: flex; flex-direction: column; padding: 0.35rem; gap: 0.25rem; }
-    .actions-dropdown-menu .btn { width: 100%; text-align: left; font-size: 0.8125rem; padding: 0.4rem 0.75rem; border-radius: 0.4rem; border-width: 1.5px; }
-    .actions-dropdown-menu form { display: contents; }
-    .actions-dropdown-menu form .btn { width: 100%; text-align: left; }
-    .actions-dropdown-menu hr { margin: 0.15rem 0 !important; border: 0 !important; border-top: 1px solid #e2e8f0 !important; opacity: 1 !important; height: 0 !important; }
 
     /* ─── Responsive ─────────────────────────────────────── */
     @@media (max-width: 768px) {
@@ -756,71 +750,99 @@ else
                                         title="More actions">
                                     <i class="bi bi-three-dots"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end p-0 border-0 shadow"
-                                    style="min-width:0;">
+                                <ul class="dropdown-menu dropdown-menu-end p-0 border-0 shadow-lg actions-dropdown-menu-popover"
+                                    style="min-width:360px;">
                                     <li>
-                                        <div class="actions-dropdown-menu">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="sharePollLink(@p.Id)">
-                                                <i class="bi bi-link-45deg me-1"></i>Copy Link
-                                            </button>
-                                            <button class="btn btn-sm btn-success" onclick="sharePollQR(@p.Id)">
-                                                <i class="bi bi-qr-code me-1"></i>QR Code
-                                            </button>
-                                            <hr />
-                                            <a class="btn btn-sm btn-secondary" href="/Admin/Analytics/PollDetails/@p.Id">
-                                                <i class="bi bi-graph-up me-1"></i>Analytics
-                                            </a>
-                                            @if (status != "Archived")
-                                            {
-                                                <a class="btn btn-sm btn-warning" href="/Admin/Polls/Edit/@p.Id">
-                                                    <i class="bi bi-pencil me-1"></i>Edit
-                                                </a>
-                                            }
-                                            @if (status == "Active")
-                                            {
-                                                <a class="btn btn-sm" href="/Admin/Polls/ProxyVote/@p.Id"
-                                                   style="background:#8b5cf6;color:white;">
-                                                    <i class="bi bi-person-check me-1"></i>Proxy Vote
-                                                </a>
-                                                @if (p.RequireAttendance)
-                                                {
-                                                    <a class="btn btn-sm btn-primary" href="/Admin/Polls/Attendance/@p.Id">
-                                                        <i class="bi bi-clipboard-check me-1"></i>Attendance
+                                        <div class="actions-dropdown-columns">
+                                            <!-- Group 1: Edit, Proxy Vote, End Poll, Delete Poll -->
+                                            <div class="actions-group-column">
+                                                <div class="actions-group-label">
+                                                    <i class="bi bi-sliders me-1"></i>Poll Actions
+                                                </div>
+                                                <div class="actions-group-items">
+                                                    @if (status != "Archived")
+                                                    {
+                                                        <a class="action-item-btn action-item-edit" href="/Admin/Polls/Edit/@p.Id">
+                                                            <span class="action-item-icon"><i class="bi bi-pencil"></i></span>
+                                                            <span class="action-item-text">Edit</span>
+                                                        </a>
+                                                    }
+                                                    @if (status == "Active")
+                                                    {
+                                                        <a class="action-item-btn action-item-proxy" href="/Admin/Polls/ProxyVote/@p.Id">
+                                                            <span class="action-item-icon"><i class="bi bi-person-check"></i></span>
+                                                            <span class="action-item-text">Proxy Vote</span>
+                                                        </a>
+                                                        @if (p.RequireAttendance)
+                                                        {
+                                                            <a class="action-item-btn action-item-attendance" href="/Admin/Polls/Attendance/@p.Id">
+                                                                <span class="action-item-icon"><i class="bi bi-clipboard-check"></i></span>
+                                                                <span class="action-item-text">Attendance</span>
+                                                            </a>
+                                                        }
+                                                        <form method="post" action="/Admin/Polls/End/@p.Id"
+                                                              onsubmit="return confirm('End this poll now? Voting will close immediately.');"
+                                                              class="actions-item-form">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="submit" class="action-item-btn action-item-end">
+                                                                <span class="action-item-icon"><i class="bi bi-stop-circle"></i></span>
+                                                                <span class="action-item-text">End Poll</span>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    @if (status == "Archived")
+                                                    {
+                                                        <a class="action-item-btn action-item-reactivate" href="/Admin/Polls/VoterStatus/@p.Id">
+                                                            <span class="action-item-icon"><i class="bi bi-play-circle"></i></span>
+                                                            <span class="action-item-text">Reactivate</span>
+                                                        </a>
+                                                    }
+                                                    @if (status == "Upcoming" || status == "Active")
+                                                    {
+                                                        <form method="post" action="/Admin/Polls/Delete/@p.Id"
+                                                              onsubmit="return confirm('Delete this poll?');"
+                                                              class="actions-item-form">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="submit" class="action-item-btn action-item-delete">
+                                                                <span class="action-item-icon"><i class="bi bi-trash"></i></span>
+                                                                <span class="action-item-text">Delete</span>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    @if (status == "Archived")
+                                                    {
+                                                        <button type="button" class="action-item-btn action-item-delete"
+                                                                onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
+                                                            <span class="action-item-icon"><i class="bi bi-trash"></i></span>
+                                                            <span class="action-item-text">Delete</span>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <!-- Column Divider -->
+                                            <div class="actions-column-divider"></div>
+
+                                            <!-- Group 2: Analytics, Copy Link, QR Code button -->
+                                            <div class="actions-group-column">
+                                                <div class="actions-group-label">
+                                                    <i class="bi bi-graph-up me-1"></i>Analytics & Share
+                                                </div>
+                                                <div class="actions-group-items">
+                                                    <a class="action-item-btn action-item-analytics" href="/Admin/Analytics/PollDetails/@p.Id">
+                                                        <span class="action-item-icon"><i class="bi bi-graph-up"></i></span>
+                                                        <span class="action-item-text">Analytics</span>
                                                     </a>
-                                                }
-                                                <hr />
-                                                <form method="post" action="/Admin/Polls/End/@p.Id"
-                                                      onsubmit="return confirm('End this poll now? Voting will close immediately.');">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm ta-end">
-                                                        <i class="bi bi-stop-circle me-1"></i>End Poll
+                                                    <button type="button" class="action-item-btn action-item-copy" onclick="sharePollLink(@p.Id)">
+                                                        <span class="action-item-icon"><i class="bi bi-link-45deg"></i></span>
+                                                        <span class="action-item-text">Copy Link</span>
                                                     </button>
-                                                </form>
-                                            }
-                                            @if (status == "Archived")
-                                            {
-                                                <a class="btn btn-sm btn-success" href="/Admin/Polls/VoterStatus/@p.Id">
-                                                    <i class="bi bi-play-circle me-1"></i>Reactivate
-                                                </a>
-                                            }
-                                            <hr />
-                                            @if (status == "Upcoming" || status == "Active")
-                                            {
-                                                <form method="post" action="/Admin/Polls/Delete/@p.Id"
-                                                      onsubmit="return confirm('Delete this poll?');">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-danger">
-                                                        <i class="bi bi-trash me-1"></i>Delete
+                                                    <button type="button" class="action-item-btn action-item-qr" onclick="sharePollQR(@p.Id)">
+                                                        <span class="action-item-icon"><i class="bi bi-qr-code"></i></span>
+                                                        <span class="action-item-text">QR Code</span>
                                                     </button>
-                                                </form>
-                                            }
-                                            @if (status == "Archived")
-                                            {
-                                                <button type="button" class="btn btn-sm btn-danger"
-                                                        onclick="showArchiveDeleteModal(@p.Id, '@p.Title')">
-                                                    <i class="bi bi-trash me-1"></i>Delete
-                                                </button>
-                                            }
+                                                </div>
+                                            </div>
                                         </div>
                                     </li>
                                 </ul>
