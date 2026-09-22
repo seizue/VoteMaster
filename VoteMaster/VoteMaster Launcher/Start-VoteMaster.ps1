@@ -283,18 +283,36 @@ function Stop-App {
     $localPort = $WebPort
 
     Invoke-SpectreCommandWithStatus -Spinner "Dots2" -Title "[red]Stopping VoteMaster...[/]" -Color "red" -ScriptBlock {
-        if ($targetPid) {
-            Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
+        # Helper: recursively kill a process and all its children
+        function Kill-ProcessTree([int]$parentPid) {
+            $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$parentPid" -ErrorAction SilentlyContinue
+            foreach ($child in $children) {
+                Kill-ProcessTree $child.ProcessId
+            }
+            Stop-Process -Id $parentPid -Force -ErrorAction SilentlyContinue
         }
+
+        if ($targetPid) {
+            Kill-ProcessTree $targetPid
+        }
+
+        # Also kill anything still listening on the port
         try {
             $conn = Get-NetTCPConnection -LocalPort $localPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($conn -and $conn.OwningProcess) {
-                Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+                Kill-ProcessTree $conn.OwningProcess
             }
         }
         catch { }
 
-        Get-Process -Name 'VoteMaster' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        # Catch any stray VoteMaster.exe processes
+        Get-Process -Name 'VoteMaster' -ErrorAction SilentlyContinue | ForEach-Object { Kill-ProcessTree $_.Id }
+
+        # Catch dotnet processes that still reference VoteMaster
+        Get-CimInstance Win32_Process | Where-Object {
+            $_.Name -eq 'dotnet.exe' -and $_.CommandLine -like '*VoteMaster*'
+        } | ForEach-Object { Kill-ProcessTree $_.ProcessId }
+
         Start-Sleep 1
     }
 
@@ -440,6 +458,12 @@ while ($true) {
         "*Application Log*" { Show-Log }
         "*Quit*" {
             Write-Host ""
+            if (Test-AppRunning) {
+                $stopOnExit = Read-SpectreConfirm -Prompt "  VoteMaster is still running. Stop it before quitting?" -Default $true -Color "teal"
+                if ($stopOnExit) {
+                    Stop-App
+                }
+            }
             "  [dim]Goodbye.[/]" | Write-SpectreHost
             Write-Host ""
             Start-Sleep -Milliseconds 250
