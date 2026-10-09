@@ -61,9 +61,68 @@ function Check-SqlServer {
     return 'NotFound'
 }
 
+function Get-SqlInstanceName {
+    # Returns the actual service name suffix (e.g. 'SQLEXPRESS', 'MSSQLSERVER', or $null)
+    $express = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction SilentlyContinue
+    if ($express) { return 'SQLEXPRESS' }
+    $default = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+    if ($default) { return 'MSSQLSERVER' }
+    return $null
+}
+
 function Start-SqlServerPrompt {
-    $state = Check-SqlServer
+    $state    = Check-SqlServer
+    $instance = Get-SqlInstanceName
+
+    # ── Case 1: Not installed at all ──────────────────────────────────────
+    if ($state -eq 'NotFound') {
+        Clear-Host
+        Show-Header
+        "  [bold teal]|[/] [bold red]SQL Server Not Found[/]" | Write-SpectreHost
+        "    [grey]• VoteMaster requires SQL Server to store users, polls and votes.[/]" | Write-SpectreHost
+        "    [grey]• No SQL Server service was detected on this machine.[/]" | Write-SpectreHost
+        Write-Host ""
+        "    [white]To install SQL Server Express (free):[/]" | Write-SpectreHost
+        "    [underline teal]https://www.microsoft.com/en-us/sql-server/sql-server-downloads[/]" | Write-SpectreHost
+        Write-Host ""
+        "    [grey]After installing, re-run this launcher — it will start the service automatically.[/]" | Write-SpectreHost
+        Write-Host ""
+        Read-Host "  Press Enter to continue"
+        return
+    }
+
+    # ── Case 2: Wrong instance name in connection string ──────────────────
+    # Detect mismatch: instance is MSSQLSERVER (default) but config says SQLEXPRESS
+    if ($instance -eq 'MSSQLSERVER') {
+        $appSettingsPath = Join-Path $PSScriptRoot '..\VoteMaster\appsettings.json'
+        $appSettingsPath = [IO.Path]::GetFullPath($appSettingsPath)
+
+        if (Test-Path $appSettingsPath) {
+            $json = Get-Content $appSettingsPath -Raw
+            if ($json -match 'SQLEXPRESS') {
+                Clear-Host
+                Show-Header
+                "  [bold teal]|[/] [bold yellow]SQL Server Instance Mismatch Detected[/]" | Write-SpectreHost
+                "    [grey]• appsettings.json targets [white]SQLEXPRESS[/] but this machine has the [white]default instance[/] (MSSQLSERVER).[/]" | Write-SpectreHost
+                "    [grey]• VoteMaster will fail to connect until the connection string is updated.[/]" | Write-SpectreHost
+                Write-Host ""
+
+                $fixNow = Read-SpectreConfirm -Prompt "  Update appsettings.json to use the default instance now?" -Default $true -Color "teal"
+                if ($fixNow) {
+                    $updated = $json -replace 'Server=localhost\\SQLEXPRESS;', 'Server=localhost;'
+                    Set-Content -Path $appSettingsPath -Value $updated -Encoding UTF8
+                    "  [bold green]Connection string updated to use the default SQL Server instance.[/]" | Write-SpectreHost
+                    Start-Sleep 2
+                }
+            }
+        }
+    }
+
+    # ── Case 3: Service is stopped — offer to start it ────────────────────
     if ($state -eq 'Stopped') {
+        $svcName     = if ($instance -eq 'MSSQLSERVER') { 'MSSQLSERVER' } else { 'MSSQL$SQLEXPRESS' }
+        $displayName = if ($instance -eq 'MSSQLSERVER') { 'SQL Server (Default Instance)' } else { 'SQL Server (SQLEXPRESS)' }
+
         Clear-Host
         Show-Header
         "  [bold teal]|[/] [bold yellow]SQL Server Service is Stopped[/]" | Write-SpectreHost
@@ -71,11 +130,20 @@ function Start-SqlServerPrompt {
         "    [grey]• Starting the service now ensures VoteMaster connects and launches instantly.[/]" | Write-SpectreHost
         Write-Host ""
 
-        $startNow = Read-SpectreConfirm -Prompt "  Start SQL Server (SQLEXPRESS) now? (Opens UAC prompt)" -Default $true -Color "teal"
+        $startNow = Read-SpectreConfirm -Prompt "  Start $displayName now? (Opens UAC prompt)" -Default $true -Color "teal"
         if ($startNow) {
             "  [grey]Requesting administrator permission to start SQL Server...[/]" | Write-SpectreHost
             try {
-                $p = Start-Process net -ArgumentList 'start "SQL Server (SQLEXPRESS)"' -Verb RunAs -PassThru -Wait
+                Start-Process net -ArgumentList "start `"$displayName`"" -Verb RunAs -PassThru -Wait | Out-Null
+                Start-Sleep 2
+                # Verify it actually came up
+                $newState = (Get-Service -Name $svcName -ErrorAction SilentlyContinue).Status
+                if ($newState -eq 'Running') {
+                    "  [bold green]SQL Server started successfully.[/]" | Write-SpectreHost
+                }
+                else {
+                    "  [bold yellow]Service may not have started yet. VoteMaster will retry the connection on launch.[/]" | Write-SpectreHost
+                }
                 Start-Sleep 2
             }
             catch {
@@ -182,10 +250,17 @@ function Show-StatusPanel {
     }
 
     if ($sqlState -eq 'Stopped') {
-        "    [grey]• Database:[/] [bold yellow]SQL Server is Stopped (SQLEXPRESS)[/]" | Write-SpectreHost
+        $inst = Get-SqlInstanceName
+        $label = if ($inst -eq 'MSSQLSERVER') { 'Default Instance' } else { 'SQLEXPRESS' }
+        "    [grey]• Database:[/] [bold yellow]SQL Server is Stopped ($label)[/]" | Write-SpectreHost
     }
     elseif ($sqlState -eq 'Running') {
-        "    [grey]• Database:[/] [teal]SQL Server is Active (SQLEXPRESS)[/]" | Write-SpectreHost
+        $inst = Get-SqlInstanceName
+        $label = if ($inst -eq 'MSSQLSERVER') { 'Default Instance' } else { 'SQLEXPRESS' }
+        "    [grey]• Database:[/] [teal]SQL Server is Active ($label)[/]" | Write-SpectreHost
+    }
+    elseif ($sqlState -eq 'NotFound') {
+        "    [grey]• Database:[/] [bold red]SQL Server not installed — VoteMaster cannot connect[/]" | Write-SpectreHost
     }
 
     Write-Host ""
@@ -415,7 +490,9 @@ while ($true) {
     }
     $choices.Add(" Open Web Portal")
     if ($sqlState -eq 'Stopped') {
-        $choices.Add(" Start SQL Server (SQLEXPRESS)")
+        $sqlInst = Get-SqlInstanceName
+        $sqlMenuLabel = if ($sqlInst -eq 'MSSQLSERVER') { ' Start SQL Server (Default Instance)' } else { ' Start SQL Server (SQLEXPRESS)' }
+        $choices.Add($sqlMenuLabel)
     }
     $choices.Add(" View Network Interfaces")
     $choices.Add(" View Application Log")

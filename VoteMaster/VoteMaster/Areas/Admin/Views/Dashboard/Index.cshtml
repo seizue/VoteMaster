@@ -381,10 +381,53 @@
         .kpi-container { grid-template-columns: 1fr 1fr; }
         .table-responsive { display: none !important; }
         .poll-card { display: block; }
+
+        /* Center the status filter pill tabs on mobile */
+        .polls-section-bar {
+            flex-direction: column;
+            align-items: center;
+        }
+        .filter-buttons {
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Stack date filters vertically and make them full width */
+        .dashboard-filters {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .date-filter {
+            width: 100%;
+        }
+        .date-filter .form-control {
+            width: 100%;
+            font-size: 0.75rem;
+        }
+        /* Apply spans full width, Clear centers below it */
+        .filter-group .btn:nth-child(3) {
+            grid-column: 1 / -1;
+        }
+        .filter-group .btn:nth-child(4) {
+            grid-column: 1 / -1;
+            justify-self: center;
+            width: auto;
+        }
     }
     @@media (max-width: 480px) {
         .kpi-container { grid-template-columns: 1fr; }
         .dash-hero-text h2 { font-size: 1.2rem; }
+
+        /* On very small screens, stack apply/clear buttons too */
+        .filter-group {
+            grid-template-columns: 1fr 1fr;
+        }
     }
     @@media (min-width: 769px) { .table-actions { flex-wrap: nowrap; } }
 </style>
